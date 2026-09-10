@@ -1,26 +1,44 @@
-# Argus — Autonomous AI Agent Starter Kit
+# Argus — AI Trading Desk & Cross-Asset Intelligence Workbench
 
 <p align="left">
   <img src="https://img.shields.io/badge/Runtime-Bun%201.4%2B-FBF0DF?style=for-the-badge&logo=bun&logoColor=000000" alt="Bun" />
   <img src="https://img.shields.io/badge/TypeScript-Strict%207-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/AI%20SDK-Vercel%20AI%20v7-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel AI SDK" />
   <img src="https://img.shields.io/badge/Next.js-16%20App%20Router-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Bitget-UTA%20v3%20Market%20Data-00F0FF?style=for-the-badge" alt="Bitget" />
   <img src="https://img.shields.io/badge/Search-Exa%20AI-4F46E5?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Exa AI" />
 </p>
 
-A lightweight, extensible, and high-performance **Autonomous AI Agent Starter Kit** built on Next.js, Vercel AI SDK, and Bun. Features real-time semantic web search powered by Exa AI, a folder-based tool architecture, step-by-step reasoning timelines, live token usage telemetry, and local-first persistence.
+A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench** built for the **7×24 continuous trading era** across crypto assets and tokenized US equities (rTokens). Built on Next.js 16 (App Router), Vercel AI SDK v7, and Bun.
 
 ---
 
 ## Highlights
 
-* 🧠 **Autonomous Multi-Step Reasoning:** Full multi-turn thinking and tool-dispatch loop powered by Vercel AI SDK (`ai@^7`) with Groq and Fireworks AI failover support.
-* 🌐 **Real-Time Semantic Web Search:** Live web research via Exa AI with date filters, domain citations, and minimal interactive source pills.
-* 📁 **Folder-Based Tool Architecture:** Drop new tool files directly into `src/agent/tools/`—tools are automatically discovered, typed, and rendered in the UI with zero boilerplate.
-* ⏱️ **Transparent Reasoning Timeline:** Expandable thinking accordions, intermediate progress updates, and per-step execution timers.
-* 📊 **Token Telemetry & Logging:** Real-time token usage tracking per step and total token counts logged in the terminal and attached to response metadata.
-* 💾 **Local-First Privacy:** Multi-session chat history, title renaming, and message persistence stored locally in your browser with Dexie IndexedDB.
-* 🎨 **Design Token Architecture:** 100% semantic color tokens and Tailwind CSS v4 utility classes with seamless Dark/Light theme switching.
+* 📈 **7×24 Cross-Asset Perception:** Real-time spot and futures market data across crypto majors (`BTCUSDT`, `ETHUSDT`) and tokenized US equities (`TSLAUSDT`, `NVDAUSDT`, `SPYUSDT`, `MSTRUSDT`, `COINUSDT`).
+* 📊 **Pure TypeScript Indicator Engine:** Computes 23 technical indicators across multiple timeframes (RSI 14, MACD, 20/50/200 EMAs, Bollinger Bands, SuperTrend, ATR, Fibonacci retracements) with zero Python/daemon runtime dependencies.
+* 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
+* 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
+* ⚡ **Single-Turn Parallel Tool Orchestration:** Dispatches multiple specialized research tools simultaneously in a single turn for low-latency multi-dimensional market briefings.
+* 🎨 **Interactive Visual Tool Cards:** Custom-designed presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, Sentiment Meters, and Live News Briefings.
+* 💾 **Local-First Privacy:** Multi-session conversation management, title generation, and message history stored locally with Dexie IndexedDB.
+* 🛡️ **Zero Authentication Barrier:** All market data, technical calculations, macro indicators, and sentiment feeds run 100% out-of-the-box with zero API keys required.
+
+---
+
+## Domain Tool Arsenal
+
+Argus exposes a curated domain tool suite matching the Bitget Track 3 Research Workbench standards:
+
+| Tool | Focus & Data Sources | Output Intelligence |
+| :--- | :--- | :--- |
+| **`market_data`** | Bitget Public REST API (Spot & Futures) | Live price, 24h high/low range, 24h volume, funding rates, open interest, and orderbook depth. |
+| **`technical_analysis`** | OHLCV K-lines + Indicator Math | RSI 14, MACD histogram, 20/50/200 EMA alignment, Bollinger Bands, SuperTrend, and Fibonacci zones. |
+| **`macro_analyst`** | Fed policy, Treasury yields, Inflation data | Risk-On / Risk-Off regime verdict, 10Y-2Y spread, CPI/PCE prints, DXY/VIX, and Nasdaq correlations. |
+| **`sentiment_analyst`** | Fear & Greed index + Derivatives flow | Crowd sentiment score (0–100), Retail vs Top Trader Long/Short divergence, and Squeeze risk rating. |
+| **`market_intel`** | DeFi analytics & On-chain metrics | DeFi TVL rankings by chain, stablecoin dry powder liquidity, trending DEX tokens, and gas health. |
+| **`news_briefing`** | Aggregated financial & crypto feeds | High-impact headlines, institutional ETF inflow streaks, regulatory developments, and narrative catalysts. |
+| **`web_search`** | Exa AI semantic search | Deep web research, SEC filings, protocol documentation, and external market queries. |
 
 ---
 
@@ -31,25 +49,27 @@ src/
 ├── agent/                  # AI Reasoning Engine & Tool Dispatch
 │   ├── chat/               # Stream state machine, engine & invocation
 │   ├── providers/          # Groq & Fireworks model definitions & failover
-│   ├── tools/              # Folder-based tool definitions (e.g. web-search.ts)
-│   ├── transforms/         # Sanitizers, session title & follow-up extractors
-│   └── instructions.ts     # Core system prompt instructions
+│   ├── tools/              # Domain-oriented tools (macro, sentiment, technicals, market data)
+│   ├── transforms/         # Title generators & follow-up extractors
+│   └── instructions.ts     # AI Trading Desk system directives
 ├── app/                    # Next.js App Router
 │   ├── api/chat/           # Server-Sent Events (SSE) streaming route
-│   ├── chat/               # Dedicated chat stage route
-│   └── globals.css         # Semantic CSS design tokens
+│   ├── chat/               # Trading desk chat stage route
+│   └── globals.css         # Semantic CSS design tokens & KaTeX theme integration
 ├── components/             # Presentation Components
-│   ├── (chat)/             # Domain-organized chat modules
-│   │   ├── input/          # Input textarea, hero empty state & action dock
-│   │   ├── messages/       # Message bubbles, drafting loaders & list
-│   │   ├── reasoning/      # Timeline, thinking accordion & tool cards
+│   ├── (chat)/             # Domain chat UI
+│   │   ├── input/          # Input dock, empty state & action shortcuts
+│   │   ├── messages/       # Message list & drafting indicators
+│   │   ├── reasoning/      # Timeline, thinking accordion & visual tool cards
+│   │   │   └── tools/      # MarketData, TechnicalAnalysis, Macro, Sentiment cards
 │   │   └── chat-client.tsx # Chat client orchestrator
-│   ├── sidebar/            # Multi-session conversation drawer & theme toggle
-│   └── common/             # Reusable UI primitives (dialogs, loaders, icons)
+│   ├── sidebar/            # Session drawer & theme toggle
+│   └── common/             # Reusable UI primitives
 ├── hooks/                  # Custom React Hooks
 │   ├── chat/               # useAgentChat, useChatSessions, useChatScroll
 │   └── ui/                 # useTheme, useSidebar, useActiveTimer
 ├── lib/                    # Core Libraries & Utilities
+│   ├── bitget/             # Public Bitget REST client, types & indicator math
 │   ├── chat/               # Client-side SSE transport & history formatting
 │   ├── db/                 # Dexie IndexedDB schema & CRUD operations
 │   └── exa/                # Exa AI search client
@@ -58,52 +78,12 @@ src/
 
 ---
 
-## Adding Custom Tools
-
-Extending the agent is as simple as creating a single file in `src/agent/tools/`:
-
-```ts
-// src/agent/tools/my-custom-tool.ts
-import { tool } from 'ai';
-import { z } from 'zod';
-
-export const myCustomTool = tool({
-  description: 'Explain what this tool does so the AI model knows when to invoke it.',
-  parameters: z.object({
-    query: z.string().describe('The search query or input parameter'),
-  }),
-  execute: async ({ query }) => {
-    // Perform your API call, computation, or database query
-    return {
-      success: true,
-      result: `Data for ${query}`,
-    };
-  },
-});
-```
-
-Export it in `src/agent/tools/index.ts`:
-
-```ts
-export * from './web-search';
-export * from './my-custom-tool';
-
-export const agentTools = {
-  web_search: webSearchTool,
-  my_custom_tool: myCustomTool,
-};
-```
-
-Any tool added here is automatically available to the agent and rendered in the reasoning UI without requiring custom card components.
-
----
-
 ## Getting Started
 
 ### 1. Prerequisites
 * [Bun](https://bun.sh/) `v1.4.0` or higher
-* An API key from [Groq](https://console.groq.com/keys) (default model: `qwen/qwen3.8-27b`) or [Fireworks AI](https://fireworks.ai/api-keys)
-* *(Optional)* An API key from [Exa AI](https://dashboard.exa.ai/api-keys) for live web search
+* An API key from [Groq](https://console.groq.com/keys) (default: `qwen/qwen3.8-27b`) or [Fireworks AI](https://fireworks.ai/api-keys)
+* *(Optional)* An API key from [Exa AI](https://dashboard.exa.ai/api-keys) for web search
 
 ### 2. Installation
 ```bash
@@ -135,9 +115,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Quality & Verification
+## Quality & Verification Standards
 
-Argus adheres to strict TypeScript and Oxlint verification standards:
+Argus adheres to strict TypeScript 7 and Oxlint verification standards:
 
 ```bash
 # Typecheck with TypeScript 7 (0 errors)
@@ -146,7 +126,7 @@ bun x tsc --noEmit
 # Lint with Oxlint (0 warnings, 0 errors)
 bun run lint
 
-# Production build
+# Production build test
 bun run build
 ```
 
