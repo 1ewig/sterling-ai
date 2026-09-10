@@ -6,9 +6,9 @@ import { ChatEmptyState, ChatDock, type QuickActionItem } from './input';
 import { ChatMessageList } from './messages';
 
 const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
-  { id: 'ai-trends', label: 'Latest AI News', template: 'What are the most significant developments in AI this week?' },
-  { id: 'tech-research', label: 'Agent Architecture', template: 'Provide a comprehensive breakdown of modern AI agent architectures and tool calling' },
-  { id: 'web-search', label: 'Live Web Search', template: 'Search and summarize the latest updates on quantum computing breakthroughs' },
+  { id: 'tsla-rtoken', label: 'TSLA Perception', template: 'Provide a complete multi-timeframe perception briefing on TSLAUSDT tokenized stock, including RSI/MACD indicators, orderbook depth, and macro risk regime.' },
+  { id: 'btc-divergence', label: 'BTC Divergence', template: 'Analyze BTCUSDT with current funding rates, top trader long/short divergence, and derivatives squeeze risk.' },
+  { id: 'cross-asset-macro', label: 'Macro Regime & Yields', template: 'Run a cross-asset macro correlation analysis across Fed funds rate, 10Y-2Y yield curve spread, and crypto liquidity.' },
 ];
 
 /**

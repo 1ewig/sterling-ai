@@ -7,7 +7,7 @@ export interface ArgusIconProps extends React.SVGProps<SVGSVGElement> {
 
 /**
  * Reusable Argus brand SVG icon.
- * Simple yellow block with rounded corners.
+ * Simple brand icon block with rounded corners.
  */
 export function ArgusIcon({
   size,

@@ -2,26 +2,26 @@
 
 /* ==========================================================================
    1. THEME VARIABLES (15)
-   Default: Obsidian Architectural Dark Theme
-   Deep carbon basework, slate surfaces, high-clarity platinum typography,
-   and signature canary gold highlights.
+   Default: Bitget Cybernetic Intelligence Dark Theme
+   Deep midnight carbon basework, sleek slate surfaces, high-clarity platinum typography,
+   and signature Bitget electric cyan & aqua highlights.
    ========================================================================== */
 :root, html.dark {
-  --theme-bg-base: #181a20;             /* Core dark terminal basework */
-  --theme-bg-surface: #1e2329;          /* Signature card & panel slate */
-  --theme-bg-elevated: #2b313a;         /* Interactive buttons, chips, and hover layers */
-  --theme-bg-overlay: #0b0e11;          /* Deep pitch modal overlays & dark docks */
-  --theme-border-subtle: #2b313a;       /* Hairline micro-dividers and card outlines */
-  --theme-border-strong: #474d57;       /* Focused structural borders and active indicators */
-  --theme-text-primary: #eaecef;        /* Pure platinum white for stats & headings */
-  --theme-text-secondary: #848e9c;      /* Cool neutral slate for sub-stats & labels */
-  --theme-text-muted: #5e6673;          /* Calm micro-annotations, timestamps, and tooltips */
-  --theme-brand-primary: #f0b90b;       /* Luminous brand gold accent */
-  --theme-brand-accent: #fcd535;        /* Canary gold highlights */
+  --theme-bg-base: #0a0d14;             /* Core dark terminal basework */
+  --theme-bg-surface: #111622;          /* Signature card & panel slate */
+  --theme-bg-elevated: #171e2e;         /* Interactive buttons, chips, and hover layers */
+  --theme-bg-overlay: #07090e;          /* Deep pitch modal overlays & dark docks */
+  --theme-border-subtle: #1e2738;       /* Hairline micro-dividers and card outlines */
+  --theme-border-strong: #2a374e;       /* Focused structural borders and active indicators */
+  --theme-text-primary: #f0f4f8;        /* Pure platinum white for stats & headings */
+  --theme-text-secondary: #8a99ad;      /* Cool neutral slate for sub-stats & labels */
+  --theme-text-muted: #56657a;          /* Calm micro-annotations, timestamps, and tooltips */
+  --theme-brand-primary: #00f0ff;       /* Bitget signature electric cyan accent */
+  --theme-brand-accent: #00dfea;        /* Vibrant aqua highlights */
   --theme-status-success: #0ecb81;      /* Crisp status green */
   --theme-status-danger: #f6465d;       /* Crisp crimson danger/risk */
-  --theme-status-warning: #f0b90b;      /* Warm amber risk notices */
-  --theme-status-info: #1e88e5;         /* High-clarity feed blue */
+  --theme-status-warning: #ffaa00;      /* Warm amber risk notices */
+  --theme-status-info: #00b8d9;         /* High-clarity feed cyan-blue */
 
   /* ==========================================================================
      2. TEXT SIZE VARIABLES (8)
@@ -71,17 +71,17 @@
 
 /* Light Theme Overrides (Clean Light) */
 html.light {
-  --theme-bg-base: #fafafa;             /* Clean, refined light canvas */
+  --theme-bg-base: #f4f7fa;             /* Cool ice canvas */
   --theme-bg-surface: #ffffff;          /* Crisp card containers & deck surfaces */
-  --theme-bg-elevated: #f5f5f5;         /* Soft secondary controls, chips, tabs & hover */
-  --theme-bg-overlay: #181a20;          /* Deep pitch high-contrast focus cards & docks */
-  --theme-border-subtle: #eaecef;       /* Subtle hairline micro-dividers & borders */
-  --theme-border-strong: #d8dce1;       /* Focused active borders & indicators */
-  --theme-text-primary: #1e2329;        /* Pure slate black for display headings */
-  --theme-text-secondary: #707a8a;      /* Refined neutral slate for subtitles & labels */
-  --theme-text-muted: #b7bdc6;          /* Legible slate for timestamps & micro-details */
-  --theme-brand-primary: #f0b90b;       /* Primary yellow accent */
-  --theme-brand-accent: #fcd535;        /* Canary gold for active meters & hover highlights */
+  --theme-bg-elevated: #eaf0f6;         /* Soft secondary controls, chips, tabs & hover */
+  --theme-bg-overlay: #0a0d14;          /* Deep pitch high-contrast focus cards & docks */
+  --theme-border-subtle: #e2e8f0;       /* Subtle hairline micro-dividers & borders */
+  --theme-border-strong: #cbd5e1;       /* Focused active borders & indicators */
+  --theme-text-primary: #0f172a;        /* Pure slate dark for display headings */
+  --theme-text-secondary: #64748b;      /* Refined neutral slate for subtitles & labels */
+  --theme-text-muted: #94a3b8;          /* Legible slate for timestamps & micro-details */
+  --theme-brand-primary: #00a3b4;       /* Primary cyan accent */
+  --theme-brand-accent: #00c4d6;        /* Aqua for active meters & hover highlights */
   --theme-status-success: #0ecb81;      /* Emerald green for positive status */
   --theme-status-danger: #f6465d;       /* Crimson for errors & risk triggers */
   --theme-status-warning: #f59e0b;      /* Warm amber for warnings & caution alerts */
@@ -245,11 +245,11 @@ button,
   );
 }
 
-/* Luminous Glow Gradient for Empty Chat State (Zero blur filters for ultra-low GPU overhead) */
+/* Luminous Glow Gradient for Empty Chat State (1:1 circular halo centered directly behind the hero input dock) */
 .chat-empty-glow {
   background:
     radial-gradient(
-      ellipse 60% 42% at 50% 32%,
+      circle 550px at 50% 52%,
       color-mix(in srgb, var(--theme-brand-primary) 12%, transparent) 0%,
       color-mix(in srgb, var(--theme-brand-accent) 5%, transparent) 45%,
       transparent 70%

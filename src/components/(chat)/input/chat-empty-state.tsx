@@ -44,14 +44,14 @@ export const ChatEmptyState = memo(function ChatEmptyState({
 
   return (
     <>
-      {/* Dynamic Luminous Glow */}
+      {/* Dynamic Luminous Ambient Glow */}
       <motion.div
         key="chat-empty-glow"
         variants={emptyStateGlowVariants}
         initial="hidden"
         animate="visible"
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden z-0"
+        className="pointer-events-none absolute inset-0 overflow-hidden z-0 select-none"
       >
         <div className="absolute inset-0 chat-empty-glow animate-glow-breathe" />
       </motion.div>
