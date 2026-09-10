@@ -39,11 +39,11 @@ export const ChatMessageList = memo(function ChatMessageList({
     <div
       ref={scrollContainerRef}
       onScroll={onScroll}
-      className={`relative z-10 flex-1 overflow-y-auto overscroll-y-contain [will-change:scroll-position] [transform:translateZ(0)] px-spacing-md sm:px-spacing-lg pt-spacing-md pb-spacing-lg min-h-0 custom-scrollbar ${
+      className={`relative z-10 flex-1 flex flex-col-reverse overflow-y-auto overscroll-y-contain [will-change:scroll-position] [transform:translateZ(0)] px-spacing-md sm:px-spacing-lg pt-spacing-md pb-spacing-lg min-h-0 custom-scrollbar ${
         isChatEmpty ? 'pointer-events-none select-none opacity-0' : 'opacity-100'
       }`}
     >
-      <div className="w-full max-w-3xl mx-auto flex flex-col gap-spacing-md">
+      <div className="w-full max-w-3xl mx-auto flex flex-col gap-spacing-md min-h-full justify-end">
         {messages.map((msg, index) => (
           <ChatMessage
             key={msg.id}
