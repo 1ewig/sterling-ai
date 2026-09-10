@@ -1,15 +1,22 @@
 import { webSearchTool } from './web-search';
+import { marketDataTool } from './market-data';
+import { technicalAnalysisTool } from './technical-analysis';
+import { macroAnalystTool } from './macro-analyst';
+import { sentimentAnalystTool } from './sentiment-analyst';
+import { marketIntelTool } from './market-intel';
+import { newsBriefingTool } from './news-briefing';
 
 /**
  * Registry of all agent tools.
- * 
- * To add a new tool:
- * 1. Create a new file in `src/agent/tools/<tool-name>.ts`
- * 2. Import and add it to `agentTools` below.
  */
 export const agentTools = {
   web_search: webSearchTool,
-  search_crypto_news: webSearchTool, // Backwards-compatible alias
+  market_data: marketDataTool,
+  technical_analysis: technicalAnalysisTool,
+  macro_analyst: macroAnalystTool,
+  sentiment_analyst: sentimentAnalystTool,
+  market_intel: marketIntelTool,
+  news_briefing: newsBriefingTool,
 };
 
 export type AgentTools = typeof agentTools;
@@ -21,5 +28,12 @@ export function getAgentTools(): AgentTools {
   return agentTools;
 }
 
-// Export individual tools for direct access if needed
-export { webSearchTool };
+export {
+  webSearchTool,
+  marketDataTool,
+  technicalAnalysisTool,
+  macroAnalystTool,
+  sentimentAnalystTool,
+  marketIntelTool,
+  newsBriefingTool,
+};

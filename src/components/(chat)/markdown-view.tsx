@@ -12,9 +12,13 @@ import { CodeBlock } from './code-block';
 
 const InsidePreContext = createContext<boolean>(false);
 
-const REMARK_PLUGINS = [remarkGfm, remarkMath];
+const REMARK_PLUGINS: React.ComponentProps<typeof ReactMarkdown>['remarkPlugins'] = [
+  remarkGfm,
+  [remarkMath, { singleDollarTextMath: false }],
+];
+
 const REHYPE_PLUGINS: React.ComponentProps<typeof ReactMarkdown>['rehypePlugins'] = [
-  rehypeKatex,
+  [rehypeKatex, { strict: false, throwOnError: false }],
   [rehypeSanitize, agentSanitizeSchema],
 ];
 

@@ -3,6 +3,12 @@
 import React from 'react';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { WebSearchCard } from './web-search-card';
+import { MarketDataCard } from './market-data-card';
+import { TechnicalAnalysisCard } from './technical-analysis-card';
+import { MacroAnalystCard } from './macro-analyst-card';
+import { SentimentAnalystCard } from './sentiment-analyst-card';
+import { MarketIntelCard } from './market-intel-card';
+import { NewsBriefingCard } from './news-briefing-card';
 import type { ToolDisplayInfo, ToolResultCardProps } from './types';
 import { getToolDisplayInfo } from './display-info';
 
@@ -11,7 +17,6 @@ export { getToolDisplayInfo };
 
 /**
  * Organizes tool results into sleek, compact presentation widgets.
- * Automatically formats custom tool outputs cleanly without requiring custom card components.
  */
 export const ToolResultCard = React.memo(function ToolResultCard({
   toolName,
@@ -28,7 +33,7 @@ export const ToolResultCard = React.memo(function ToolResultCard({
       return (
         <div className="flex items-center gap-2 p-2 rounded-lg bg-theme-status-danger/10 border border-theme-status-danger/20 text-theme-status-danger text-xs font-medium">
           <AlertCircle className="size-3.5 shrink-0" />
-          <span className="truncate">{errorMessage ?? 'Search Error'}</span>
+          <span className="truncate">{errorMessage ?? 'Tool Execution Error'}</span>
         </div>
       );
     }
@@ -45,6 +50,25 @@ export const ToolResultCard = React.memo(function ToolResultCard({
       case 'web_search':
       case 'search_crypto_news':
         return <WebSearchCard resultObj={resultObj} />;
+
+      case 'market_data':
+        return <MarketDataCard resultObj={resultObj} />;
+
+      case 'technical_analysis':
+        return <TechnicalAnalysisCard resultObj={resultObj} />;
+
+      case 'macro_analyst':
+        return <MacroAnalystCard resultObj={resultObj} />;
+
+      case 'sentiment_analyst':
+        return <SentimentAnalystCard resultObj={resultObj} />;
+
+      case 'market_intel':
+        return <MarketIntelCard resultObj={resultObj} />;
+
+      case 'news_briefing':
+        return <NewsBriefingCard resultObj={resultObj} />;
+
       default: {
         const entries = Object.entries(resultObj).filter(([k]) => k !== 'success');
         if (entries.length === 0) {
