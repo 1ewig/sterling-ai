@@ -187,7 +187,7 @@ export const ChatInput = memo(
 
     return (
       <div className={containerClassName ?? 'px-spacing-md pb-spacing-lg sm:pb-spacing-xl bg-theme-bg-base shrink-0'}>
-        <div className={`relative mx-auto w-full ${className ?? 'max-w-3xl'}`}>
+        <div className={`relative mx-auto w-full ${className ?? 'max-w-4xl'}`}>
           {showAura && (
             <>
               <div
@@ -207,21 +207,18 @@ export const ChatInput = memo(
 
           <div
             onClick={handleContainerClick}
-            className={`w-full relative z-2 flex items-end gap-2 bg-theme-bg-surface/95 hover:bg-theme-bg-surface cursor-text ${
-              showAura
+            className={`w-full relative z-2 flex items-end gap-2 bg-theme-bg-surface/95 hover:bg-theme-bg-surface cursor-text ${showAura
                 ? 'rounded-2xl py-2.5 pl-4 pr-2 border border-theme-border-subtle/70'
                 : isMultiLine
-                  ? `rounded-2xl py-2 pl-4 pr-2 border ${
-                      isFocused
-                        ? 'border-theme-brand-primary ring-2 ring-theme-brand-primary/30'
-                        : 'border-theme-border-subtle hover:border-theme-border-strong'
-                    } focus-within:border-theme-brand-primary focus-within:ring-2 focus-within:ring-theme-brand-primary/30`
-                  : `rounded-full py-1.5 pl-4 pr-1.5 border ${
-                      isFocused
-                        ? 'border-theme-brand-primary ring-2 ring-theme-brand-primary/30'
-                        : 'border-theme-border-subtle hover:border-theme-border-strong'
-                    } focus-within:border-theme-brand-primary focus-within:ring-2 focus-within:ring-theme-brand-primary/30`
-            } shadow-xs transition-all duration-150 backdrop-blur-xl`}
+                  ? `rounded-2xl py-2 pl-4 pr-2 border ${isFocused
+                    ? 'border-theme-brand-primary ring-2 ring-theme-brand-primary/30'
+                    : 'border-theme-border-subtle hover:border-theme-border-strong'
+                  } focus-within:border-theme-brand-primary focus-within:ring-2 focus-within:ring-theme-brand-primary/30`
+                  : `rounded-full py-1.5 pl-4 pr-1.5 border ${isFocused
+                    ? 'border-theme-brand-primary ring-2 ring-theme-brand-primary/30'
+                    : 'border-theme-border-subtle hover:border-theme-border-strong'
+                  } focus-within:border-theme-brand-primary focus-within:ring-2 focus-within:ring-theme-brand-primary/30`
+              } shadow-xs transition-all duration-150 backdrop-blur-xl`}
           >
             {/* Text Area */}
             <textarea
@@ -256,10 +253,10 @@ export const ChatInput = memo(
               disabled={isButtonDisabled}
               aria-label={isLoading ? 'Stop generating' : 'Send'}
               className={`flex items-center justify-center size-8 rounded-full transition-all shadow-xs select-none shrink-0 mb-0.5 ${isLoading
-                  ? 'bg-theme-text-primary text-theme-bg-base hover:opacity-90 active:scale-95 cursor-pointer'
-                  : isButtonDisabled
-                    ? 'bg-theme-bg-elevated text-theme-text-muted opacity-40 cursor-not-allowed'
-                    : 'bg-theme-brand-primary text-theme-bg-overlay hover:brightness-105 active:brightness-95 cursor-pointer'
+                ? 'bg-theme-text-primary text-theme-bg-base hover:opacity-90 active:scale-95 cursor-pointer'
+                : isButtonDisabled
+                  ? 'bg-theme-bg-elevated text-theme-text-muted opacity-40 cursor-not-allowed'
+                  : 'bg-theme-brand-primary text-theme-bg-overlay hover:brightness-105 active:brightness-95 cursor-pointer'
                 }`}
             >
               <AnimatePresence mode="wait" initial={false}>
