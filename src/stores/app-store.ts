@@ -66,7 +66,7 @@ export const useAppStore = create<AppState>()(
       setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
     }),
     {
-      name: 'argus-session-store',
+      name: 'sterling-session-store',
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

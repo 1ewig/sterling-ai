@@ -1,7 +1,7 @@
 import { getAgentModel, getBackupAgentModel } from '../providers/models';
 import { getAgentTools, type AgentTools } from '../tools';
 import {
-  ARGUS_INSTRUCTIONS,
+  STERLING_INSTRUCTIONS,
   FIRST_TURN_SESSION_TITLE_DIRECTIVE,
 } from '../instructions';
 import type { AgentOptions } from '../types';
@@ -48,8 +48,8 @@ export function prepareAgentInvocation(options: AgentOptions): PreparedAgentInvo
   }
 
   const effectiveSystemPrompt = directives.length > 0
-    ? `${ARGUS_INSTRUCTIONS}\n\n${directives.join('\n\n')}`
-    : ARGUS_INSTRUCTIONS;
+    ? `${STERLING_INSTRUCTIONS}\n\n${directives.join('\n\n')}`
+    : STERLING_INSTRUCTIONS;
 
   const messages = history && history.length > 0
     ? [

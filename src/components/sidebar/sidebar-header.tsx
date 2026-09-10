@@ -3,7 +3,7 @@
 import React, { useState, memo } from 'react';
 import { motion } from 'framer-motion';
 import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
-import { ArgusIcon } from '@/components/common';
+import { SterlingIcon } from '@/components/common';
 import { sidebarHorizontalCollapseVariants, sidebarSpringTransition, tapScalePill } from '@/constants/animation';
 
 export interface SidebarHeaderProps {
@@ -32,13 +32,13 @@ export const SidebarHeader = memo(function SidebarHeader({ isCollapsed, onToggle
               ? 'hover:bg-theme-bg-elevated active:bg-theme-bg-elevated/80 text-theme-brand-primary border border-transparent hover:border-theme-border-subtle'
               : 'hover:bg-theme-bg-elevated/60 active:bg-theme-bg-elevated text-theme-brand-primary border border-transparent hover:border-theme-border-subtle'
           }`}
-          title={isCollapsed ? 'Expand sidebar' : 'Argus'}
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Argus'}
+          title={isCollapsed ? 'Expand sidebar' : 'Sterling'}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Sterling'}
         >
           {isCollapsed && isLogoHovered ? (
             <PanelLeftOpen className="size-5 text-theme-brand-primary animate-in fade-in duration-150" />
           ) : (
-            <ArgusIcon className="size-6 text-theme-brand-primary" />
+            <SterlingIcon className="size-6 text-theme-brand-primary" />
           )}
         </motion.button>
 
@@ -50,10 +50,10 @@ export const SidebarHeader = memo(function SidebarHeader({ isCollapsed, onToggle
           className="flex flex-col min-w-0 overflow-hidden whitespace-nowrap flex-1 pl-2.5"
         >
           <span className="text-sm font-extrabold tracking-tight text-theme-text-primary leading-none">
-            Argus
+            Sterling
           </span>
           <span className="text-2xs font-semibold text-theme-text-muted leading-tight mt-0.5">
-            AI Agent Starter Kit
+            AI Trading Desk
           </span>
         </motion.div>
 

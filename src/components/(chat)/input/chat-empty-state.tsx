@@ -3,7 +3,7 @@
 import React, { useRef, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight } from 'lucide-react';
-import { ArgusIcon } from '@/components/common';
+import { SterlingIcon } from '@/components/common';
 import {
   emptyStateContainerVariants,
   emptyStateGlowVariants,
@@ -71,7 +71,7 @@ export const ChatEmptyState = memo(function ChatEmptyState({
             className="flex flex-col items-center text-center max-w-xl mb-spacing-lg"
           >
             <div className="size-10 rounded-2xl bg-theme-bg-elevated border border-theme-border-subtle flex items-center justify-center mb-3 shadow-2xs">
-              <ArgusIcon className="size-5 text-theme-brand-primary" />
+              <SterlingIcon className="size-5 text-theme-brand-primary" />
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-theme-text-primary tracking-tight font-sans leading-tight">

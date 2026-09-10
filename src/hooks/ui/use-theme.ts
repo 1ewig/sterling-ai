@@ -4,7 +4,7 @@ import { useSyncExternalStore, useCallback } from 'react';
 
 export type Theme = 'dark' | 'light';
 
-const THEME_STORAGE_KEY = 'argus-theme';
+const THEME_STORAGE_KEY = 'sterling-theme';
 
 function applyThemeClass(newTheme: Theme) {
   if (typeof document === 'undefined') return;

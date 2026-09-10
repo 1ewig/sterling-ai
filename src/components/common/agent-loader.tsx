@@ -30,38 +30,38 @@ export function AgentLoader({
     >
       <style>
         {`
-          @keyframes argus-spin {
+          @keyframes sterling-spin {
             to { transform: rotate(360deg); }
           }
-          @keyframes argus-morph {
+          @keyframes sterling-morph {
             0%, 25% { stroke-dasharray: 0.1 15; stroke-dashoffset: 0; }
             50%, 75% { stroke-dasharray: 48 160; stroke-dashoffset: -12; }
             100% { stroke-dasharray: 0.1 15; stroke-dashoffset: 0; }
           }
-          .argus-loader-track {
+          .sterling-loader-track {
             stroke: var(--theme-border-strong);
             stroke-width: 2.5;
             opacity: 0.35;
           }
-          .argus-loader-spinner {
+          .sterling-loader-spinner {
             transform-origin: center;
-            animation: argus-spin 3s linear infinite;
+            animation: sterling-spin 3s linear infinite;
           }
-          .argus-loader-stroke {
+          .sterling-loader-stroke {
             stroke: currentColor;
             stroke-width: 4;
             stroke-linecap: round;
-            animation: argus-morph 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            animation: sterling-morph 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
           }
         `}
       </style>
-      <circle cx="32" cy="32" r="24" className={`argus-loader-track ${trackClassName ?? ''}`} />
-      <g className="argus-loader-spinner">
+      <circle cx="32" cy="32" r="24" className={`sterling-loader-track ${trackClassName ?? ''}`} />
+      <g className="sterling-loader-spinner">
         <circle
           cx="32"
           cy="32"
           r="24"
-          className={`argus-loader-stroke ${strokeClassName ?? ''}`}
+          className={`sterling-loader-stroke ${strokeClassName ?? ''}`}
           strokeDasharray="0.1 15"
         />
       </g>

@@ -3,7 +3,7 @@
 import { useSyncExternalStore, useCallback } from 'react';
 import { useAppStore } from '@/stores/app-store';
 
-const SIDEBAR_STORAGE_KEY = 'argus-sidebar-collapsed';
+const SIDEBAR_STORAGE_KEY = 'sterling-sidebar-collapsed';
 
 function getSidebarSnapshot(): boolean {
   if (typeof window === 'undefined') return false;

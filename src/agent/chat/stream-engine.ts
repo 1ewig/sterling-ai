@@ -50,7 +50,7 @@ export async function executeAgentStream(
 
   if (process.env.NODE_ENV !== 'production') {
     console.log(
-      `\n🤖 [Argus:ChatAgent] Started | Symbol: ${symbol ?? 'GLOBAL'} | MaxSteps: ${maxSteps}`
+      `\n🤖 [Sterling:ChatAgent] Started | Symbol: ${symbol ?? 'GLOBAL'} | MaxSteps: ${maxSteps}`
     );
     console.log(
       `   Prompt: "${options.prompt.slice(0, 100)}${options.prompt.length > 100 ? '...' : ''}"`
@@ -225,7 +225,7 @@ export async function executeAgentStream(
   if (process.env.NODE_ENV !== 'production') {
     const totalReasoningStr = finalUsage.reasoningTokens ? `, reasoning: ${finalUsage.reasoningTokens}` : '';
     console.log(
-      `🏁 [Argus:ChatAgent] Finished in ${workedDurationMs}ms (${steps.length} steps, ${executedToolCalls.length} tools)`
+      `🏁 [Sterling:ChatAgent] Finished in ${workedDurationMs}ms (${steps.length} steps, ${executedToolCalls.length} tools)`
     );
     console.log(
       `   📊 [Total Tokens]: ${finalUsage.totalTokens} (input: ${finalUsage.inputTokens}, output: ${finalUsage.outputTokens}${totalReasoningStr})`

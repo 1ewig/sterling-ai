@@ -151,7 +151,7 @@ export function LeftSidebar() {
               key="mobile-sidebar-drawer"
               role="dialog"
               aria-modal="true"
-              aria-label="Argus"
+              aria-label="Sterling"
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}

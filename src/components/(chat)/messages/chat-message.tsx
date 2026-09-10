@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { User, AlertCircle, Sparkles, ArrowUpRight } from 'lucide-react';
-import { AgentLoader, ArgusIcon } from '@/components/common';
+import { AgentLoader, SterlingIcon } from '@/components/common';
 import {
   draftIndicatorVariants,
   messageEntranceVariants,
@@ -123,14 +123,14 @@ export const ChatMessage = memo(function ChatMessage({
     >
       {/* Brand Monogram Icon */}
       <div className="size-8 rounded-xl bg-theme-bg-elevated border border-theme-border-subtle flex items-center justify-center shrink-0 shadow-2xs">
-        <ArgusIcon className="size-4.5 text-theme-brand-primary shrink-0" />
+        <SterlingIcon className="size-4.5 text-theme-brand-primary shrink-0" />
       </div>
 
       <div className="flex-1 flex flex-col gap-spacing-xs min-w-0">
         {/* Header Bar */}
         <div className="flex items-center gap-spacing-xs text-xs text-theme-text-muted px-1">
           <span className="font-bold text-theme-text-primary tracking-tight">
-            Argus
+            Sterling
           </span>
           <span>•</span>
           <span className="font-mono text-2xs">{formattedTime}</span>

@@ -1,4 +1,4 @@
-# Argus — Engineering Guidelines
+# Sterling — Engineering Guidelines
 
 Core rules for AI coding agents working in this repository:
 

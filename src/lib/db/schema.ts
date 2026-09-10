@@ -32,14 +32,14 @@ export const DEFAULT_CONVERSATION_ID = 'default';
 export const DEFAULT_CONVERSATION_TITLE = 'New Chat';
 
 /**
- * Institutional Dexie IndexedDB Database for Argus multi-session chat history.
+ * Institutional Dexie IndexedDB Database for Sterling multi-session chat history.
  */
-export class ArgusDatabase extends Dexie {
+export class SterlingDatabase extends Dexie {
   conversations!: EntityTable<ConversationRecord, 'id'>;
   messages!: EntityTable<ChatMessageRecord, 'id'>;
 
   constructor() {
-    super('ArgusDatabase');
+    super('SterlingDatabase');
 
     // Schema v1: Flat messages
     this.version(1).stores({
@@ -70,4 +70,4 @@ export class ArgusDatabase extends Dexie {
   }
 }
 
-export const db = new ArgusDatabase();
+export const db = new SterlingDatabase();

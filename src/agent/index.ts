@@ -1,5 +1,5 @@
 /**
- * Argus AI Agent Layer — Public API
+ * Sterling AI Agent Layer — Public API
  */
 
 export * from './types';

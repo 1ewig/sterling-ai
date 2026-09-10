@@ -1,4 +1,4 @@
-# Argus — AI Trading Desk & Cross-Asset Intelligence Workbench
+# Sterling — AI Trading Desk & Cross-Asset Intelligence Workbench
 
 <p align="left">
   <img src="https://img.shields.io/badge/Runtime-Bun%201.4%2B-FBF0DF?style=for-the-badge&logo=bun&logoColor=000000" alt="Bun" />
@@ -20,7 +20,7 @@ A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench
 * 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
 * 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
 * ⚡ **Single-Turn Parallel Tool Orchestration:** Dispatches multiple specialized research tools simultaneously in a single turn for low-latency multi-dimensional market briefings.
-* 🎨 **Interactive Visual Tool Cards:** Custom-designed presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, Sentiment Meters, and Live News Briefings.
+* 🎨 **Interactive Visual Tool Cards:** Custom-designed presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, and Sentiment Meters.
 * 💾 **Local-First Privacy:** Multi-session conversation management, title generation, and message history stored locally with Dexie IndexedDB.
 * 🛡️ **Zero Authentication Barrier:** All market data, technical calculations, macro indicators, and sentiment feeds run 100% out-of-the-box with zero API keys required.
 
@@ -28,7 +28,7 @@ A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench
 
 ## Domain Tool Arsenal
 
-Argus exposes a curated domain tool suite matching the Bitget Track 3 Research Workbench standards:
+Sterling exposes a curated domain tool suite matching the Bitget Track 3 Research Workbench standards:
 
 | Tool | Focus & Data Sources | Output Intelligence |
 | :--- | :--- | :--- |
@@ -116,7 +116,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Quality & Verification Standards
 
-Argus adheres to strict TypeScript 7 and Oxlint verification standards:
+Sterling adheres to strict TypeScript 7 and Oxlint verification standards:
 
 ```bash
 # Typecheck with TypeScript 7 (0 errors)

@@ -35,7 +35,7 @@ export const ChatHeader = memo(function ChatHeader({
 
         <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
           <span className="text-xs sm:text-sm font-bold tracking-wider text-theme-text-primary">
-            Argus
+            Sterling
           </span>
         </div>
       </div>

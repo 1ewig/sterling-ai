@@ -1,3 +1,4 @@
 export * from './confirm-dialog';
 export * from './agent-loader';
-export * from './argus-icon';
+export * from './sterling-icon';
+

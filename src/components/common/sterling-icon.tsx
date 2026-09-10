@@ -1,19 +1,19 @@
 import React from 'react';
 
-export interface ArgusIconProps extends React.SVGProps<SVGSVGElement> {
+export interface SterlingIconProps extends React.SVGProps<SVGSVGElement> {
   size?: number | string;
   className?: string;
 }
 
 /**
- * Reusable Argus brand SVG icon.
+ * Reusable Sterling brand SVG icon.
  * Simple brand icon block with rounded corners.
  */
-export function ArgusIcon({
+export function SterlingIcon({
   size,
   className = 'size-4 text-theme-brand-primary',
   ...props
-}: ArgusIconProps) {
+}: SterlingIconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -30,3 +30,7 @@ export function ArgusIcon({
     </svg>
   );
 }
+
+// Backward-compatible alias
+export const ArgusIcon = SterlingIcon;
+export type ArgusIconProps = SterlingIconProps;

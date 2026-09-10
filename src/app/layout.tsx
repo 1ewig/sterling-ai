@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Argus — Autonomous AI Agent Starter Kit",
-  description: "Lightweight autonomous AI agent starter kit with real-time web search.",
+  title: "Sterling — AI Trading Desk & Cross-Asset Intelligence Workbench",
+  description: "High-performance AI Trading Desk for 24/7 continuous crypto and tokenized US equities trading.",
   icons: {
     icon: "/icon.svg",
   },
@@ -26,11 +26,11 @@ export const metadata: Metadata = {
 const PRE_HYDRATION_SCRIPT = `
 (function() {
   try {
-    var storedTheme = localStorage.getItem('argus-theme');
+    var storedTheme = localStorage.getItem('sterling-theme');
     var theme = storedTheme === 'light' ? 'light' : 'dark';
     document.documentElement.classList.add(theme);
 
-    var storedSidebar = localStorage.getItem('argus-sidebar-collapsed');
+    var storedSidebar = localStorage.getItem('sterling-sidebar-collapsed');
     if (storedSidebar === 'true') {
       document.documentElement.classList.add('sidebar-collapsed');
     }

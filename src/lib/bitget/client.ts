@@ -175,7 +175,7 @@ async function callMcpTool(toolName: string, args: Record<string, unknown> = {})
         jsonrpc: '2.0',
         id: 1,
         method: 'initialize',
-        params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'argus', version: '1.0.0' } },
+        params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'sterling', version: '1.0.0' } },
       }),
       signal: AbortSignal.timeout(4000),
     });
