@@ -2,7 +2,7 @@
 
 import React, { useMemo, memo } from 'react';
 import { useAgentChat } from '@/hooks';
-import { ChatEmptyState, ChatDock, type QuickActionItem } from './input';
+import { ChatEmptyState, ChatInput, type QuickActionItem } from './input';
 import { ChatMessageList } from './messages';
 
 const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
@@ -72,11 +72,15 @@ export const ChatClient = memo(function ChatClient() {
       />
 
       {!isChatEmpty && (
-        <ChatDock
-          isLoading={isLoading}
-          onSend={handleSend}
-          onStop={handleStop}
-        />
+        <div className="relative z-20 w-full bg-gradient-to-t from-theme-bg-base via-theme-bg-base/95 to-transparent pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] sm:pb-spacing-md px-spacing-md sm:px-spacing-lg shrink-0">
+          <ChatInput
+            isLoading={isLoading}
+            onSend={handleSend}
+            onStop={handleStop}
+            className="max-w-4xl"
+            containerClassName="w-full p-0 bg-transparent"
+          />
+        </div>
       )}
     </div>
   );
