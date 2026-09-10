@@ -1,0 +1,400 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   1. THEME VARIABLES (15)
+   Default: Obsidian Architectural Dark Theme
+   Deep carbon basework, slate surfaces, high-clarity platinum typography,
+   and signature canary gold highlights.
+   ========================================================================== */
+:root, html.dark {
+  --theme-bg-base: #181a20;             /* Core dark terminal basework */
+  --theme-bg-surface: #1e2329;          /* Signature card & panel slate */
+  --theme-bg-elevated: #2b313a;         /* Interactive buttons, chips, and hover layers */
+  --theme-bg-overlay: #0b0e11;          /* Deep pitch modal overlays & dark docks */
+  --theme-border-subtle: #2b313a;       /* Hairline micro-dividers and card outlines */
+  --theme-border-strong: #474d57;       /* Focused structural borders and active indicators */
+  --theme-text-primary: #eaecef;        /* Pure platinum white for stats & headings */
+  --theme-text-secondary: #848e9c;      /* Cool neutral slate for sub-stats & labels */
+  --theme-text-muted: #5e6673;          /* Calm micro-annotations, timestamps, and tooltips */
+  --theme-brand-primary: #f0b90b;       /* Luminous brand gold accent */
+  --theme-brand-accent: #fcd535;        /* Canary gold highlights */
+  --theme-status-success: #0ecb81;      /* Crisp status green */
+  --theme-status-danger: #f6465d;       /* Crisp crimson danger/risk */
+  --theme-status-warning: #f0b90b;      /* Warm amber risk notices */
+  --theme-status-info: #1e88e5;         /* High-clarity feed blue */
+
+  /* ==========================================================================
+     2. TEXT SIZE VARIABLES (8)
+     Scaled up to eliminate ant-sized fonts and deliver colossal, confident impact:
+     ========================================================================== */
+  --text-2xs: 0.75rem;   /* 12px - Sharp legible tag badges & micro-annotations */
+  --text-xs: 0.875rem;   /* 14px - Section uppercase labels & sub-stats */
+  --text-sm: 1rem;       /* 16px - Body copy & stream dialogue */
+  --text-base: 1.125rem; /* 18px - Form inputs & prominent card headers */
+  --text-lg: 1.375rem;   /* 22px - Sub-headings & medium metrics */
+  --text-xl: 2rem;       /* 32px - Moderate stats & lead values */
+  --text-2xl: 3rem;      /* 48px - Large statistics */
+  --text-3xl: 4.25rem;   /* 68px - Hero display titles & colossal portfolio balances */
+
+  /* ==========================================================================
+     3. FONT WEIGHT VARIABLES (5)
+     ========================================================================== */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-extrabold: 800;
+
+  /* ==========================================================================
+     4. LINE HEIGHT VARIABLES (5)
+     ========================================================================== */
+  --leading-none: 1;
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  /* ==========================================================================
+     5. SPACING VARIABLES (5)
+     ========================================================================== */
+  --spacing-xs: 0.25rem;  /* 4px - Micro gaps & indicator ticks */
+  --spacing-sm: 0.5rem;   /* 8px - Chip padding & icon margins */
+  --spacing-md: 1rem;     /* 16px - Standard internal card padding */
+  --spacing-lg: 1.5rem;   /* 24px - Grid gutters & module spacing */
+  --spacing-xl: 2.5rem;   /* 40px - Large dashboard deck framing */
+
+  /* ==========================================================================
+     6. LAYOUT DIMENSIONS
+     ========================================================================== */
+  --navbar-height: 3.5rem; /* 56px - Architectural top navigation bar height */
+}
+
+/* Light Theme Overrides (Clean Light) */
+html.light {
+  --theme-bg-base: #fafafa;             /* Clean, refined light canvas */
+  --theme-bg-surface: #ffffff;          /* Crisp card containers & deck surfaces */
+  --theme-bg-elevated: #f5f5f5;         /* Soft secondary controls, chips, tabs & hover */
+  --theme-bg-overlay: #181a20;          /* Deep pitch high-contrast focus cards & docks */
+  --theme-border-subtle: #eaecef;       /* Subtle hairline micro-dividers & borders */
+  --theme-border-strong: #d8dce1;       /* Focused active borders & indicators */
+  --theme-text-primary: #1e2329;        /* Pure slate black for display headings */
+  --theme-text-secondary: #707a8a;      /* Refined neutral slate for subtitles & labels */
+  --theme-text-muted: #b7bdc6;          /* Legible slate for timestamps & micro-details */
+  --theme-brand-primary: #f0b90b;       /* Primary yellow accent */
+  --theme-brand-accent: #fcd535;        /* Canary gold for active meters & hover highlights */
+  --theme-status-success: #0ecb81;      /* Emerald green for positive status */
+  --theme-status-danger: #f6465d;       /* Crimson for errors & risk triggers */
+  --theme-status-warning: #f59e0b;      /* Warm amber for warnings & caution alerts */
+  --theme-status-info: #0284c7;         /* Clean technical cyan for analyst stream */
+}
+
+@theme inline {
+  --color-theme-bg-base: var(--theme-bg-base);
+  --color-theme-bg-surface: var(--theme-bg-surface);
+  --color-theme-bg-elevated: var(--theme-bg-elevated);
+  --color-theme-bg-overlay: var(--theme-bg-overlay);
+  --color-theme-border-subtle: var(--theme-border-subtle);
+  --color-theme-border-strong: var(--theme-border-strong);
+  --color-theme-text-primary: var(--theme-text-primary);
+  --color-theme-text-secondary: var(--theme-text-secondary);
+  --color-theme-text-muted: var(--theme-text-muted);
+  --color-theme-brand-primary: var(--theme-brand-primary);
+  --color-theme-brand-accent: var(--theme-brand-accent);
+  --color-theme-status-success: var(--theme-status-success);
+  --color-theme-status-danger: var(--theme-status-danger);
+  --color-theme-status-warning: var(--theme-status-warning);
+  --color-theme-status-info: var(--theme-status-info);
+
+  --text-2xs: var(--text-2xs);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+
+  --font-weight-regular: var(--weight-regular);
+  --font-weight-medium: var(--weight-medium);
+  --font-weight-semibold: var(--weight-semibold);
+  --font-weight-bold: var(--weight-bold);
+  --font-weight-extrabold: var(--weight-extrabold);
+
+  --line-height-none: var(--leading-none);
+  --line-height-tight: var(--leading-tight);
+  --line-height-snug: var(--leading-snug);
+  --line-height-normal: var(--leading-normal);
+  --line-height-relaxed: var(--leading-relaxed);
+
+  --spacing-navbar: var(--navbar-height);
+  --spacing-spacing-xs: var(--spacing-xs);
+  --spacing-spacing-sm: var(--spacing-sm);
+  --spacing-spacing-md: var(--spacing-md);
+  --spacing-spacing-lg: var(--spacing-lg);
+  --spacing-spacing-xl: var(--spacing-xl);
+}
+
+/* Explicit Layout Utilities Guaranteed Across Build Targets */
+.h-navbar { height: var(--navbar-height); }
+.pt-navbar { padding-top: var(--navbar-height); }
+
+/* Explicit Spacing Utilities Guaranteed Across Build Targets */
+.p-spacing-xs { padding: var(--spacing-xs); }
+.p-spacing-sm { padding: var(--spacing-sm); }
+.p-spacing-md { padding: var(--spacing-md); }
+.p-spacing-lg { padding: var(--spacing-lg); }
+.p-spacing-xl { padding: var(--spacing-xl); }
+
+.px-spacing-xs { padding-left: var(--spacing-xs); padding-right: var(--spacing-xs); }
+.px-spacing-sm { padding-left: var(--spacing-sm); padding-right: var(--spacing-sm); }
+.px-spacing-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
+.px-spacing-lg { padding-left: var(--spacing-lg); padding-right: var(--spacing-lg); }
+.px-spacing-xl { padding-left: var(--spacing-xl); padding-right: var(--spacing-xl); }
+
+.py-spacing-xs { padding-top: var(--spacing-xs); padding-bottom: var(--spacing-xs); }
+.py-spacing-sm { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
+.py-spacing-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
+.py-spacing-lg { padding-top: var(--spacing-lg); padding-bottom: var(--spacing-lg); }
+.py-spacing-xl { padding-top: var(--spacing-xl); padding-bottom: var(--spacing-xl); }
+
+.pt-spacing-xs { padding-top: var(--spacing-xs); }
+.pt-spacing-sm { padding-top: var(--spacing-sm); }
+.pt-spacing-md { padding-top: var(--spacing-md); }
+.pt-spacing-lg { padding-top: var(--spacing-lg); }
+.pt-spacing-xl { padding-top: var(--spacing-xl); }
+
+.pb-spacing-xs { padding-bottom: var(--spacing-xs); }
+.pb-spacing-sm { padding-bottom: var(--spacing-sm); }
+.pb-spacing-md { padding-bottom: var(--spacing-md); }
+.pb-spacing-lg { padding-bottom: var(--spacing-lg); }
+.pb-spacing-xl { padding-bottom: var(--spacing-xl); }
+
+.gap-spacing-xs { gap: var(--spacing-xs); }
+.gap-spacing-sm { gap: var(--spacing-sm); }
+.gap-spacing-md { gap: var(--spacing-md); }
+.gap-spacing-lg { gap: var(--spacing-lg); }
+.gap-spacing-xl { gap: var(--spacing-xl); }
+
+.m-spacing-xs { margin: var(--spacing-xs); }
+.m-spacing-sm { margin: var(--spacing-sm); }
+.m-spacing-md { margin: var(--spacing-md); }
+.m-spacing-lg { margin: var(--spacing-lg); }
+.m-spacing-xl { margin: var(--spacing-xl); }
+
+.mt-spacing-xs { margin-top: var(--spacing-xs); }
+.mt-spacing-sm { margin-top: var(--spacing-sm); }
+.mt-spacing-md { margin-top: var(--spacing-md); }
+.mt-spacing-lg { margin-top: var(--spacing-lg); }
+.mt-spacing-xl { margin-top: var(--spacing-xl); }
+
+.mb-spacing-xs { margin-bottom: var(--spacing-xs); }
+.mb-spacing-sm { margin-bottom: var(--spacing-sm); }
+.mb-spacing-md { margin-bottom: var(--spacing-md); }
+.mb-spacing-lg { margin-bottom: var(--spacing-lg); }
+.mb-spacing-xl { margin-bottom: var(--spacing-xl); }
+
+/* Custom subtle scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--theme-border-subtle);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-text-muted);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 150, 150, 0.25) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.25);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.4);
+}
+
+/* Touch responsiveness and mobile tap highlight elimination */
+button,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Atmospheric Ambient Depth Glow */
+.ambient-glow-gemini {
+  background: radial-gradient(
+    ellipse 80% 60% at 50% 45%,
+    color-mix(in srgb, var(--theme-brand-primary) 6%, transparent) 0%,
+    color-mix(in srgb, var(--theme-brand-accent) 2%, transparent) 45%,
+    transparent 75%
+  );
+}
+
+/* Luminous Glow Gradient for Empty Chat State (Zero blur filters for ultra-low GPU overhead) */
+.chat-empty-glow {
+  background:
+    radial-gradient(
+      ellipse 60% 42% at 50% 32%,
+      color-mix(in srgb, var(--theme-brand-primary) 12%, transparent) 0%,
+      color-mix(in srgb, var(--theme-brand-accent) 5%, transparent) 45%,
+      transparent 70%
+    );
+}
+
+@keyframes glow-breathe {
+  0%, 100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.animate-glow-breathe {
+  animation: glow-breathe 8s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes aura-spin {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* ==========================================================================
+   Gemini AI Studio-Style Dual-Point Orbiting Input Aura & Gradient Border
+   Two diametrically opposed subtle light sources (0° and 180°) orbiting
+   around the obsidian input container.
+   ========================================================================== */
+.chat-input-aura-glow-container {
+  position: absolute;
+  inset: -3px;
+  border-radius: 1.15rem;
+  overflow: hidden;
+  filter: blur(12px);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.4s ease, filter 0.4s ease;
+}
+
+.chat-input-aura-glow-container.is-focused {
+  opacity: 0.75;
+  filter: blur(16px);
+}
+
+.chat-input-aura-glow-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  aspect-ratio: 1 / 1;
+  transform-origin: center center;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--theme-status-info) 50%, transparent) 14deg,
+    transparent 28deg,
+    transparent 180deg,
+    color-mix(in srgb, var(--theme-brand-primary) 55%, transparent) 194deg,
+    transparent 208deg,
+    transparent 360deg
+  );
+  animation: aura-spin 16s linear infinite;
+  will-change: transform;
+}
+
+.chat-input-aura-border-container {
+  position: absolute;
+  inset: 0;
+  border-radius: 1rem;
+  padding: 1.25px;
+  overflow: hidden;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 3;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.chat-input-aura-border-container.is-focused {
+  opacity: 1;
+}
+
+.chat-input-aura-border-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  aspect-ratio: 1 / 1;
+  transform-origin: center center;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    color-mix(in srgb, var(--theme-status-info) 90%, transparent) 12deg,
+    transparent 24deg,
+    transparent 180deg,
+    color-mix(in srgb, var(--theme-brand-primary) 95%, transparent) 192deg,
+    transparent 204deg,
+    transparent 360deg
+  );
+  animation: aura-spin 16s linear infinite;
+  will-change: transform;
+}
+
+body {
+  background: var(--theme-bg-base);
+  color: var(--theme-text-primary);
+  font-family: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: -0.025em;
+  overflow: hidden;
+}
+
+/* KaTeX Theme Integration & Responsive Math Handling */
+.katex {
+  font-size: 1.05em;
+  color: var(--theme-text-primary);
+}
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+  margin: 0.75rem 0 !important;
+  max-width: 100%;
+}
+
+.katex-display > .katex {
+  max-width: 100%;
+  text-align: center;
+  white-space: normal;
+}
+
+/* Shiki Code Block Theme Normalization */
+pre.shiki {
+  background-color: transparent !important;
+  margin: 0;
+  padding: 0;
+}
+
