@@ -4,7 +4,6 @@ import {
   Activity,
   Gauge,
   Layers,
-  Newspaper,
   Sparkles,
 } from 'lucide-react';
 import type { ToolDisplayInfo } from './types';
@@ -20,7 +19,6 @@ export function getToolDisplayInfo(
   const query = typeof toolArgs?.query === 'string' ? toolArgs.query : undefined;
   const symbol = typeof toolArgs?.symbol === 'string' ? toolArgs.symbol.toUpperCase() : undefined;
   const focus = typeof toolArgs?.focus === 'string' ? toolArgs.focus : undefined;
-  const topic = typeof toolArgs?.topic === 'string' ? toolArgs.topic : undefined;
 
   switch (normalizedName) {
     case 'web_search':
@@ -63,13 +61,6 @@ export function getToolDisplayInfo(
       return {
         title: 'Market Intel: DeFi TVL & On-Chain Flows',
         icon: Layers,
-      };
-
-    case 'news_briefing':
-      return {
-        title: topic ? `News Briefing: "${topic}"` : 'Aggregating Market Catalysts & News',
-        icon: Newspaper,
-        symbol: topic,
       };
 
     default:

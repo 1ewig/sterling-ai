@@ -8,7 +8,6 @@ import { TechnicalAnalysisCard } from './technical-analysis-card';
 import { MacroAnalystCard } from './macro-analyst-card';
 import { SentimentAnalystCard } from './sentiment-analyst-card';
 import { MarketIntelCard } from './market-intel-card';
-import { NewsBriefingCard } from './news-briefing-card';
 import type { ToolDisplayInfo, ToolResultCardProps } from './types';
 import { getToolDisplayInfo } from './display-info';
 
@@ -65,9 +64,6 @@ export const ToolResultCard = React.memo(function ToolResultCard({
 
       case 'market_intel':
         return <MarketIntelCard resultObj={resultObj} />;
-
-      case 'news_briefing':
-        return <NewsBriefingCard resultObj={resultObj} />;
 
       default: {
         const entries = Object.entries(resultObj).filter(([k]) => k !== 'success');

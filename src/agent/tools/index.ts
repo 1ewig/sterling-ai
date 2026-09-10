@@ -4,7 +4,6 @@ import { technicalAnalysisTool } from './technical-analysis';
 import { macroAnalystTool } from './macro-analyst';
 import { sentimentAnalystTool } from './sentiment-analyst';
 import { marketIntelTool } from './market-intel';
-import { newsBriefingTool } from './news-briefing';
 
 /**
  * Registry of all agent tools.
@@ -16,7 +15,6 @@ export const agentTools = {
   macro_analyst: macroAnalystTool,
   sentiment_analyst: sentimentAnalystTool,
   market_intel: marketIntelTool,
-  news_briefing: newsBriefingTool,
 };
 
 export type AgentTools = typeof agentTools;
@@ -35,5 +33,5 @@ export {
   macroAnalystTool,
   sentimentAnalystTool,
   marketIntelTool,
-  newsBriefingTool,
 };
+

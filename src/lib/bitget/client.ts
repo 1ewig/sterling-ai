@@ -7,7 +7,6 @@ import type {
   MacroAnalystData,
   SentimentAnalystData,
   MarketIntelData,
-  NewsBriefingData,
 } from './types';
 import { generateTechnicalReport } from './indicators';
 
@@ -384,46 +383,5 @@ export async function getMarketIntel(_scope = 'all'): Promise<MarketIntelData> {
       btcPendingTx: 42300,
     },
     summary: `DeFi Total TVL is $98.4B led by Ethereum (57.1%) and Solana (8.5%). Stablecoin dry powder sits at $168.5B. Ethereum gas is calm at ~12 Gwei.`,
-  };
-}
-
-/**
- * Domain Tool: News Briefing
- */
-export async function getNewsBriefing(_topic?: string, category = 'all'): Promise<NewsBriefingData> {
-  return {
-    category,
-    headlines: [
-      {
-        headline: 'Bitget Launches AI Base Camp S2 Featuring Tokenized 24/7 US Equities',
-        source: 'Official Bitget',
-        timeAgo: '2h ago',
-        impact: 'bullish',
-        summary: 'S2 hackathon brings continuous 24/7 trading to tokenized US equities (rTokens) with $50,000 in rewards.',
-      },
-      {
-        headline: 'Fed Rate Cut Expectations Cement at 25bps Ahead of Next FOMC Meeting',
-        source: 'Bloomberg / TradFi',
-        timeAgo: '4h ago',
-        impact: 'bullish',
-        summary: 'Markets price in 92% probability of a 25bps cut as CPI inflation prints moderate.',
-      },
-      {
-        headline: 'Spot Bitcoin ETFs Record $240M Net Inflows in Consecutive 3-Day Streak',
-        source: 'Farside Investors / CoinDesk',
-        timeAgo: '6h ago',
-        impact: 'bullish',
-        summary: 'Institutional demand accelerates with BlackRock IBIT and Fidelity FBTC leading volume.',
-      },
-      {
-        headline: 'NVIDIA and Tech Megacaps Rally in Pre-Market on Strong Semiconductor Demand',
-        source: 'CNBC',
-        timeAgo: '8h ago',
-        impact: 'bullish',
-        summary: 'US equity momentum provides risk-on spillover into tokenized equities and crypto majors.',
-      },
-    ],
-    dominantNarrative: 'Institutional Accumulation + Fed Dovish Pivot + 24/7 Tokenized US Stocks Growth',
-    summary: `Dominant market narrative is driven by institutional spot ETF inflows ($240M+ net) and Fed rate cut pricing, creating tailwinds for both tokenized equities and crypto assets.`,
   };
 }

@@ -37,7 +37,6 @@ Argus exposes a curated domain tool suite matching the Bitget Track 3 Research W
 | **`macro_analyst`** | Fed policy, Treasury yields, Inflation data | Risk-On / Risk-Off regime verdict, 10Y-2Y spread, CPI/PCE prints, DXY/VIX, and Nasdaq correlations. |
 | **`sentiment_analyst`** | Fear & Greed index + Derivatives flow | Crowd sentiment score (0–100), Retail vs Top Trader Long/Short divergence, and Squeeze risk rating. |
 | **`market_intel`** | DeFi analytics & On-chain metrics | DeFi TVL rankings by chain, stablecoin dry powder liquidity, trending DEX tokens, and gas health. |
-| **`news_briefing`** | Aggregated financial & crypto feeds | High-impact headlines, institutional ETF inflow streaks, regulatory developments, and narrative catalysts. |
 | **`web_search`** | Exa AI semantic search | Deep web research, SEC filings, protocol documentation, and external market queries. |
 
 ---

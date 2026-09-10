@@ -193,22 +193,6 @@ export interface MarketIntelData {
 }
 
 /**
- * News Briefing Payload
- */
-export interface NewsBriefingData {
-  category: string;
-  headlines: Array<{
-    headline: string;
-    source: string;
-    timeAgo?: string;
-    impact: 'bullish' | 'bearish' | 'neutral' | 'high_volatility';
-    summary: string;
-  }>;
-  dominantNarrative: string;
-  summary: string;
-}
-
-/**
  * Zod schemas for tool parameters
  */
 export const marketDataParamsSchema = z.object({
@@ -235,7 +219,3 @@ export const marketIntelParamsSchema = z.object({
   scope: z.enum(['all', 'defi_tvl', 'dex_trending', 'network_health', 'stablecoins']).default('all').describe('Market intelligence dimension to query'),
 });
 
-export const newsBriefingParamsSchema = z.object({
-  topic: z.string().optional().describe('Optional filter keyword (e.g. "Fed", "ETF", "NVIDIA", "Ethereum", "Tokenized")'),
-  category: z.enum(['all', 'crypto_breaking', 'tradfi_macro', 'tech_ai', 'kol_research']).default('all').describe('News category filter'),
-});
