@@ -144,15 +144,16 @@ export function useChatScroll({
     };
   }, []);
 
-  // Synchronously lock scroll to bottom on conversation switch
+  // Synchronously lock scroll to bottom on conversation switch only when messages exist
   useIsomorphicLayoutEffect(() => {
+    if (messagesCount === 0) return;
     isAutoScrollEnabledRef.current = true;
     performProgrammaticScroll(false);
-  }, [activeConversationId, performProgrammaticScroll]);
+  }, [activeConversationId, messagesCount, performProgrammaticScroll]);
 
   // Keep scroll at bottom on initial message load or when conversation messages update
   useEffect(() => {
-    if (!isAutoScrollEnabledRef.current) return;
+    if (messagesCount === 0 || !isAutoScrollEnabledRef.current) return;
     performProgrammaticScroll(false);
   }, [activeConversationId, messagesCount, performProgrammaticScroll]);
 

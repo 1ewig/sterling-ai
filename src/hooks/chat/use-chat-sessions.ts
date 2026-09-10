@@ -14,6 +14,7 @@ import {
   useConversations,
   useConversationMessageCount,
   clearMessagesCache,
+  initConversationCache,
 } from '@/lib/db';
 
 let isSessionInitStarted = false;
@@ -147,6 +148,7 @@ export function useChatSessions() {
 
     // Create a new conversation
     const newConv = await createConversation();
+    initConversationCache(newConv.id);
     setActiveConversationId(newConv.id);
     if (pathname !== '/chat') {
       router.push('/chat');

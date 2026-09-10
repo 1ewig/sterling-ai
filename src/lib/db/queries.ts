@@ -22,11 +22,26 @@ import {
 const messagesCache = new Map<string, ChatMessageRecord[]>();
 
 /**
+ * Initializes cache for a conversation with empty array if not already present.
+ */
+export function initConversationCache(conversationId: string): void {
+  if (conversationId && !messagesCache.has(conversationId)) {
+    messagesCache.set(conversationId, []);
+  }
+}
+
+/**
  * Pre-populates the in-memory cache for all conversations to guarantee instant 0ms switching.
  */
 export async function prewarmMessagesCache(): Promise<void> {
   if (typeof window === 'undefined') return;
   try {
+    const allConvs = await db.conversations.toArray();
+    for (const c of allConvs) {
+      if (!messagesCache.has(c.id)) {
+        messagesCache.set(c.id, []);
+      }
+    }
     const allMessages = await db.messages.orderBy('timestamp').toArray();
     const grouped = new Map<string, ChatMessageRecord[]>();
     for (const msg of allMessages) {
@@ -83,33 +98,39 @@ export interface UseMessagesResult {
   isMessagesLoading: boolean;
 }
 
+interface LiveMessagesPayload {
+  convId: string;
+  msgs: ChatMessageRecord[];
+}
+
 /**
  * Reactive query hook subscribing to chronological messages for a specific conversation.
- * Employs an in-memory cache to provide instant, jitter-free conversation switching.
+ * Strictly isolates query state by conversationId to prevent stale message leakage across switches.
  */
 export function useMessages(conversationId: string): UseMessagesResult {
-  const cached = conversationId ? messagesCache.get(conversationId) : undefined;
+  const cached = conversationId ? (messagesCache.get(conversationId) ?? EMPTY_MESSAGES) : EMPTY_MESSAGES;
 
-  const live = useLiveQuery(
+  const live = useLiveQuery<LiveMessagesPayload, LiveMessagesPayload>(
     async () => {
-      if (!conversationId) return [];
+      if (!conversationId) return { convId: '', msgs: EMPTY_MESSAGES };
       const msgs = await getConversationMessages(conversationId);
       messagesCache.set(conversationId, msgs);
-      return msgs;
+      return { convId: conversationId, msgs };
     },
     [conversationId],
-    cached
+    { convId: conversationId, msgs: cached }
   );
 
-  const resolvedMessages = live ?? cached ?? EMPTY_MESSAGES;
-  const isMessagesLoading = live === undefined && cached === undefined;
+  // Guarantee that live data matches the active conversationId. If not, instantly use cached.
+  const isMatchingLive = live?.convId === conversationId;
+  const resolvedMessages = isMatchingLive ? live.msgs : cached;
 
   return useMemo(
     () => ({
       messages: resolvedMessages,
-      isMessagesLoading,
+      isMessagesLoading: false,
     }),
-    [resolvedMessages, isMessagesLoading]
+    [resolvedMessages]
   );
 }
 
