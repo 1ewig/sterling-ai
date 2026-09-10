@@ -35,20 +35,20 @@ export function useChatScroll({
   const performProgrammaticScroll = useCallback((smooth = false) => {
     const container = scrollContainerRef.current;
     if (!container) {
-      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant', block: 'end' });
+      messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' });
       return;
     }
 
-    // In flex-col-reverse, scrollTop = 0 is naturally the bottom
-    if (Math.abs(container.scrollTop) > 1) {
+    const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+    if (Math.abs(container.scrollTop - maxScrollTop) > 1) {
       isProgrammaticScrollRef.current = true;
-      if (smooth) {
+      if (smooth && maxScrollTop > 0) {
         container.scrollTo({
-          top: 0,
+          top: maxScrollTop,
           behavior: 'smooth',
         });
       } else {
-        container.scrollTop = 0;
+        container.scrollTop = maxScrollTop;
       }
     }
     lastScrollTopRef.current = container.scrollTop;
@@ -73,9 +73,10 @@ export function useChatScroll({
     }
 
     const currentScrollTop = container.scrollTop;
-    const distanceFromBottom = Math.abs(currentScrollTop);
-    const isScrollingUp = distanceFromBottom > Math.abs(lastScrollTopRef.current);
+    const isScrollingUp = currentScrollTop < lastScrollTopRef.current;
     lastScrollTopRef.current = currentScrollTop;
+
+    const distanceFromBottom = container.scrollHeight - currentScrollTop - container.clientHeight;
 
     if (isScrollingUp && distanceFromBottom > 20) {
       // User scrolled up: interrupt auto-scroll immediately!
@@ -84,7 +85,7 @@ export function useChatScroll({
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
       }
-    } else if (distanceFromBottom <= 20) {
+    } else if (distanceFromBottom <= 30) {
       // User scrolled all the way back down to the bottom: resume auto-scroll
       isAutoScrollEnabledRef.current = true;
     }
@@ -106,8 +107,8 @@ export function useChatScroll({
           rafIdRef.current = null;
         }
       } else if (e.deltaY > 0) {
-        const distanceFromBottom = Math.abs(container.scrollTop);
-        if (distanceFromBottom <= 20) {
+        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        if (distanceFromBottom <= 30) {
           isAutoScrollEnabledRef.current = true;
         }
       }
@@ -144,12 +145,17 @@ export function useChatScroll({
     };
   }, []);
 
-  // Synchronously lock scroll to bottom on conversation switch only when messages exist
+  // Synchronously lock scroll to bottom on conversation switch before browser paint
   useIsomorphicLayoutEffect(() => {
     if (messagesCount === 0) return;
     isAutoScrollEnabledRef.current = true;
-    performProgrammaticScroll(false);
-  }, [activeConversationId, messagesCount, performProgrammaticScroll]);
+    const container = scrollContainerRef.current;
+    if (container) {
+      const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
+      container.scrollTop = maxScrollTop;
+      lastScrollTopRef.current = maxScrollTop;
+    }
+  }, [activeConversationId, messagesCount]);
 
   // Keep scroll at bottom on initial message load or when conversation messages update
   useEffect(() => {
