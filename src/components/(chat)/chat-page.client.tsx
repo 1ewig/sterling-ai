@@ -12,7 +12,7 @@ import { ChatClient } from './chat-client';
 export function ChatPageClient() {
   const toggleMobileSidebar = useAppStore((state) => state.toggleMobileSidebar);
 
-  const { isNewChatDisabled, handleNewSession } = useChatSessions();
+  const { isNewChatDisabled, handleNewSession, currentTitle } = useChatSessions();
 
   const handleNewChat = useCallback(() => {
     handleNewSession();
@@ -21,6 +21,7 @@ export function ChatPageClient() {
   return (
     <div className="relative flex flex-col h-full w-full bg-theme-bg-base overflow-hidden">
       <ChatHeader
+        title={currentTitle}
         isNewChatDisabled={isNewChatDisabled}
         onToggleMobileSidebar={toggleMobileSidebar}
         onNewChat={handleNewChat}

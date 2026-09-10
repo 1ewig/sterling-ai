@@ -6,6 +6,7 @@ import { Plus, Menu } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
 
 export interface ChatHeaderProps {
+  title?: string;
   isNewChatDisabled: boolean;
   onToggleMobileSidebar?: () => void;
   onNewChat: () => void;
@@ -15,6 +16,7 @@ export interface ChatHeaderProps {
  * Pure presentation header for the chat stage.
  */
 export const ChatHeader = memo(function ChatHeader({
+  title = 'New Chat',
   isNewChatDisabled,
   onToggleMobileSidebar,
   onNewChat,
@@ -33,9 +35,9 @@ export const ChatHeader = memo(function ChatHeader({
           <Menu className="size-5 stroke-[2]" />
         </motion.button>
 
-        <div className="flex items-center gap-2.5 overflow-x-auto no-scrollbar py-1">
-          <span className="text-xs sm:text-sm font-bold tracking-wider text-theme-text-primary">
-            Sterling
+        <div className="flex items-center gap-2.5 overflow-hidden py-1 min-w-0">
+          <span className="text-xs sm:text-sm font-semibold tracking-tight text-theme-text-primary truncate" title={title}>
+            {title}
           </span>
         </div>
       </div>

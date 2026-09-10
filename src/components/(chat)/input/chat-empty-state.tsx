@@ -75,11 +75,11 @@ export const ChatEmptyState = memo(function ChatEmptyState({
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-theme-text-primary tracking-tight font-sans leading-tight">
-              What would you like to explore?
+              What are we looking at today?
             </h2>
 
             <p className="text-xs sm:text-sm text-theme-text-secondary mt-2 max-w-lg leading-relaxed font-normal">
-              Ask questions, analyze concepts, or research real-time information with live web search.
+              Live technicals, sentiment, and macro context across crypto and 24/7 tokenized equities.
             </p>
           </motion.div>
 
@@ -105,7 +105,7 @@ export const ChatEmptyState = memo(function ChatEmptyState({
           <motion.div variants={emptyStateItemVariants} className="flex flex-col items-center gap-spacing-xs w-full">
             <div className="flex items-center justify-center mb-0.5">
               <span className="text-2xs font-bold uppercase tracking-wider text-theme-text-muted">
-                Suggested Prompts
+                Quick Briefings
               </span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-2 max-w-xl">
