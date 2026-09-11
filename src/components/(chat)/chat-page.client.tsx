@@ -38,7 +38,9 @@ export function ChatPageClient() {
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none"
           >
-            <div className="absolute inset-0 chat-empty-glow animate-glow-breathe" />
+            <div className="absolute inset-0 chat-empty-background" />
+            <div className="chat-empty-blob blob-1" />
+            <div className="chat-empty-blob blob-2" />
           </motion.div>
         )}
       </AnimatePresence>

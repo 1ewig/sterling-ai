@@ -9,18 +9,19 @@
   <img src="https://img.shields.io/badge/Search-Exa%20AI-4F46E5?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Exa AI" />
 </p>
 
-A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench** built for the **7×24 continuous trading era** across crypto assets and tokenized US equities (rTokens). Built on Next.js 16 (App Router), Vercel AI SDK v7, and Bun.
+A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench** engineered for the **7×24 continuous trading era** across crypto assets and tokenized US equities (rTokens). Built on Next.js 16 (App Router), Vercel AI SDK v7, and Bun.
 
 ---
 
 ## Highlights
 
 * 📈 **7×24 Cross-Asset Perception:** Real-time spot and futures market data across crypto majors (`BTCUSDT`, `ETHUSDT`) and tokenized US equities (`TSLAUSDT`, `NVDAUSDT`, `SPYUSDT`, `MSTRUSDT`, `COINUSDT`).
-* 📊 **Pure TypeScript Indicator Engine:** Computes 23 technical indicators across multiple timeframes (RSI 14, MACD, 20/50/200 EMAs, Bollinger Bands, SuperTrend, ATR, Fibonacci retracements) with zero Python/daemon runtime dependencies.
-* 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
-* 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
+* 📊 **Pure TypeScript Indicator Engine:** Computes 23 quantitative technical indicators across multiple timeframes (RSI 14, MACD, 20/50/200 EMAs, Bollinger Bands, SuperTrend, ATR, Fibonacci retracements) with zero Python or external daemon runtime dependencies.
+* 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy expectations, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
+* 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs. top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
 * ⚡ **Single-Turn Parallel Tool Orchestration:** Dispatches multiple specialized research tools simultaneously in a single turn for low-latency multi-dimensional market briefings.
-* 🎨 **Interactive Visual Tool Cards:** Custom-designed presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, and Sentiment Meters.
+* 🎨 **Ultra-Modern Neo-Grotesque UI:** Styled with **Geist Sans** and **Geist Mono** typography, obsidian-zinc dark basework (`#09090b`), full-stage ambient breathing glow with automatic transition management, and custom `eclipse` 2.4s loader animations.
+* 📱 **Interactive Visual Tool Cards:** Custom presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, and Sentiment Meters.
 * 💾 **Local-First Privacy:** Multi-session conversation management, title generation, and message history stored locally with Dexie IndexedDB.
 * 🛡️ **Zero Authentication Barrier:** All market data, technical calculations, macro indicators, and sentiment feeds run 100% out-of-the-box with zero API keys required.
 
@@ -28,16 +29,16 @@ A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench
 
 ## Domain Tool Arsenal
 
-Sterling exposes a curated domain tool suite matching the Bitget Track 3 Research Workbench standards:
+Sterling exposes a curated domain tool suite matching institutional research desk standards:
 
 | Tool | Focus & Data Sources | Output Intelligence |
 | :--- | :--- | :--- |
-| **`market_data`** | Bitget Public REST API (Spot & Futures) | Live price, 24h high/low range, 24h volume, funding rates, open interest, and orderbook depth. |
+| **`market_data`** | Bitget Public REST API (Spot & Futures) | Live prices, 24h high/low ranges, 24h volume, funding rates, open interest, and orderbook depth. |
 | **`technical_analysis`** | OHLCV K-lines + Indicator Math | RSI 14, MACD histogram, 20/50/200 EMA alignment, Bollinger Bands, SuperTrend, and Fibonacci zones. |
 | **`macro_analyst`** | Fed policy, Treasury yields, Inflation data | Risk-On / Risk-Off regime verdict, 10Y-2Y spread, CPI/PCE prints, DXY/VIX, and Nasdaq correlations. |
 | **`sentiment_analyst`** | Fear & Greed index + Derivatives flow | Crowd sentiment score (0–100), Retail vs Top Trader Long/Short divergence, and Squeeze risk rating. |
 | **`market_intel`** | DeFi analytics & On-chain metrics | DeFi TVL rankings by chain, stablecoin dry powder liquidity, trending DEX tokens, and gas health. |
-| **`web_search`** | Exa AI semantic search | Deep web research, SEC filings, protocol documentation, and external market queries. |
+| **`web_search`** | Exa AI semantic search | Deep web research, SEC filings, protocol documentation, and external market catalysts. |
 
 ---
 
@@ -49,31 +50,43 @@ src/
 │   ├── chat/               # Stream state machine, engine & invocation
 │   ├── providers/          # Groq & Fireworks model definitions & failover
 │   ├── tools/              # Domain-oriented tools (macro, sentiment, technicals, market data)
-│   ├── transforms/         # Title generators & follow-up extractors
+│   ├── transforms/         # First-turn title extraction & follow-up extractors
 │   └── instructions.ts     # AI Trading Desk system directives
-├── app/                    # Next.js App Router
+├── app/                    # Next.js 16 App Router
 │   ├── api/chat/           # Server-Sent Events (SSE) streaming route
 │   ├── chat/               # Trading desk chat stage route
-│   └── globals.css         # Semantic CSS design tokens & KaTeX theme integration
+│   ├── globals.css         # Semantic CSS design tokens, animations & KaTeX theme integration
+│   └── layout.tsx          # Root layout with Geist typography & theme hydration
 ├── components/             # Presentation Components
 │   ├── (chat)/             # Domain chat UI
-│   │   ├── input/          # Input dock, empty state & action shortcuts
-│   │   ├── messages/       # Message list & drafting indicators
-│   │   ├── reasoning/      # Timeline, thinking accordion & visual tool cards
+│   │   ├── input/          # Input dock, empty state & quick-action templates
+│   │   ├── messages/       # Message list, avatar rendering & drafting indicators
+│   │   ├── reasoning/      # Process timeline, thinking accordion & visual tool cards
 │   │   │   └── tools/      # MarketData, TechnicalAnalysis, Macro, Sentiment cards
 │   │   └── chat-client.tsx # Chat client orchestrator
-│   ├── sidebar/            # Session drawer & theme toggle
-│   └── common/             # Reusable UI primitives
+│   ├── sidebar/            # Persistent collapsible drawer & theme toggle
+│   └── common/             # Reusable UI primitives (AgentLoader, SterlingIcon, ConfirmDialog)
 ├── hooks/                  # Custom React Hooks
 │   ├── chat/               # useAgentChat, useChatSessions, useChatScroll
 │   └── ui/                 # useTheme, useSidebar, useActiveTimer
 ├── lib/                    # Core Libraries & Utilities
-│   ├── bitget/             # Public Bitget REST client, types & indicator math
+│   ├── bitget/             # Public Bitget REST client, types & 23-indicator math engine
 │   ├── chat/               # Client-side SSE transport & history formatting
 │   ├── db/                 # Dexie IndexedDB schema & CRUD operations
 │   └── exa/                # Exa AI search client
 └── stores/                 # Zustand Persistent UI State
 ```
+
+---
+
+## UI & Design System
+
+The application is built on an **Ultra-Modern Neo-Grotesque** aesthetic:
+
+* **Typography:** **Geist Sans** (`--font-geist-sans`) for clean editorial reading paired with **Geist Mono** (`--font-geist-mono`) for numerical market metrics, tickers, and code blocks.
+* **Palette:** Pure obsidian-zinc basework (`--theme-bg-base: #09090b`), graphite surface cards (`--theme-bg-surface: #121215`), and pure platinum white text (`--theme-text-primary: #fafafa`).
+* **Ambient Glow:** Dynamic radial halo centered across the chat stage that breathes in real-time (`scale(0.92)` to `scale(1.08)`) and automatically fades out smoothly via Framer Motion when conversation history is present.
+* **Loader Animation:** Custom SVG `eclipse 2.4s ease-in-out` spinner reflecting live thinking and tool-execution stages.
 
 ---
 
