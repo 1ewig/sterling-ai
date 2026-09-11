@@ -77,6 +77,7 @@ export const dropdownMenuVariants: Variants = {
 
 /**
  * Subtle staggered container for the empty chat suggestions interface.
+ * Coordinates entrance with deliberate pacing.
  */
 export const emptyStateContainerVariants: Variants = {
   hidden: { opacity: 0, scale: 0.98 },
@@ -84,10 +85,88 @@ export const emptyStateContainerVariants: Variants = {
     opacity: 1,
     scale: 1,
     transition: {
-      duration: 0.22,
+      duration: 0.35,
       ease: EASING_ARCHITECTURAL,
-      staggerChildren: 0.04,
+      staggerChildren: 0.07,
+      delayChildren: 0.04,
+    },
+  },
+};
+
+/**
+ * Brand mark / icon entrance with soft scale and subtle blur dissipation.
+ */
+export const emptyStateIconVariants: Variants = {
+  hidden: { opacity: 0, scale: 0.82, filter: 'blur(4px)' },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.4,
+      ease: EASING_ARCHITECTURAL,
+    },
+  },
+};
+
+/**
+ * Text entrance with cinematic optical blur dissipation and upward drift.
+ */
+export const emptyStateTextVariants: Variants = {
+  hidden: { opacity: 0, y: 12, filter: 'blur(6px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.42,
+      ease: EASING_ARCHITECTURAL,
+    },
+  },
+};
+
+/**
+ * Hero input dock entrance with smooth elevation and blur dissipation.
+ */
+export const emptyStateInputVariants: Variants = {
+  hidden: { opacity: 0, y: 16, filter: 'blur(4px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.44,
+      ease: EASING_ARCHITECTURAL,
+    },
+  },
+};
+
+/**
+ * Staggered container for quick-action pills.
+ */
+export const emptyStatePillsContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
       delayChildren: 0.02,
+    },
+  },
+};
+
+/**
+ * Individual quick-action pill badge entrance.
+ */
+export const emptyStatePillItemVariants: Variants = {
+  hidden: { opacity: 0, y: 10, scale: 0.94 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.32,
+      ease: EASING_ARCHITECTURAL,
     },
   },
 };
