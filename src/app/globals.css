@@ -330,6 +330,42 @@ button,
   }
 }
 
+/* Active Inference Wall Edge Glow (Left & Right Viewport Perimeters) */
+.wall-glow-left {
+  background: radial-gradient(
+    ellipse 100% 70% at 0% 50%,
+    color-mix(in srgb, var(--theme-brand-primary) 15%, transparent) 0%,
+    color-mix(in srgb, var(--theme-brand-primary) 5%, transparent) 50%,
+    transparent 100%
+  );
+}
+
+.wall-glow-right {
+  background: radial-gradient(
+    ellipse 100% 70% at 100% 50%,
+    color-mix(in srgb, var(--theme-brand-accent) 14%, transparent) 0%,
+    color-mix(in srgb, var(--theme-brand-accent) 4%, transparent) 50%,
+    transparent 100%
+  );
+}
+
+@keyframes wall-breathe {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scaleY(0.96);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scaleY(1.04);
+  }
+}
+
+.animate-wall-breathe {
+  animation: wall-breathe 4.5s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: opacity, transform;
+}
+
 @keyframes aura-spin {
   0% {
     transform: translate(-50%, -50%) rotate(0deg);
