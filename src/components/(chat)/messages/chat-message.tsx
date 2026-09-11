@@ -122,8 +122,8 @@ export const ChatMessage = memo(function ChatMessage({
       className="flex items-start gap-spacing-sm w-full py-1"
     >
       {/* Brand Monogram Icon */}
-      <div className="size-8 rounded-xl bg-theme-bg-elevated border border-theme-border-subtle flex items-center justify-center shrink-0 shadow-2xs">
-        <SterlingIcon className="size-4.5 text-theme-brand-primary shrink-0" />
+      <div className="flex items-center justify-center shrink-0 mt-0.5">
+        <SterlingIcon className="size-6 text-theme-brand-primary shrink-0" />
       </div>
 
       <div className="flex-1 flex flex-col gap-spacing-xs min-w-0">

@@ -30,41 +30,45 @@ export function AgentLoader({
     >
       <style>
         {`
-          @keyframes sterling-spin {
-            to { transform: rotate(360deg); }
+          @keyframes eclipse {
+            0% {
+              stroke-dasharray: 1 150;
+              stroke-dashoffset: 0;
+              transform: rotate(-90deg);
+            }
+            50% {
+              stroke-dasharray: 90 150;
+              stroke-dashoffset: -35;
+              transform: rotate(90deg);
+            }
+            100% {
+              stroke-dasharray: 1 150;
+              stroke-dashoffset: -150;
+              transform: rotate(270deg);
+            }
           }
-          @keyframes sterling-morph {
-            0%, 25% { stroke-dasharray: 0.1 15; stroke-dashoffset: 0; }
-            50%, 75% { stroke-dasharray: 48 160; stroke-dashoffset: -12; }
-            100% { stroke-dasharray: 0.1 15; stroke-dashoffset: 0; }
-          }
-          .sterling-loader-track {
+          .agent-loader-track {
             stroke: var(--theme-border-strong);
-            stroke-width: 2.5;
-            opacity: 0.35;
+            stroke-width: 3.5;
+            opacity: 0.25;
           }
-          .sterling-loader-spinner {
-            transform-origin: center;
-            animation: sterling-spin 3s linear infinite;
-          }
-          .sterling-loader-stroke {
+          .agent-loader-eclipse {
             stroke: currentColor;
-            stroke-width: 4;
+            stroke-width: 4.5;
             stroke-linecap: round;
-            animation: sterling-morph 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            transform-origin: center;
+            transform: rotate(-90deg);
+            animation: eclipse 2.4s ease-in-out infinite;
           }
         `}
       </style>
-      <circle cx="32" cy="32" r="24" className={`sterling-loader-track ${trackClassName ?? ''}`} />
-      <g className="sterling-loader-spinner">
-        <circle
-          cx="32"
-          cy="32"
-          r="24"
-          className={`sterling-loader-stroke ${strokeClassName ?? ''}`}
-          strokeDasharray="0.1 15"
-        />
-      </g>
+      <circle cx="32" cy="32" r="24" className={`agent-loader-track ${trackClassName ?? ''}`} />
+      <circle
+        cx="32"
+        cy="32"
+        r="24"
+        className={`agent-loader-eclipse ${strokeClassName ?? ''}`}
+      />
     </svg>
   );
 }
