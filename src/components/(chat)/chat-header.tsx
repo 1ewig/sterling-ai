@@ -22,7 +22,7 @@ export const ChatHeader = memo(function ChatHeader({
   onNewChat,
 }: ChatHeaderProps) {
   return (
-    <div className="relative z-30 h-14 px-spacing-md sm:px-spacing-lg border-b border-theme-border-subtle bg-theme-bg-base/90 backdrop-blur-xs flex items-center justify-between shrink-0 gap-3">
+    <div className="relative z-30 h-14 px-spacing-md sm:px-spacing-lg border-b border-theme-border-subtle/50 bg-theme-bg-base/40 backdrop-blur-xs flex items-center justify-between shrink-0 gap-3">
       <div className="flex items-center gap-2 min-w-0">
         <motion.button
           type="button"

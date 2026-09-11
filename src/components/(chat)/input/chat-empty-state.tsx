@@ -6,7 +6,6 @@ import { ArrowUpRight } from 'lucide-react';
 import { SterlingIcon } from '@/components/common';
 import {
   emptyStateContainerVariants,
-  emptyStateGlowVariants,
   emptyStateItemVariants,
   tapScalePill,
   hoverLiftPill,
@@ -43,28 +42,14 @@ export const ChatEmptyState = memo(function ChatEmptyState({
   }, []);
 
   return (
-    <>
-      {/* Dynamic Luminous Ambient Glow */}
-      <motion.div
-        key="chat-empty-glow"
-        variants={emptyStateGlowVariants}
-        initial="hidden"
-        animate="visible"
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden z-0 select-none"
-      >
-        <div className="absolute inset-0 chat-empty-glow animate-glow-breathe" />
-      </motion.div>
-
-      {/* Empty State Overlay */}
-      <motion.div
-        key="empty-state-canvas"
-        variants={emptyStateContainerVariants}
-        initial="hidden"
-        animate="visible"
-        className="absolute inset-0 flex flex-col items-center justify-center p-spacing-md sm:p-spacing-lg text-center overflow-y-auto pointer-events-auto z-20 custom-scrollbar"
-      >
-        <div className="my-auto flex flex-col items-center justify-center w-full py-spacing-md max-w-3xl">
+    <motion.div
+      key="empty-state-canvas"
+      variants={emptyStateContainerVariants}
+      initial="hidden"
+      animate="visible"
+      className="absolute inset-0 flex flex-col items-center justify-center p-spacing-md sm:p-spacing-lg text-center overflow-y-auto pointer-events-auto z-20 custom-scrollbar"
+    >
+      <div className="my-auto flex flex-col items-center justify-center w-full py-spacing-md max-w-3xl">
           {/* Header Stack */}
           <motion.div
             variants={emptyStateItemVariants}
@@ -126,6 +111,5 @@ export const ChatEmptyState = memo(function ChatEmptyState({
           </motion.div>
         </div>
       </motion.div>
-    </>
   );
 });

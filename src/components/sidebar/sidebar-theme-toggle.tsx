@@ -21,7 +21,7 @@ export const SidebarThemeToggle = memo(function SidebarThemeToggle({
   onToggle,
 }: SidebarThemeToggleProps) {
   return (
-    <div className="py-spacing-sm px-3.5 flex flex-col border-t border-theme-border-subtle bg-theme-bg-surface shrink-0 items-center">
+    <div className="py-spacing-sm px-3.5 flex flex-col border-t border-theme-border-subtle bg-theme-bg-base shrink-0 items-center">
       <motion.button
         type="button"
         whileTap={tapScalePill}

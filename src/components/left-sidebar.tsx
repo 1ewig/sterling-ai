@@ -98,7 +98,7 @@ export function LeftSidebar() {
         initial={false}
         animate={{ width: isSidebarCollapsed ? 68 : 280 }}
         transition={hasMounted ? sidebarSpringTransition : { duration: 0 }}
-        className="hidden md:flex h-full bg-theme-bg-surface border-r border-theme-border-subtle flex-col shrink-0 select-none z-30 overflow-hidden relative will-change-[width]"
+        className="hidden md:flex h-full bg-theme-bg-base border-r border-theme-border-subtle flex-col shrink-0 select-none z-30 overflow-hidden relative will-change-[width]"
       >
         <SidebarHeader
           isCollapsed={isSidebarCollapsed}
@@ -156,7 +156,7 @@ export function LeftSidebar() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed inset-y-0 left-0 w-[280px] sm:w-[320px] max-w-[85vw] h-dvh max-h-dvh bg-theme-bg-surface border-r border-theme-border-subtle z-50 flex flex-col md:hidden select-none overflow-hidden shadow-2xl shadow-black/50"
+              className="fixed inset-y-0 left-0 w-[280px] sm:w-[320px] max-w-[85vw] h-dvh max-h-dvh bg-theme-bg-base border-r border-theme-border-subtle z-50 flex flex-col md:hidden select-none overflow-hidden shadow-2xl shadow-black/50"
             >
               <SidebarHeader
                 isCollapsed={false}

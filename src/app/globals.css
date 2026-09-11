@@ -249,25 +249,28 @@ button,
 .chat-empty-glow {
   background:
     radial-gradient(
-      circle 550px at 50% 52%,
-      color-mix(in srgb, var(--theme-brand-primary) 12%, transparent) 0%,
-      color-mix(in srgb, var(--theme-brand-accent) 5%, transparent) 45%,
-      transparent 70%
+      circle 650px at 50% 50%,
+      color-mix(in srgb, var(--theme-brand-primary) 28%, transparent) 0%,
+      color-mix(in srgb, var(--theme-brand-accent) 14%, transparent) 40%,
+      transparent 72%
     );
 }
 
 @keyframes glow-breathe {
   0%, 100% {
-    opacity: 0.65;
+    opacity: 0.45;
+    transform: scale(0.92);
   }
   50% {
-    opacity: 0.95;
+    opacity: 1;
+    transform: scale(1.08);
   }
 }
 
 .animate-glow-breathe {
-  animation: glow-breathe 8s ease-in-out infinite;
-  will-change: opacity;
+  animation: glow-breathe 5s ease-in-out infinite;
+  transform-origin: center center;
+  will-change: opacity, transform;
 }
 
 @keyframes aura-spin {

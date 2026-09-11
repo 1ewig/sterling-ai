@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useChatSessions } from '@/hooks';
 import { useAppStore } from '@/stores/app-store';
+import { useMessages } from '@/lib/db';
 import { ChatHeader } from './chat-header';
 import { ChatClient } from './chat-client';
 
@@ -11,8 +13,12 @@ import { ChatClient } from './chat-client';
  */
 export function ChatPageClient() {
   const toggleMobileSidebar = useAppStore((state) => state.toggleMobileSidebar);
+  const activeStreamMessage = useAppStore((state) => state.activeStreamMessage);
 
-  const { isNewChatDisabled, handleNewSession, currentTitle } = useChatSessions();
+  const { isNewChatDisabled, handleNewSession, currentTitle, activeConversationId } = useChatSessions();
+  const { messages, isMessagesLoading } = useMessages(activeConversationId);
+
+  const isChatEmpty = !isMessagesLoading && messages.length === 0 && !activeStreamMessage;
 
   const handleNewChat = useCallback(() => {
     handleNewSession();
@@ -20,6 +26,23 @@ export function ChatPageClient() {
 
   return (
     <div className="relative flex flex-col h-full w-full bg-theme-bg-base overflow-hidden">
+      {/* Full-stage ambient breathing glow spanning across the entire page, active only in empty state */}
+      <AnimatePresence>
+        {isChatEmpty && (
+          <motion.div
+            key="chat-page-empty-glow"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-0 overflow-hidden select-none"
+          >
+            <div className="absolute inset-0 chat-empty-glow animate-glow-breathe" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <ChatHeader
         title={currentTitle}
         isNewChatDisabled={isNewChatDisabled}
@@ -27,7 +50,7 @@ export function ChatPageClient() {
         onNewChat={handleNewChat}
       />
 
-      <div className="relative flex-1 min-h-0 w-full flex flex-row overflow-hidden">
+      <div className="relative z-10 flex-1 min-h-0 w-full flex flex-row overflow-hidden">
         <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
           <ChatClient />
         </div>

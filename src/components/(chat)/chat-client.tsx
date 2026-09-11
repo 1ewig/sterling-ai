@@ -42,13 +42,6 @@ export const ChatClient = memo(function ChatClient() {
 
   return (
     <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
-      <div
-        aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 ambient-glow-gemini transition-opacity duration-500 ease-out ${
-          isChatEmpty ? 'opacity-90' : 'opacity-30'
-        }`}
-      />
-
       {isChatEmpty && (
         <ChatEmptyState
           isLoading={isLoading}
