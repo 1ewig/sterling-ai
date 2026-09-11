@@ -8,9 +8,9 @@ export interface ExtractedFollowUpsResult {
 }
 
 const FALLBACK_FOLLOW_UPS = [
-  'Can you provide more technical details or code examples?',
-  'Search for recent articles or documentation about this topic',
-  'What are the primary trade-offs and alternative approaches?',
+  'Analyze current market sentiment and funding rates',
+  'Check key support, resistance, and invalidation levels',
+  'What are the primary macro catalysts to watch this week?',
 ];
 
 /**
