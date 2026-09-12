@@ -1,13 +1,14 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
+import { Layers } from 'lucide-react';
 import type { BitgetWsBookData } from '@/lib/bitget/types';
 
 interface OrderbookDepthMiniProps {
   orderbook: BitgetWsBookData | null;
 }
 
-const FIXED_ROW_COUNT = 5;
+const ROW_COUNT = 8;
 
 export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   orderbook,
@@ -15,112 +16,189 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   const rawAsks = orderbook?.asks || [];
   const rawBids = orderbook?.bids || [];
 
-  // Take top 5 asks and reverse so lowest ask (best ask) is at bottom near spread
-  const topAsks = [...rawAsks].slice(0, FIXED_ROW_COUNT).reverse();
-  const topBids = [...rawBids].slice(0, FIXED_ROW_COUNT);
+  // Take top 8 asks and reverse so lowest ask (best ask) is at bottom near spread
+  const topAsks = [...rawAsks].slice(0, ROW_COUNT).reverse();
+  const topBids = [...rawBids].slice(0, ROW_COUNT);
 
-  // Pad to guaranteed 5 slots
-  const paddedAsks: Array<[string, string] | null> = Array.from({ length: FIXED_ROW_COUNT }, (_, i) => {
-    const offset = FIXED_ROW_COUNT - topAsks.length;
-    return i >= offset ? topAsks[i - offset] : null;
+  // Compute cumulative totals
+  const processedAsks = useMemo(() => {
+    let runningTotal = 0;
+    const totals: number[] = [];
+    // Calculate cumulative total from best ask up
+    for (let i = topAsks.length - 1; i >= 0; i--) {
+      runningTotal += parseFloat(topAsks[i][1]) || 0;
+      totals[i] = runningTotal;
+    }
+    return topAsks.map((item, idx) => ({
+      price: parseFloat(item[0]),
+      size: parseFloat(item[1]),
+      total: totals[idx] || 0,
+    }));
+  }, [topAsks]);
+
+  const processedBids = useMemo(() => {
+    let runningTotal = 0;
+    return topBids.map((item) => {
+      runningTotal += parseFloat(item[1]) || 0;
+      return {
+        price: parseFloat(item[0]),
+        size: parseFloat(item[1]),
+        total: runningTotal,
+      };
+    });
+  }, [topBids]);
+
+  // Imbalance calculation
+  const totalAskVol = processedAsks.reduce((acc, a) => acc + a.size, 0);
+  const totalBidVol = processedBids.reduce((acc, b) => acc + b.size, 0);
+  const sumVol = totalAskVol + totalBidVol;
+  const bidPercent = sumVol > 0 ? Math.round((totalBidVol / sumVol) * 100) : 50;
+  const askPercent = 100 - bidPercent;
+
+  const maxCumulative = Math.max(
+    processedAsks[0]?.total || 1,
+    processedBids[processedBids.length - 1]?.total || 1,
+    1
+  );
+
+  const bestAsk = processedAsks.length > 0 ? processedAsks[processedAsks.length - 1].price : 0;
+  const bestBid = processedBids.length > 0 ? processedBids[0].price : 0;
+  const spreadValue = bestAsk > 0 && bestBid > 0 ? bestAsk - bestBid : 0;
+  const spreadPercent = bestAsk > 0 ? ((spreadValue / bestAsk) * 100).toFixed(2) : '0';
+
+  // Pad to guaranteed 8 rows
+  const paddedAsks = Array.from({ length: ROW_COUNT }, (_, i) => {
+    const offset = ROW_COUNT - processedAsks.length;
+    return i >= offset ? processedAsks[i - offset] : null;
   });
 
-  const paddedBids: Array<[string, string] | null> = Array.from({ length: FIXED_ROW_COUNT }, (_, i) => {
-    return i < topBids.length ? topBids[i] : null;
+  const paddedBids = Array.from({ length: ROW_COUNT }, (_, i) => {
+    return i < processedBids.length ? processedBids[i] : null;
   });
-
-  // Calculate max size to scale depth bars
-  const allSizes = [...topAsks, ...topBids].map((item) => parseFloat(item[1]) || 0);
-  const maxSize = Math.max(...allSizes, 1);
-
-  const bestAsk = topAsks.length > 0 ? parseFloat(topAsks[topAsks.length - 1][0]) : 0;
-  const bestBid = topBids.length > 0 ? parseFloat(topBids[0][0]) : 0;
-  const spread = bestAsk > 0 && bestBid > 0 ? (bestAsk - bestBid).toFixed(2) : '—';
 
   return (
-    <div className="px-3.5 py-2.5 flex flex-col gap-1 select-none">
-      <div className="flex items-center justify-between text-3xs font-mono text-theme-text-muted pb-1 border-b border-theme-border-subtle/50">
-        <span>Order Book</span>
-        <span>Spread ${spread}</span>
+    <div className="p-5 rounded-2xl bg-[#121215] border border-white/5 flex flex-col gap-3 select-none shadow-xl shadow-black/20">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Layers className="size-4 text-amber-400 stroke-[2.2]" />
+        <span className="text-sm font-bold text-white tracking-tight">
+          Order Book Depth
+        </span>
       </div>
 
-      {/* Asks (Sells - Muted Red) - Guaranteed 5 rows */}
-      <div className="flex flex-col">
+      {/* Depth Imbalance Bar */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between text-2xs font-mono">
+          <span className="text-emerald-400 font-bold">Bids {bidPercent}%</span>
+          <span className="text-zinc-500 text-3xs uppercase tracking-wider">Depth Imbalance</span>
+          <span className="text-rose-400 font-bold">{askPercent}% Asks</span>
+        </div>
+        <div className="h-1.5 w-full bg-zinc-800 rounded-full flex overflow-hidden">
+          <div
+            className="bg-emerald-400 h-full transition-all duration-300 rounded-l-full"
+            style={{ width: `${bidPercent}%` }}
+          />
+          <div
+            className="bg-rose-400 h-full transition-all duration-300 rounded-r-full"
+            style={{ width: `${askPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Column Headers */}
+      <div className="grid grid-cols-3 text-3xs font-mono text-zinc-500 uppercase tracking-wider px-1 pt-1">
+        <span>PRICE (USDT)</span>
+        <span className="text-center">SIZE</span>
+        <span className="text-right">TOTAL</span>
+      </div>
+
+      {/* Asks List (8 Fixed Rows) */}
+      <div className="flex flex-col gap-0.5">
         {paddedAsks.map((row, i) => {
           if (!row) {
             return (
               <div
-                key={`ask-empty-${i}`}
-                className="h-[20px] flex items-center justify-between px-1 text-3xs font-mono text-theme-text-muted/20"
+                key={`ask-placeholder-${i}`}
+                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-zinc-700"
               >
                 <span>—</span>
-                <span>—</span>
+                <span className="text-center">—</span>
+                <span className="text-right">—</span>
               </div>
             );
           }
 
-          const [priceStr, sizeStr] = row;
-          const price = parseFloat(priceStr);
-          const size = parseFloat(sizeStr);
-          const depthPercent = Math.min((size / maxSize) * 100, 100);
+          const depthWidth = Math.min((row.total / maxCumulative) * 100, 100);
 
           return (
             <div
-              key={`ask-${i}-${priceStr}`}
-              className="relative h-[20px] flex items-center justify-between px-1 text-3xs font-mono overflow-hidden"
+              key={`ask-${i}-${row.price}`}
+              className="relative grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono overflow-hidden rounded"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-theme-status-danger/8 pointer-events-none"
-                style={{ width: `${depthPercent}%` }}
+                className="absolute inset-y-0 right-0 bg-rose-500/12 pointer-events-none rounded"
+                style={{ width: `${depthWidth}%` }}
               />
-              <span className="relative z-10 text-theme-status-danger/90">
-                {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              <span className="relative z-10 text-rose-400 font-medium">
+                {row.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
-              <span className="relative z-10 text-theme-text-muted">
-                {size.toFixed(4)}
+              <span className="relative z-10 text-zinc-400 text-center">
+                {row.size.toFixed(3)}
+              </span>
+              <span className="relative z-10 text-zinc-400 text-right">
+                {row.total.toFixed(3)}
               </span>
             </div>
           );
         })}
       </div>
 
-      {/* Mid Spread Hairline Divider */}
-      <div className="my-0.5 border-t border-theme-border-subtle/50" />
+      {/* Spread Indicator Box */}
+      <div className="bg-zinc-800/40 rounded-lg py-1.5 px-3 flex items-center justify-between text-xs font-mono">
+        <span className="text-zinc-500 text-2xs uppercase tracking-wider font-semibold">
+          SPREAD
+        </span>
+        <span className="text-white font-bold">
+          ${spreadValue.toFixed(2)}{' '}
+          <span className="text-zinc-400 font-normal text-2xs">({spreadPercent}%)</span>
+        </span>
+      </div>
 
-      {/* Bids (Buys - Muted Green) - Guaranteed 5 rows */}
-      <div className="flex flex-col">
+      {/* Bids List (8 Fixed Rows) */}
+      <div className="flex flex-col gap-0.5">
         {paddedBids.map((row, i) => {
           if (!row) {
             return (
               <div
-                key={`bid-empty-${i}`}
-                className="h-[20px] flex items-center justify-between px-1 text-3xs font-mono text-theme-text-muted/20"
+                key={`bid-placeholder-${i}`}
+                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-zinc-700"
               >
                 <span>—</span>
-                <span>—</span>
+                <span className="text-center">—</span>
+                <span className="text-right">—</span>
               </div>
             );
           }
 
-          const [priceStr, sizeStr] = row;
-          const price = parseFloat(priceStr);
-          const size = parseFloat(sizeStr);
-          const depthPercent = Math.min((size / maxSize) * 100, 100);
+          const depthWidth = Math.min((row.total / maxCumulative) * 100, 100);
 
           return (
             <div
-              key={`bid-${i}-${priceStr}`}
-              className="relative h-[20px] flex items-center justify-between px-1 text-3xs font-mono overflow-hidden"
+              key={`bid-${i}-${row.price}`}
+              className="relative grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono overflow-hidden rounded"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-theme-status-success/8 pointer-events-none"
-                style={{ width: `${depthPercent}%` }}
+                className="absolute inset-y-0 right-0 bg-emerald-500/12 pointer-events-none rounded"
+                style={{ width: `${depthWidth}%` }}
               />
-              <span className="relative z-10 text-theme-status-success/90">
-                {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              <span className="relative z-10 text-emerald-400 font-medium">
+                {row.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
-              <span className="relative z-10 text-theme-text-muted">
-                {size.toFixed(4)}
+              <span className="relative z-10 text-zinc-400 text-center">
+                {row.size.toFixed(3)}
+              </span>
+              <span className="relative z-10 text-zinc-400 text-right">
+                {row.total.toFixed(3)}
               </span>
             </div>
           );

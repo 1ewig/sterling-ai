@@ -22,7 +22,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
   const setSelectedMarketType = useAppStore((state) => state.setSelectedMarketType);
 
   // Hook only runs active WebSocket connection when the panel is opened
-  const { ticker, orderbook, status, tickDirection } = useBitgetWebSocket({
+  const { ticker, orderbook, candles, status, tickDirection } = useBitgetWebSocket({
     symbol: selectedMarketSymbol,
     instType: selectedMarketType,
     enabled: isMarketPanelOpen,
@@ -45,24 +45,28 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
             className="hidden md:flex flex-col h-full bg-theme-bg-base border-l border-theme-border-subtle shrink-0 select-none overflow-hidden relative z-20"
           >
-            <div className="w-full min-w-0 flex flex-col h-full overflow-y-auto no-scrollbar">
+            <div className="w-full min-w-0 flex flex-col h-full overflow-hidden">
               <StreamerHeader
                 status={status}
                 symbol={selectedMarketSymbol}
                 onClose={handleClose}
               />
-              <SymbolSelector
-                currentSymbol={selectedMarketSymbol}
-                currentType={selectedMarketType}
-                onSelectSymbol={setSelectedMarketSymbol}
-                onSelectType={setSelectedMarketType}
-              />
-              <TickerDisplay
-                ticker={ticker}
-                tickDirection={tickDirection}
-                symbol={selectedMarketSymbol}
-              />
-              <OrderbookDepthMini orderbook={orderbook} />
+              <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 no-scrollbar">
+                <SymbolSelector
+                  currentSymbol={selectedMarketSymbol}
+                  currentType={selectedMarketType}
+                  onSelectSymbol={setSelectedMarketSymbol}
+                  onSelectType={setSelectedMarketType}
+                />
+                <TickerDisplay
+                  ticker={ticker}
+                  candles={candles}
+                  tickDirection={tickDirection}
+                  symbol={selectedMarketSymbol}
+                  marketType={selectedMarketType}
+                />
+                <OrderbookDepthMini orderbook={orderbook} />
+              </div>
             </div>
           </motion.aside>
         )}
@@ -91,14 +95,14 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 w-[300px] sm:w-[340px] max-w-[85vw] h-dvh max-h-dvh bg-theme-bg-base border-l border-theme-border-subtle z-50 flex flex-col md:hidden select-none overflow-hidden shadow-2xl shadow-black/50"
+              className="fixed inset-y-0 right-0 w-[320px] sm:w-[380px] max-w-[85vw] h-dvh max-h-dvh bg-theme-bg-base border-l border-theme-border-subtle z-50 flex flex-col md:hidden select-none overflow-hidden shadow-2xl shadow-black/50"
             >
               <StreamerHeader
                 status={status}
                 symbol={selectedMarketSymbol}
                 onClose={handleClose}
               />
-              <div className="flex-1 overflow-y-auto no-scrollbar">
+              <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 no-scrollbar">
                 <SymbolSelector
                   currentSymbol={selectedMarketSymbol}
                   currentType={selectedMarketType}
@@ -107,8 +111,10 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                 />
                 <TickerDisplay
                   ticker={ticker}
+                  candles={candles}
                   tickDirection={tickDirection}
                   symbol={selectedMarketSymbol}
+                  marketType={selectedMarketType}
                 />
                 <OrderbookDepthMini orderbook={orderbook} />
               </div>
