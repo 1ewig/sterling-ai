@@ -211,7 +211,6 @@ export const TickerDisplay = memo(function TickerDisplay({
                 cy={sparklineData.lastPoint.y}
                 r="3.5"
                 fill={sparklineData.isUp ? '#10b981' : '#f43f5e'}
-                className="animate-pulse"
               />
             </svg>
           ) : (

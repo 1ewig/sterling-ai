@@ -13,68 +13,96 @@ const ROW_COUNT = 8;
 export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   orderbook,
 }: OrderbookDepthMiniProps) {
-  const rawAsks = orderbook?.asks || [];
-  const rawBids = orderbook?.bids || [];
-
-  // Take top 8 asks and reverse so lowest ask (best ask) is at bottom near spread
-  const topAsks = [...rawAsks].slice(0, ROW_COUNT).reverse();
-  const topBids = [...rawBids].slice(0, ROW_COUNT);
-
-  // Compute cumulative totals
-  const processedAsks = useMemo(() => {
-    let runningTotal = 0;
-    const totals: number[] = [];
-    // Calculate cumulative total from best ask up
-    for (let i = topAsks.length - 1; i >= 0; i--) {
-      runningTotal += parseFloat(topAsks[i][1]) || 0;
-      totals[i] = runningTotal;
+  const {
+    paddedAsks,
+    paddedBids,
+    bidPercent,
+    askPercent,
+    maxCumulative,
+    spreadValue,
+    spreadPercent,
+  } = useMemo(() => {
+    if (!orderbook) {
+      return {
+        paddedAsks: Array(ROW_COUNT).fill(null),
+        paddedBids: Array(ROW_COUNT).fill(null),
+        bidPercent: 50,
+        askPercent: 50,
+        maxCumulative: 1,
+        spreadValue: 0,
+        spreadPercent: '0',
+      };
     }
-    return topAsks.map((item, idx) => ({
+
+    const rawAsks = orderbook.asks || [];
+    const rawBids = orderbook.bids || [];
+
+    // Take top 8 asks and reverse so lowest ask (best ask) is at bottom near spread
+    const topAsks = rawAsks.slice(0, ROW_COUNT).reverse();
+    const topBids = rawBids.slice(0, ROW_COUNT);
+
+    let runningAskTotal = 0;
+    const askTotals: number[] = [];
+    for (let i = topAsks.length - 1; i >= 0; i--) {
+      runningAskTotal += parseFloat(topAsks[i][1]) || 0;
+      askTotals[i] = runningAskTotal;
+    }
+    const processedAsks = topAsks.map((item, idx) => ({
       price: parseFloat(item[0]),
       size: parseFloat(item[1]),
-      total: totals[idx] || 0,
+      total: askTotals[idx] || 0,
     }));
-  }, [topAsks]);
 
-  const processedBids = useMemo(() => {
-    let runningTotal = 0;
-    return topBids.map((item) => {
-      runningTotal += parseFloat(item[1]) || 0;
-      return {
+    let runningBidTotal = 0;
+    const processedBids: Array<{ price: number; size: number; total: number }> = [];
+    for (let i = 0; i < topBids.length; i++) {
+      const item = topBids[i];
+      runningBidTotal += parseFloat(item[1]) || 0;
+      processedBids.push({
         price: parseFloat(item[0]),
         size: parseFloat(item[1]),
-        total: runningTotal,
-      };
+        total: runningBidTotal,
+      });
+    }
+
+    // Imbalance calculation
+    const totalAskVol = processedAsks.reduce((acc, a) => acc + a.size, 0);
+    const totalBidVol = processedBids.reduce((acc, b) => acc + b.size, 0);
+    const sumVol = totalAskVol + totalBidVol;
+    const bidPct = sumVol > 0 ? Math.round((totalBidVol / sumVol) * 100) : 50;
+    const askPct = 100 - bidPct;
+
+    const maxCum = Math.max(
+      processedAsks[0]?.total || 1,
+      processedBids[processedBids.length - 1]?.total || 1,
+      1
+    );
+
+    const bestAsk = processedAsks.length > 0 ? processedAsks[processedAsks.length - 1].price : 0;
+    const bestBid = processedBids.length > 0 ? processedBids[0].price : 0;
+    const spreadVal = bestAsk > 0 && bestBid > 0 ? bestAsk - bestBid : 0;
+    const spreadPct = bestAsk > 0 ? ((spreadVal / bestAsk) * 100).toFixed(2) : '0';
+
+    // Pad to guaranteed 8 rows
+    const asksList = Array.from({ length: ROW_COUNT }, (_, i) => {
+      const offset = ROW_COUNT - processedAsks.length;
+      return i >= offset ? processedAsks[i - offset] : null;
     });
-  }, [topBids]);
 
-  // Imbalance calculation
-  const totalAskVol = processedAsks.reduce((acc, a) => acc + a.size, 0);
-  const totalBidVol = processedBids.reduce((acc, b) => acc + b.size, 0);
-  const sumVol = totalAskVol + totalBidVol;
-  const bidPercent = sumVol > 0 ? Math.round((totalBidVol / sumVol) * 100) : 50;
-  const askPercent = 100 - bidPercent;
+    const bidsList = Array.from({ length: ROW_COUNT }, (_, i) => {
+      return i < processedBids.length ? processedBids[i] : null;
+    });
 
-  const maxCumulative = Math.max(
-    processedAsks[0]?.total || 1,
-    processedBids[processedBids.length - 1]?.total || 1,
-    1
-  );
-
-  const bestAsk = processedAsks.length > 0 ? processedAsks[processedAsks.length - 1].price : 0;
-  const bestBid = processedBids.length > 0 ? processedBids[0].price : 0;
-  const spreadValue = bestAsk > 0 && bestBid > 0 ? bestAsk - bestBid : 0;
-  const spreadPercent = bestAsk > 0 ? ((spreadValue / bestAsk) * 100).toFixed(2) : '0';
-
-  // Pad to guaranteed 8 rows
-  const paddedAsks = Array.from({ length: ROW_COUNT }, (_, i) => {
-    const offset = ROW_COUNT - processedAsks.length;
-    return i >= offset ? processedAsks[i - offset] : null;
-  });
-
-  const paddedBids = Array.from({ length: ROW_COUNT }, (_, i) => {
-    return i < processedBids.length ? processedBids[i] : null;
-  });
+    return {
+      paddedAsks: asksList,
+      paddedBids: bidsList,
+      bidPercent: bidPct,
+      askPercent: askPct,
+      maxCumulative: maxCum,
+      spreadValue: spreadVal,
+      spreadPercent: spreadPct,
+    };
+  }, [orderbook]);
 
   return (
     <div className="p-5 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle flex flex-col gap-3 select-none shadow-xl shadow-black/20">

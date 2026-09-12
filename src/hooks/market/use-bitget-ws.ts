@@ -36,6 +36,7 @@ const RECONNECT_MAX_DELAY_MS = 10000;
 /**
  * High-performance browser WebSocket hook for Bitget v2 public market streams.
  * Subscribes to SPOT ticker, books15 (depth), candle1m (micro trend), and USDT-FUTURES ticker (derivatives flow).
+ * Uses requestAnimationFrame batching to prevent main-thread saturation and scroll lag during high-frequency tick bursts.
  */
 export function useBitgetWebSocket({
   symbol,
@@ -53,6 +54,17 @@ export function useBitgetWebSocket({
   const prevPriceRef = useRef<number | null>(null);
   const tickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
+  const candlesRef = useRef<MicroCandle[]>([]);
+
+  // RAF update batching buffer
+  const pendingUpdatesRef = useRef<{
+    ticker?: BitgetWsTickerData;
+    futuresTicker?: BitgetWsTickerData;
+    orderbookRecord?: { symbol: string; data: BitgetWsBookData };
+    candlesRecord?: { symbol: string; data: MicroCandle[] };
+    tickDirection?: TickDirection;
+  }>({});
+  const rafIdRef = useRef<number | null>(null);
 
   const cleanSymbol = normalizeSymbol(symbol);
 
@@ -81,6 +93,36 @@ export function useBitgetWebSocket({
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     prevPriceRef.current = null;
+    candlesRef.current = [];
+    pendingUpdatesRef.current = {};
+
+    const flushUpdates = () => {
+      if (isCleanedUp) return;
+      const pending = pendingUpdatesRef.current;
+      if (pending.ticker !== undefined) {
+        setTicker(pending.ticker);
+      }
+      if (pending.futuresTicker !== undefined) {
+        setFuturesTicker(pending.futuresTicker);
+      }
+      if (pending.orderbookRecord !== undefined) {
+        setOrderbookRecord(pending.orderbookRecord);
+      }
+      if (pending.candlesRecord !== undefined) {
+        setCandlesRecord(pending.candlesRecord);
+      }
+      if (pending.tickDirection !== undefined) {
+        setTickDirection(pending.tickDirection);
+      }
+      pendingUpdatesRef.current = {};
+      rafIdRef.current = null;
+    };
+
+    const scheduleFlush = () => {
+      if (rafIdRef.current === null && !isCleanedUp) {
+        rafIdRef.current = requestAnimationFrame(flushUpdates);
+      }
+    };
 
     const ws = new WebSocket(WS_URL);
 
@@ -145,18 +187,22 @@ export function useBitgetWebSocket({
             const tickerData = parsed.data[0] as BitgetWsTickerData;
 
             if (msgInstType === 'USDT-FUTURES') {
-              setFuturesTicker(tickerData);
+              pendingUpdatesRef.current.futuresTicker = tickerData;
+              scheduleFlush();
             } else if (msgInstType === 'SPOT') {
-              setTicker(tickerData);
+              pendingUpdatesRef.current.ticker = tickerData;
 
               const currentPrice = parseFloat(tickerData.lastPr);
               if (!isNaN(currentPrice)) {
                 if (prevPriceRef.current !== null) {
+                  let dir: TickDirection = 'neutral';
                   if (currentPrice > prevPriceRef.current) {
-                    setTickDirection('up');
+                    dir = 'up';
                   } else if (currentPrice < prevPriceRef.current) {
-                    setTickDirection('down');
+                    dir = 'down';
                   }
+                  pendingUpdatesRef.current.tickDirection = dir;
+
                   if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
                   tickTimerRef.current = setTimeout(() => {
                     if (!isCleanedUp) {
@@ -166,54 +212,53 @@ export function useBitgetWebSocket({
                 }
                 prevPriceRef.current = currentPrice;
               }
+              scheduleFlush();
             }
           } else if (channel === 'books15' || channel === 'books5' || channel === 'books') {
             const bookData = parsed.data[0] as BitgetWsBookData;
-            setOrderbookRecord({
+            pendingUpdatesRef.current.orderbookRecord = {
               symbol: cleanSymbol,
               data: {
                 asks: (bookData.asks || []).slice(0, 8),
                 bids: (bookData.bids || []).slice(0, 8),
                 ts: bookData.ts,
               },
-            });
+            };
+            scheduleFlush();
           } else if (channel === 'candle1m') {
             const rawCandles = parsed.data as string[][];
-            setCandlesRecord((prev) => {
-              const prevList = prev?.symbol === cleanSymbol ? prev.data : [];
-              if (parsed.action === 'snapshot') {
-                const formatted: MicroCandle[] = rawCandles
-                  .map((row) => ({
-                    timestamp: parseInt(row[0], 10),
-                    close: parseFloat(row[4]),
-                    high: parseFloat(row[2]),
-                    low: parseFloat(row[3]),
-                  }))
-                  .slice(-30);
-                return { symbol: cleanSymbol, data: formatted };
-              }
+            if (parsed.action === 'snapshot') {
+              const formatted: MicroCandle[] = rawCandles
+                .map((row) => ({
+                  timestamp: parseInt(row[0], 10),
+                  close: parseFloat(row[4]),
+                  high: parseFloat(row[2]),
+                  low: parseFloat(row[3]),
+                }))
+                .slice(-30);
+              candlesRef.current = formatted;
+              pendingUpdatesRef.current.candlesRecord = { symbol: cleanSymbol, data: formatted };
+              scheduleFlush();
+            } else if (rawCandles.length > 0) {
+              const latest = rawCandles[0];
+              const latestCandle: MicroCandle = {
+                timestamp: parseInt(latest[0], 10),
+                close: parseFloat(latest[4]),
+                high: parseFloat(latest[2]),
+                low: parseFloat(latest[3]),
+              };
 
-              // Update latest candle
-              if (rawCandles.length > 0) {
-                const latest = rawCandles[0];
-                const latestCandle: MicroCandle = {
-                  timestamp: parseInt(latest[0], 10),
-                  close: parseFloat(latest[4]),
-                  high: parseFloat(latest[2]),
-                  low: parseFloat(latest[3]),
-                };
-
-                const updated = [...prevList];
-                const lastIdx = updated.length - 1;
-                if (lastIdx >= 0 && updated[lastIdx].timestamp === latestCandle.timestamp) {
-                  updated[lastIdx] = latestCandle;
-                } else {
-                  updated.push(latestCandle);
-                }
-                return { symbol: cleanSymbol, data: updated.slice(-30) };
+              const updated = [...candlesRef.current];
+              const lastIdx = updated.length - 1;
+              if (lastIdx >= 0 && updated[lastIdx].timestamp === latestCandle.timestamp) {
+                updated[lastIdx] = latestCandle;
+              } else {
+                updated.push(latestCandle);
               }
-              return prev;
-            });
+              candlesRef.current = updated.slice(-30);
+              pendingUpdatesRef.current.candlesRecord = { symbol: cleanSymbol, data: candlesRef.current };
+              scheduleFlush();
+            }
           }
         }
       } catch {
@@ -249,6 +294,10 @@ export function useBitgetWebSocket({
 
     return () => {
       isCleanedUp = true;
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       if (pingTimer) clearInterval(pingTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
       if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
