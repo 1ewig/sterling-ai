@@ -21,6 +21,7 @@ export const stageTradeOrderTool = tool({
   }) => {
     const sym = normalizeSymbol(symbol);
     const isFutures = category !== 'spot';
+    const normalizedSide: 'buy' | 'sell' = side === 'long' ? 'buy' : side === 'short' ? 'sell' : side;
 
     try {
       // 1. Fetch live market price for sanity and margin checks
@@ -33,6 +34,16 @@ export const stageTradeOrderTool = tool({
       }
 
       const executionPrice = orderType === 'market' ? livePrice : (price || livePrice);
+      if (executionPrice <= 0) {
+        return {
+          success: false,
+          error: `Invalid execution price for ${sym}. Limit orders require a valid positive price.`,
+          requestedSymbol: symbol,
+          normalizedSymbol: sym,
+          actionableGuidance: 'Please specify a positive price or use orderType="market" to execute at current best ask/bid.',
+        };
+      }
+
       const notionalUsdt = size * executionPrice;
       const effectiveLeverage = isFutures ? Math.max(1, leverage) : 1;
       const initialMarginUsdt = notionalUsdt / effectiveLeverage;
@@ -41,15 +52,29 @@ export const stageTradeOrderTool = tool({
       let estimatedLiquidation: number | undefined;
       if (isFutures && effectiveLeverage > 1) {
         const maintenanceMarginRate = 0.005; // 0.5% base MMR
-        if (side === 'buy') {
+        if (normalizedSide === 'buy') {
           estimatedLiquidation = executionPrice * (1 - 1 / effectiveLeverage + maintenanceMarginRate);
         } else {
           estimatedLiquidation = executionPrice * (1 + 1 / effectiveLeverage - maintenanceMarginRate);
         }
       }
 
-      // 3. Compute Risk/Reward if TP & SL provided
+      // 3. Compute Risk/Reward and validate SL/TP orientation
       let riskRewardRatio: string | undefined;
+      const warnings: string[] = [];
+
+      if (stopLossPrice && normalizedSide === 'buy' && stopLossPrice >= executionPrice) {
+        warnings.push(`Stop Loss ($${stopLossPrice}) is above execution price ($${executionPrice}) on a BUY order.`);
+      } else if (stopLossPrice && normalizedSide === 'sell' && stopLossPrice <= executionPrice) {
+        warnings.push(`Stop Loss ($${stopLossPrice}) is below execution price ($${executionPrice}) on a SELL order.`);
+      }
+
+      if (takeProfitPrice && normalizedSide === 'buy' && takeProfitPrice <= executionPrice) {
+        warnings.push(`Take Profit ($${takeProfitPrice}) is below execution price ($${executionPrice}) on a BUY order.`);
+      } else if (takeProfitPrice && normalizedSide === 'sell' && takeProfitPrice >= executionPrice) {
+        warnings.push(`Take Profit ($${takeProfitPrice}) is above execution price ($${executionPrice}) on a SELL order.`);
+      }
+
       if (stopLossPrice && takeProfitPrice) {
         const risk = Math.abs(executionPrice - stopLossPrice);
         const reward = Math.abs(takeProfitPrice - executionPrice);
@@ -65,10 +90,10 @@ export const stageTradeOrderTool = tool({
         ticketId,
         symbol: sym,
         category,
-        side,
+        side: normalizedSide,
         orderType,
         size,
-        price: executionPrice,
+        price: parseFloat(executionPrice.toFixed(4)),
         tradeSide,
         leverage: isFutures ? effectiveLeverage : 1,
         notionalUsdt: parseFloat(notionalUsdt.toFixed(2)),
@@ -77,10 +102,13 @@ export const stageTradeOrderTool = tool({
         stopLossPrice,
         takeProfitPrice,
         riskRewardRatio,
-        rationale: rationale || `Algorithmic ${side.toUpperCase()} setup on ${sym} (${category})`,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        rationale: rationale || `Algorithmic ${normalizedSide.toUpperCase()} setup on ${sym} (${category})`,
         status: 'staged_pending_user_confirmation',
         actionableGuidance:
-          `Trade Ticket ${ticketId} staged successfully. Review the parameters and confirm to submit the order to Bitget v3.`,
+          warnings.length > 0
+            ? `Trade Ticket ${ticketId} staged with risk warnings: ${warnings.join(' ')} Review before confirming.`
+            : `Trade Ticket ${ticketId} staged successfully. Review the parameters and confirm to submit the order to Bitget v3.`,
       };
     } catch (err) {
       return {

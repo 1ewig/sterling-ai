@@ -36,11 +36,17 @@ export const accountOverviewTool = tool({
             : 'No open positions on Bitget v3. Account is 100% in cash/collateral.',
       };
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to query account balance.';
+      const isMissingConfig = message.includes('BITGET_API_KEY') || message.includes('credentials not configured');
+
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to query account balance.',
-        actionableGuidance:
-          'To query live balances and positions, ensure BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE are configured in .env.local.',
+        error: message,
+        actionableGuidance: isMissingConfig
+          ? 'Bitget API credentials are missing. Set BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE in .env.local to access account balances.'
+          : message.includes('failed [')
+          ? message
+          : `Failed to query Bitget account. ${message}`,
       };
     }
   },

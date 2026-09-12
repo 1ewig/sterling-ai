@@ -8,6 +8,7 @@ import type {
   BitgetV3CancelParams,
   BitgetV3Position,
   BitgetAccountOverview,
+  BitgetErrorDetails,
 } from './types';
 
 /**
@@ -25,6 +26,117 @@ export function generateBitgetV3Signature(
   const fullPath = queryString ? `${requestPath}?${queryString}` : requestPath;
   const preHash = `${timestamp}${method.toUpperCase()}${fullPath}${bodyString}`;
   return crypto.createHmac('sha256', secretKey).update(preHash).digest('base64');
+}
+
+/**
+ * Classifies Bitget V3 raw error codes and error messages into structured recovery guidance.
+ */
+export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetails {
+  const cleanCode = code.toString().trim();
+  const lowerMsg = rawMsg.toLowerCase();
+
+  // Authentication & API Key Errors
+  if (
+    cleanCode === '40006' ||
+    cleanCode === '40014' ||
+    cleanCode === '40015' ||
+    cleanCode === '40012' ||
+    lowerMsg.includes('invalid access_key') ||
+    lowerMsg.includes('signature') ||
+    lowerMsg.includes('passphrase') ||
+    lowerMsg.includes('api key')
+  ) {
+    return {
+      category: 'AUTH_FAILED',
+      code: cleanCode,
+      message: rawMsg || 'Bitget API authentication failed.',
+      actionableGuidance:
+        'Verify BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE in .env.local. Ensure permissions include Read/Trade.',
+      canRetry: false,
+    };
+  }
+
+  // Timestamp drift / clock sync
+  if (cleanCode === '40017' || lowerMsg.includes('timestamp')) {
+    return {
+      category: 'AUTH_FAILED',
+      code: cleanCode,
+      message: rawMsg || 'Request timestamp expired or out of sync.',
+      actionableGuidance:
+        'System clock is out of sync with Bitget server time. Synchronize your system clock with NTP.',
+      canRetry: true,
+    };
+  }
+
+  // IP Whitelist restrictions
+  if (cleanCode === '40034' || cleanCode === '40035' || lowerMsg.includes('ip') || lowerMsg.includes('whitelist')) {
+    return {
+      category: 'IP_BLOCKED',
+      code: cleanCode,
+      message: rawMsg || 'IP address is not whitelisted on Bitget API key.',
+      actionableGuidance:
+        'Add your current server/public IP to the Bitget API Key IP Whitelist in your Bitget API management console.',
+      canRetry: false,
+    };
+  }
+
+  // Insufficient Balance / Margin
+  if (
+    cleanCode === '43012' ||
+    cleanCode === '43013' ||
+    cleanCode === '40754' ||
+    lowerMsg.includes('balance') ||
+    lowerMsg.includes('insufficient')
+  ) {
+    return {
+      category: 'INSUFFICIENT_FUNDS',
+      code: cleanCode,
+      message: rawMsg || 'Insufficient account balance or available margin.',
+      actionableGuidance:
+        'Deposit or transfer additional USDT collateral into your Bitget Unified Trading Account (UTA) or reduce order size.',
+      canRetry: false,
+    };
+  }
+
+  // Order Parameter or Size Limits
+  if (
+    cleanCode === '43025' ||
+    cleanCode === '43026' ||
+    cleanCode === '43004' ||
+    cleanCode === '43009' ||
+    lowerMsg.includes('size') ||
+    lowerMsg.includes('quantity') ||
+    lowerMsg.includes('leverage')
+  ) {
+    return {
+      category: 'ORDER_INVALID',
+      code: cleanCode,
+      message: rawMsg || 'Order size or leverage exceeds Bitget market constraints.',
+      actionableGuidance:
+        'Adjust the trade size to meet minimum contract step requirements or lower the leverage multiple.',
+      canRetry: false,
+    };
+  }
+
+  // Rate Limiting
+  if (cleanCode === '40800' || cleanCode === '429' || lowerMsg.includes('rate limit') || lowerMsg.includes('too many')) {
+    return {
+      category: 'RATE_LIMITED',
+      code: cleanCode,
+      message: rawMsg || 'Bitget API rate limit exceeded.',
+      actionableGuidance: 'Wait a few seconds before retrying the request.',
+      canRetry: true,
+    };
+  }
+
+  // Default Exchange Error
+  return {
+    category: 'EXCHANGE_ERROR',
+    code: cleanCode,
+    message: rawMsg || `Bitget API returned error code ${cleanCode}.`,
+    actionableGuidance: 'Check the parameters and try again or consult Bitget V3 API documentation.',
+    canRetry: false,
+  };
 }
 
 /**
@@ -115,7 +227,8 @@ export async function placeOrderV3(
   };
 
   if (json.code !== '00000' && json.code !== '0') {
-    throw new Error(`Bitget v3 Place Order failed [${json.code}]: ${json.msg}`);
+    const err = classifyBitgetError(json.code, json.msg);
+    throw new Error(`Bitget v3 Place Order failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
   }
 
   return {
@@ -156,7 +269,8 @@ export async function modifyOrderV3(
   const json = (await response.json()) as { code: string; msg: string; data?: { orderId?: string } };
 
   if (json.code !== '00000' && json.code !== '0') {
-    throw new Error(`Bitget v3 Modify Order failed [${json.code}]: ${json.msg}`);
+    const err = classifyBitgetError(json.code, json.msg);
+    throw new Error(`Bitget v3 Modify Order failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
   }
 
   return {
@@ -192,7 +306,8 @@ export async function cancelOrderV3(
   const json = (await response.json()) as { code: string; msg: string; data?: { orderId?: string } };
 
   if (json.code !== '00000' && json.code !== '0') {
-    throw new Error(`Bitget v3 Cancel Order failed [${json.code}]: ${json.msg}`);
+    const err = classifyBitgetError(json.code, json.msg);
+    throw new Error(`Bitget v3 Cancel Order failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
   }
 
   return {
@@ -211,65 +326,94 @@ export async function getPositionsV3(
   const path = '/api/v3/trade/current-positions';
   const queryString = `productType=${productType}`;
 
-  try {
-    const headers = getAuthHeaders('GET', path, queryString);
-    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
-      method: 'GET',
-      headers,
-    });
+  const headers = getAuthHeaders('GET', path, queryString);
+  const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
+    method: 'GET',
+    headers,
+  });
 
-    const json = (await response.json()) as {
-      code: string;
-      msg: string;
-      data?: BitgetV3Position[];
-    };
+  const json = (await response.json()) as {
+    code: string;
+    msg: string;
+    data?: BitgetV3Position[];
+  };
 
-    if (json.code === '00000' || json.code === '0') {
-      return json.data || [];
-    }
-    return [];
-  } catch {
-    return [];
+  if (json.code === '00000' || json.code === '0') {
+    return json.data || [];
   }
+
+  const err = classifyBitgetError(json.code, json.msg);
+  throw new Error(`Bitget v3 Positions failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
 }
 
 /**
  * Fetch Unified Trading Account Overview (Equity, Margin, Positions)
  */
 export async function getAccountOverviewV3(): Promise<BitgetAccountOverview> {
-  const path = '/api/v3/account/settings';
+  const settingsPath = '/api/v3/account/settings';
+  const assetsPath = '/api/v3/account/assets';
 
-  try {
-    const headers = getAuthHeaders('GET', path);
-    const [settingsRes, positions] = await Promise.all([
-      fetch(`${BITGET_REST_BASE}${path}`, { method: 'GET', headers }),
-      getPositionsV3('USDT-FUTURES'),
-    ]);
+  const [settingsHeaders, assetsHeaders] = [
+    getAuthHeaders('GET', settingsPath),
+    getAuthHeaders('GET', assetsPath, 'category=USDT-FUTURES'),
+  ];
 
-    const settingsJson = (await settingsRes.json()) as {
-      code: string;
-      data?: { accountMode?: string };
-    };
+  const [settingsRes, assetsRes, positions] = await Promise.all([
+    fetch(`${BITGET_REST_BASE}${settingsPath}`, { method: 'GET', headers: settingsHeaders }),
+    fetch(`${BITGET_REST_BASE}${assetsPath}?category=USDT-FUTURES`, { method: 'GET', headers: assetsHeaders }),
+    getPositionsV3('USDT-FUTURES'),
+  ]);
 
-    let totalEquity = 0;
-    let availableEquity = 0;
-    let unrealizedPnl = 0;
+  const settingsJson = (await settingsRes.json()) as {
+    code: string;
+    msg?: string;
+    data?: { accountMode?: string };
+  };
 
-    for (const pos of positions) {
-      unrealizedPnl += parseFloat(pos.unrealizedPL || '0');
-    }
-
-    return {
-      totalEquityUsdt: totalEquity,
-      availableEquityUsdt: availableEquity,
-      unrealizedPnlUsdt: unrealizedPnl,
-      marginRatioPercent: 0,
-      accountMode: (settingsJson.data?.accountMode as 'basic' | 'advanced' | 'isolated') || 'advanced',
-      positions,
-    };
-  } catch (err) {
+  if (settingsJson.code !== '00000' && settingsJson.code !== '0') {
+    const err = classifyBitgetError(settingsJson.code, settingsJson.msg);
     throw new Error(
-      `Failed to retrieve Bitget v3 Account Overview: ${err instanceof Error ? err.message : 'Unknown error'}`
+      `Bitget v3 Account Settings failed [${settingsJson.code}]: ${err.message}. ${err.actionableGuidance}`
     );
   }
+
+  let totalEquity = 0;
+  let availableEquity = 0;
+  let unrealizedPnl = 0;
+
+  if (assetsRes.ok) {
+    try {
+      const assetsJson = (await assetsRes.json()) as {
+        code: string;
+        data?: Array<{
+          coin?: string;
+          equity?: string;
+          available?: string;
+          unrealizedPL?: string;
+          usdtEquity?: string;
+        }>;
+      };
+      if ((assetsJson.code === '00000' || assetsJson.code === '0') && assetsJson.data) {
+        for (const asset of assetsJson.data) {
+          totalEquity += parseFloat(asset.equity || asset.usdtEquity || '0');
+          availableEquity += parseFloat(asset.available || '0');
+        }
+      }
+    } catch {
+      // Fall through to positions rollup
+    }
+  }
+
+  for (const pos of positions) {
+    unrealizedPnl += parseFloat(pos.unrealizedPL || '0');
+  }
+
+  return {
+    totalEquityUsdt: parseFloat(totalEquity.toFixed(2)),
+    availableEquityUsdt: parseFloat(availableEquity.toFixed(2)),
+    unrealizedPnlUsdt: parseFloat(unrealizedPnl.toFixed(2)),
+    marginRatioPercent: 0,
+    accountMode: (settingsJson.data?.accountMode as 'basic' | 'advanced' | 'isolated') || 'advanced',
+    positions,
+  };
 }

@@ -201,22 +201,47 @@ export interface BitgetAccountOverview {
   positions: BitgetV3Position[];
 }
 
+export type BitgetErrorCategory =
+  | 'MISSING_CREDENTIALS'
+  | 'AUTH_FAILED'
+  | 'IP_BLOCKED'
+  | 'INSUFFICIENT_FUNDS'
+  | 'ORDER_INVALID'
+  | 'RATE_LIMITED'
+  | 'NETWORK_ERROR'
+  | 'EXCHANGE_ERROR';
+
+export interface BitgetErrorDetails {
+  category: BitgetErrorCategory;
+  code?: string;
+  message: string;
+  actionableGuidance: string;
+  canRetry: boolean;
+}
+
 export const stageTradeOrderParamsSchema = z.object({
   symbol: z.string().describe('Trading pair symbol (e.g. BTCUSDT, ETHUSDT, RTSLAUSDT, SOLUSDT)'),
-  category: z.enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures']).default('usdt-futures').describe('Market category'),
-  side: z.enum(['buy', 'sell']).describe('Order direction (buy = long, sell = short)'),
+  category: z
+    .enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
+    .default('usdt-futures')
+    .describe('Market category'),
+  side: z
+    .enum(['buy', 'sell', 'long', 'short'])
+    .describe('Order direction (buy/long = long, sell/short = short)'),
   orderType: z.enum(['limit', 'market']).default('limit').describe('Order execution type'),
-  size: z.number().positive().describe('Order size / quantity in base asset units (e.g. 0.05 BTC or 2.0 TSLA)'),
-  price: z.number().positive().optional().describe('Limit price (required for limit orders)'),
+  size: z
+    .coerce
+    .number()
+    .positive()
+    .describe('Order size / quantity in base asset units (e.g. 0.05 BTC or 2.0 TSLA)'),
+  price: z.coerce.number().positive().optional().describe('Limit price (required for limit orders)'),
   tradeSide: z.enum(['open', 'close']).default('open').describe('Position intent: open new position or close existing'),
-  leverage: z.number().min(1).max(50).default(5).optional().describe('Leverage multiple (for futures)'),
-  stopLossPrice: z.number().positive().optional().describe('Preset Stop-Loss price level'),
-  takeProfitPrice: z.number().positive().optional().describe('Preset Take-Profit price level'),
+  leverage: z.coerce.number().min(1).max(50).default(5).optional().describe('Leverage multiple (for futures)'),
+  stopLossPrice: z.coerce.number().positive().optional().describe('Preset Stop-Loss price level'),
+  takeProfitPrice: z.coerce.number().positive().optional().describe('Preset Take-Profit price level'),
   rationale: z.string().optional().describe('Short trading rationale or catalyst for this setup'),
 });
 
 export const accountOverviewParamsSchema = z.object({
   category: z.enum(['all', 'spot', 'usdt-futures']).default('all').describe('Scope of account overview to query'),
 });
-
-
