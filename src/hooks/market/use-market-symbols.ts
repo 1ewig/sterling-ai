@@ -119,6 +119,7 @@ export function useMarketSymbols(
     symbols: filteredSymbols,
     allSymbols,
     isLoading,
+    isSyncing,
     totalCount: allSymbols.length,
     refresh,
   };
