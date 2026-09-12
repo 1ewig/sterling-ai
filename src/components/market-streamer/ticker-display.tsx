@@ -1,10 +1,8 @@
 'use client';
 
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { ArrowDownRight, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { AgentLoader } from '@/components/common';
-import { useAppStore } from '@/stores/app-store';
-import { SymbolSearchPopover } from './symbol-search-popover';
 import { MicroTrend } from './micro-trend';
 import type { BitgetWsTickerData } from '@/lib/bitget/types';
 import type { TickDirection, MicroCandle } from '@/hooks/market';
@@ -15,6 +13,7 @@ interface TickerDisplayProps {
   tickDirection: TickDirection;
   symbol: string;
   marketType?: 'spot' | 'futures' | 'both';
+  onOpenSearch?: () => void;
 }
 
 export const TickerDisplay = memo(function TickerDisplay({
@@ -23,9 +22,8 @@ export const TickerDisplay = memo(function TickerDisplay({
   tickDirection,
   symbol,
   marketType = 'spot',
+  onOpenSearch,
 }: TickerDisplayProps) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const setSelectedMarketSymbol = useAppStore((state) => state.setSelectedMarketSymbol);
 
   const baseAsset = symbol.replace(/USDT$|USD$|USDC$/, '');
   const quoteAsset = symbol.endsWith('USDC') ? 'USDC' : 'USDT';
@@ -79,7 +77,7 @@ export const TickerDisplay = memo(function TickerDisplay({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setIsSearchOpen(true)}
+            onClick={onOpenSearch}
             className="group flex items-center gap-1.5 hover:bg-theme-bg-elevated/70 px-2 py-1 -ml-2 rounded-lg transition-colors cursor-pointer select-none"
             title="Search & change trading pair"
             aria-label="Change trading pair"
@@ -162,14 +160,6 @@ export const TickerDisplay = memo(function TickerDisplay({
           </span>
         </div>
       </div>
-
-      {/* Symbol Search Modal */}
-      <SymbolSearchPopover
-        isOpen={isSearchOpen}
-        currentSymbol={symbol}
-        onSelectSymbol={setSelectedMarketSymbol}
-        onClose={() => setIsSearchOpen(false)}
-      />
     </div>
   );
 });

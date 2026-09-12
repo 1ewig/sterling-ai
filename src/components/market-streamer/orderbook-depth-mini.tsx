@@ -10,6 +10,48 @@ interface OrderbookDepthMiniProps {
 
 const ROW_COUNT = 8;
 
+function formatBookPrice(price: number): string {
+  if (price >= 1000) {
+    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (price >= 1) {
+    return price.toFixed(4);
+  }
+  if (price >= 0.01) {
+    return price.toFixed(5);
+  }
+  if (price >= 0.0001) {
+    return price.toFixed(6);
+  }
+  return price.toFixed(8);
+}
+
+function formatSpreadValue(spread: number): string {
+  if (spread >= 1) {
+    return spread.toFixed(2);
+  }
+  if (spread >= 0.01) {
+    return spread.toFixed(4);
+  }
+  if (spread >= 0.0001) {
+    return spread.toFixed(6);
+  }
+  return spread.toFixed(8);
+}
+
+function formatBookSize(size: number): string {
+  if (size >= 1_000_000) {
+    return `${(size / 1_000_000).toFixed(2)}M`;
+  }
+  if (size >= 10_000) {
+    return `${(size / 1_000).toFixed(1)}K`;
+  }
+  if (size >= 1) {
+    return size.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  return size.toFixed(3);
+}
+
 export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   orderbook,
 }: OrderbookDepthMiniProps) {
@@ -167,14 +209,14 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
                 className="absolute inset-y-0 right-0 bg-theme-status-danger/15 pointer-events-none rounded"
                 style={{ width: `${depthWidth}%` }}
               />
-              <span className="relative z-10 text-theme-status-danger font-medium">
-                {row.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              <span className="relative z-10 text-theme-status-danger font-medium tabular-nums">
+                {formatBookPrice(row.price)}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-center">
-                {row.size.toFixed(3)}
+              <span className="relative z-10 text-theme-text-secondary text-center tabular-nums">
+                {formatBookSize(row.size)}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-right">
-                {row.total.toFixed(3)}
+              <span className="relative z-10 text-theme-text-secondary text-right tabular-nums">
+                {formatBookSize(row.total)}
               </span>
             </div>
           );
@@ -186,8 +228,8 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
         <span className="text-theme-text-muted text-2xs uppercase tracking-wider font-semibold">
           SPREAD
         </span>
-        <span className="text-theme-text-primary font-bold">
-          ${spreadValue.toFixed(2)}{' '}
+        <span className="text-theme-text-primary font-bold tabular-nums">
+          ${formatSpreadValue(spreadValue)}{' '}
           <span className="text-theme-text-secondary font-normal text-2xs">({spreadPercent}%)</span>
         </span>
       </div>
@@ -219,14 +261,14 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
                 className="absolute inset-y-0 right-0 bg-theme-status-success/15 pointer-events-none rounded"
                 style={{ width: `${depthWidth}%` }}
               />
-              <span className="relative z-10 text-theme-status-success font-medium">
-                {row.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              <span className="relative z-10 text-theme-status-success font-medium tabular-nums">
+                {formatBookPrice(row.price)}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-center">
-                {row.size.toFixed(3)}
+              <span className="relative z-10 text-theme-text-secondary text-center tabular-nums">
+                {formatBookSize(row.size)}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-right">
-                {row.total.toFixed(3)}
+              <span className="relative z-10 text-theme-text-secondary text-right tabular-nums">
+                {formatBookSize(row.total)}
               </span>
             </div>
           );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useSyncExternalStore } from 'react';
+import React, { memo, useState, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/stores/app-store';
 import { useBitgetWebSocket } from '@/hooks/market';
@@ -10,6 +10,7 @@ import { AgentLoader } from '@/components/common';
 import { TickerDisplay } from './ticker-display';
 import { DerivativesMetrics } from './derivatives-metrics';
 import { OrderbookDepthMini } from './orderbook-depth-mini';
+import { SymbolSearchPopover } from './symbol-search-popover';
 
 interface StreamerContentProps {
   isConnecting: boolean;
@@ -21,6 +22,7 @@ interface StreamerContentProps {
   futuresTicker: BitgetWsTickerData | null;
   orderbook: BitgetWsBookData | null;
   marketType: 'spot' | 'futures' | 'both';
+  onOpenSearch: () => void;
 }
 
 const StreamerContent = memo(function StreamerContent({
@@ -33,6 +35,7 @@ const StreamerContent = memo(function StreamerContent({
   futuresTicker,
   orderbook,
   marketType,
+  onOpenSearch,
 }: StreamerContentProps) {
   if (isConnecting) {
     return (
@@ -60,6 +63,7 @@ const StreamerContent = memo(function StreamerContent({
         tickDirection={tickDirection}
         symbol={symbol}
         marketType={marketType}
+        onOpenSearch={onOpenSearch}
       />
       <DerivativesMetrics futuresTicker={futuresTicker} />
       <OrderbookDepthMini orderbook={orderbook} />
@@ -89,14 +93,16 @@ function useIsMobile() {
 }
 
 /**
- * Collapsible Right-Side Market Streamer Panel.
- * Renders live tick-by-tick Bitget WebSocket feed with responsive drawer behavior on mobile.
+ * Main Orchestrator for the Market Streamer.
+ * Manages WebSocket lifecycle, Zustand state subscriptions, modal visibility, and prop distribution.
  */
 export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
   const isMarketPanelOpen = useAppStore((state) => state.isMarketPanelOpen);
   const setIsMarketPanelOpen = useAppStore((state) => state.setIsMarketPanelOpen);
   const selectedMarketSymbol = useAppStore((state) => state.selectedMarketSymbol);
+  const setSelectedMarketSymbol = useAppStore((state) => state.setSelectedMarketSymbol);
 
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isMobile = useIsMobile();
 
   // Hook only runs active WebSocket connection when the panel is opened
@@ -107,6 +113,19 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
 
   const handleClose = () => {
     setIsMarketPanelOpen(false);
+  };
+
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true);
+  };
+
+  const handleCloseSearch = () => {
+    setIsSearchOpen(false);
+  };
+
+  const handleSelectSymbol = (symbol: string) => {
+    setSelectedMarketSymbol(symbol);
+    setIsSearchOpen(false);
   };
 
   const isConnecting = status !== 'connected' || (!ticker && !futuresTicker);
@@ -136,6 +155,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                   futuresTicker={futuresTicker}
                   orderbook={orderbook}
                   marketType={marketType}
+                  onOpenSearch={handleOpenSearch}
                 />
               </div>
             </div>
@@ -179,12 +199,21 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                   futuresTicker={futuresTicker}
                   orderbook={orderbook}
                   marketType={marketType}
+                  onOpenSearch={handleOpenSearch}
                 />
               </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
+
+      {/* Symbol Search Modal (Orchestrated at Root Panel Level) */}
+      <SymbolSearchPopover
+        isOpen={isSearchOpen}
+        currentSymbol={selectedMarketSymbol}
+        onSelectSymbol={handleSelectSymbol}
+        onClose={handleCloseSearch}
+      />
     </>
   );
 });
