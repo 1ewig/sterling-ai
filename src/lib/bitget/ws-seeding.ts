@@ -16,39 +16,16 @@ export async function seedCandlesSnapshot(
   targetSpotInstId: string,
   targetFuturesInstId: string
 ): Promise<MicroCandle[]> {
-  const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
-  for (const sym of spotCandidates) {
-    try {
-      const res = await fetch(
-        `https://api.bitget.com/api/v2/spot/market/candles?symbol=${sym}&granularity=1min&limit=30`,
-        { signal: AbortSignal.timeout(3000) }
-      );
-      if (res.ok) {
-        const json = (await res.json()) as { code: string; data?: string[][] };
-        if (json.code === '00000' && json.data && json.data.length >= 2) {
-          return json.data.map((row) => ({
-            timestamp: parseInt(row[0], 10),
-            close: parseFloat(row[4]),
-            high: parseFloat(row[2]),
-            low: parseFloat(row[3]),
-          }));
-        }
-      }
-    } catch {
-      // Fall through to futures candidate
-    }
-  }
-
   const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
   for (const sym of futCandidates) {
     try {
       const res = await fetch(
-        `https://api.bitget.com/api/v2/mix/market/candles?productType=USDT-FUTURES&symbol=${sym}&granularity=1m&limit=30`,
+        `https://api.bitget.com/api/v3/market/candles?category=USDT-FUTURES&symbol=${sym}&interval=1m&limit=30`,
         { signal: AbortSignal.timeout(3000) }
       );
       if (res.ok) {
         const json = (await res.json()) as { code: string; data?: string[][] };
-        if (json.code === '00000' && json.data && json.data.length >= 2) {
+        if ((json.code === '00000' || json.code === '0') && json.data && json.data.length >= 2) {
           return json.data.map((row) => ({
             timestamp: parseInt(row[0], 10),
             close: parseFloat(row[4]),
@@ -58,12 +35,36 @@ export async function seedCandlesSnapshot(
         }
       }
     } catch {
-      // Handled silently
+      // Fall through
+    }
+  }
+
+  const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
+  for (const sym of spotCandidates) {
+    try {
+      const res = await fetch(
+        `https://api.bitget.com/api/v3/market/candles?category=SPOT&symbol=${sym}&interval=1m&limit=30`,
+        { signal: AbortSignal.timeout(3000) }
+      );
+      if (res.ok) {
+        const json = (await res.json()) as { code: string; data?: string[][] };
+        if ((json.code === '00000' || json.code === '0') && json.data && json.data.length >= 2) {
+          return json.data.map((row) => ({
+            timestamp: parseInt(row[0], 10),
+            close: parseFloat(row[4]),
+            high: parseFloat(row[2]),
+            low: parseFloat(row[3]),
+          }));
+        }
+      }
+    } catch {
+      // Fall through
     }
   }
 
   return [];
 }
+
 
 /**
  * Asynchronously seeds the initial order book depth snapshot via REST for instant paint.
