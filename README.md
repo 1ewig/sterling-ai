@@ -19,17 +19,20 @@ Sterling is an **Institutional-Grade AI Trading Desk & Cross-Asset Market Intell
 
 ### 1. ⚡ Sub-50ms Live WebSocket Market Streamer
 A persistent, hardware-accelerated right-dock streaming panel directly connected to the Bitget Public v2 WebSocket (`wss://ws.bitget.com/v2/ws/public`):
-* **Multiplexed Low-Latency Streams:** Subscribes concurrently to SPOT `ticker`, L2 order book depth (`books15`), and 1-minute trend bars (`candle1m`), while multiplexing the `USDT-FUTURES` ticker on the same connection.
+* **Multiplexed Low-Latency Streams:** Subscribes concurrently to SPOT `ticker`, full depth (`books`), L2 order book depth (`books15`), and 1-minute trend bars (`candle1m`), while multiplexing the `USDT-FUTURES` ticker on the same connection.
+* **Cross-Market Tokenized Equity / rToken Multiplexing:** Seamlessly unifies tokenized spot equities (e.g. `RTSLAUSDT`, `RNVDAUSDT`, `RAAPLUSDT`) with their corresponding perpetual futures (e.g. `TSLAUSDT`, `NVDAUSDT`, `AAPLUSDT`). Simultaneously multiplexes Spot prices and order book depth alongside Perpetual 8h funding rates, open interest, mark price, and contango/discount basis spread on a single unified pane.
+* **0ms Cold-Start REST Seeding & Weekend Resilience:** Asynchronously pre-seeds the initial 30 1-minute candles (`granularity=1min` on Spot, `1m` on Futures) and order book depth snapshot via REST on mount. Guarantees 0ms cold-start paint and ensures the 30-minute Micro Trend sparkline and Order Book render immediately even during weekend market closures when traditional equity exchanges are inactive.
 * **`requestAnimationFrame` (RAF) Render Throttling:** Socket frames are buffered in memory and committed to React state once per display refresh cycle (60Hz / 120Hz). This eliminates main-thread starvation and guarantees silky 60fps scrolling even during heavy volatility bursts.
 * **8-Level Order Book Depth Mini:** Features an 8-level visual bid/ask ladder, proportional depth volume bars, real-time Bid/Ask depth imbalance ratio meters, and live spread calculations in USD and basis points.
 * **30-Minute Micro Trend Sparkline:** Real-time dynamic SVG area chart generated from 30 1-minute OHLCV candles using quadratic Bézier curve geometry (`Q` and `T` SVG paths) and a gradient fill.
 * **Derivatives Flow Diagnostics:** Real-time 8-hour perpetual funding rate with an active countdown timer (`HH:MM:SS`) to settlement, notional Open Interest (OI), Mark price liquidation baseline, and Contango/Backwardation basis.
 * **Zero-Overhead Lifecycle Management:** WebSocket connections, ping heartbeats (20s), and countdown timers automatically terminate when the streamer panel is closed, ensuring 0% idle CPU and network consumption.
 
-### 2. 🔍 Full-Market Symbol Discovery Engine (1,000+ Pairs)
+### 2. 🔍 Full-Market Symbol Discovery Engine (2,000+ Pairs)
 Instant, zero-latency pair switcher covering thousands of crypto assets and tokenized equities:
 * **Hybrid ISR / Client Cache Architecture:** Next.js edge route (`/api/market/symbols`) fetches and validates upstream spot and perpetual tickers with 1-hour Incremental Static Regeneration (ISR) and stale-while-revalidate headers.
-* **0ms Local-First Paint:** Backed by Dexie IndexedDB (Schema v4 `market_symbols`). Cached pairs load instantly on first render while freshness is re-verified asynchronously in the background.
+* **Cross-Market Dual Badging:** Automatically cross-references tokenized equities and perpetual contracts so pairs with dual-market liquidity illuminate both `[SPOT]` and `[PERP]` badges simultaneously.
+* **0ms Local-First Paint & Self-Healing Cache:** Backed by Dexie IndexedDB (Schema v4 `market_symbols`). Cached pairs load instantly on first render while freshness is re-verified asynchronously in the background. Incomplete local caches (`< 1,500` pairs) are automatically self-healed and updated.
 * **Progressive Virtualized Batching:** Uses `IntersectionObserver` sentinels to render pairs in progressive 40-item chunks for instantaneous DOM response and minimal memory overhead.
 * **Tiered Fuzzy Ranking:** Ranks results intelligently by **Exact Match > Prefix Match > Substring Match**, sorted descending by 24-hour USD turnover so high-liquidity pairs always surface first.
 
@@ -188,7 +191,7 @@ bun x tsc --noEmit
 # 2. Lint with Oxlint (0 warnings, 0 errors across 100+ files)
 bun run lint
 
-# 3. Execute live WebSocket integration test suite
+# 3. Execute live WebSocket integration test suite (spot, futures, rTokens, and dual multiplexing)
 bun test
 
 # 4. Production build verification
