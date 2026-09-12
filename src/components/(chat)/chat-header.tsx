@@ -47,9 +47,9 @@ export const ChatHeader = memo(function ChatHeader({
           {!isChatEmpty && (
             <motion.div
               key="chat-header-title"
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -6 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.2 }}
               className="flex items-center gap-2.5 overflow-hidden py-1 min-w-0"
             >
