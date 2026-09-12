@@ -17,6 +17,56 @@ export interface BitgetTicker {
 }
 
 /**
+ * Bitget WebSocket Ticker Frame
+ */
+export interface BitgetWsTickerData {
+  instId: string;
+  lastPr: string;
+  open24h: string;
+  high24h: string;
+  low24h: string;
+  change24h: string;
+  bidPr?: string;
+  askPr?: string;
+  bidSz?: string;
+  askSz?: string;
+  baseVolume?: string;
+  quoteVolume?: string;
+  fundingRate?: string;
+  nextFundingTime?: string;
+  markPrice?: string;
+  indexPrice?: string;
+  holdingAmount?: string;
+  ts?: string;
+}
+
+/**
+ * Bitget WebSocket Orderbook Depth Frame
+ */
+export interface BitgetWsBookData {
+  asks: [price: string, size: string][];
+  bids: [price: string, size: string][];
+  ts?: string;
+}
+
+/**
+ * Bitget WebSocket Envelope
+ */
+export interface BitgetWsMessage<T> {
+  action?: 'snapshot' | 'update';
+  arg?: {
+    instType: 'SPOT' | 'USDT-FUTURES';
+    channel: string;
+    instId: string;
+  };
+  data?: T[];
+  event?: string;
+  code?: number;
+  msg?: string;
+  ts?: number;
+}
+
+/**
  * Normalized Candlestick (OHLCV) Bar
  */
 export interface KlineCandle {

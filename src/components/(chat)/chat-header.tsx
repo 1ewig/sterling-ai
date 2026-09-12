@@ -2,14 +2,16 @@
 
 import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Menu } from 'lucide-react';
+import { Plus, Menu, Activity } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
 
 export interface ChatHeaderProps {
   title?: string;
   isNewChatDisabled: boolean;
   isChatEmpty?: boolean;
+  isMarketPanelOpen?: boolean;
   onToggleMobileSidebar?: () => void;
+  onToggleMarketPanel?: () => void;
   onNewChat: () => void;
 }
 
@@ -20,7 +22,9 @@ export const ChatHeader = memo(function ChatHeader({
   title = 'New Chat',
   isNewChatDisabled,
   isChatEmpty = false,
+  isMarketPanelOpen = false,
   onToggleMobileSidebar,
+  onToggleMarketPanel,
   onNewChat,
 }: ChatHeaderProps) {
   return (
@@ -64,39 +68,61 @@ export const ChatHeader = memo(function ChatHeader({
         </AnimatePresence>
       </div>
 
-      <AnimatePresence>
-        {!isChatEmpty && (
-          <motion.div
-            key="chat-header-actions"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="flex items-center gap-2 shrink-0"
-          >
-            <motion.button
-              type="button"
-              whileTap={isNewChatDisabled ? undefined : tapScalePill}
-              onClick={onNewChat}
-              disabled={isNewChatDisabled}
-              title={
-                isNewChatDisabled
-                  ? 'Current chat is already new'
-                  : 'Start a new conversation'
-              }
-              aria-label="New Chat"
-              className={`size-8 sm:h-8 sm:w-auto sm:px-3 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 select-none transition-colors ${
-                isNewChatDisabled
-                  ? 'opacity-40 cursor-not-allowed bg-theme-brand-primary text-theme-bg-overlay'
-                  : 'bg-theme-brand-primary text-theme-bg-overlay cursor-pointer shadow-2xs hover:brightness-105 active:brightness-95'
-              }`}
+      <div className="flex items-center gap-2 shrink-0">
+        <motion.button
+          type="button"
+          whileTap={tapScalePill}
+          onClick={onToggleMarketPanel}
+          title={isMarketPanelOpen ? 'Hide Market Streamer' : 'Live Market Streamer'}
+          aria-label="Live Market Streamer"
+          className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 select-none transition-colors border cursor-pointer ${
+            isMarketPanelOpen
+              ? 'bg-theme-brand-primary/15 text-theme-brand-primary border-theme-brand-primary/30 shadow-2xs'
+              : 'bg-theme-bg-surface hover:bg-theme-bg-elevated text-theme-text-secondary hover:text-theme-text-primary border-theme-border-subtle'
+          }`}
+        >
+          <span className="relative flex size-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-theme-status-success opacity-75" />
+            <span className="relative inline-flex rounded-full size-2 bg-theme-status-success" />
+          </span>
+          <Activity className="size-3.5" />
+          <span className="hidden sm:inline">Live Market</span>
+        </motion.button>
+
+        <AnimatePresence>
+          {!isChatEmpty && (
+            <motion.div
+              key="chat-header-actions"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              className="flex items-center shrink-0"
             >
-              <Plus className="size-4 sm:size-3.5 stroke-[2.75]" />
-              <span className="hidden sm:inline font-bold">New Chat</span>
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <motion.button
+                type="button"
+                whileTap={isNewChatDisabled ? undefined : tapScalePill}
+                onClick={onNewChat}
+                disabled={isNewChatDisabled}
+                title={
+                  isNewChatDisabled
+                    ? 'Current chat is already new'
+                    : 'Start a new conversation'
+                }
+                aria-label="New Chat"
+                className={`size-8 sm:h-8 sm:w-auto sm:px-3 rounded-lg text-xs font-bold inline-flex items-center justify-center gap-1.5 select-none transition-colors ${
+                  isNewChatDisabled
+                    ? 'opacity-40 cursor-not-allowed bg-theme-brand-primary text-theme-bg-overlay'
+                    : 'bg-theme-brand-primary text-theme-bg-overlay cursor-pointer shadow-2xs hover:brightness-105 active:brightness-95'
+                }`}
+              >
+                <Plus className="size-4 sm:size-3.5 stroke-[2.75]" />
+                <span className="hidden sm:inline font-bold">New Chat</span>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 });

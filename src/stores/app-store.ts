@@ -29,6 +29,14 @@ export interface AppState {
   toggleMobileSidebar: () => void;
   closeMobileSidebar: () => void;
 
+  isMarketPanelOpen: boolean;
+  setIsMarketPanelOpen: (open: boolean) => void;
+  toggleMarketPanel: () => void;
+  selectedMarketSymbol: string;
+  setSelectedMarketSymbol: (symbol: string) => void;
+  selectedMarketType: 'SPOT' | 'USDT-FUTURES';
+  setSelectedMarketType: (type: 'SPOT' | 'USDT-FUTURES') => void;
+
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
 }
@@ -62,6 +70,14 @@ export const useAppStore = create<AppState>()(
       toggleMobileSidebar: () => set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
       closeMobileSidebar: () => set({ isMobileSidebarOpen: false }),
 
+      isMarketPanelOpen: false,
+      setIsMarketPanelOpen: (isMarketPanelOpen) => set({ isMarketPanelOpen }),
+      toggleMarketPanel: () => set((state) => ({ isMarketPanelOpen: !state.isMarketPanelOpen })),
+      selectedMarketSymbol: 'BTCUSDT',
+      setSelectedMarketSymbol: (selectedMarketSymbol) => set({ selectedMarketSymbol }),
+      selectedMarketType: 'SPOT',
+      setSelectedMarketType: (selectedMarketType) => set({ selectedMarketType }),
+
       _hasHydrated: false,
       setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
     }),
@@ -73,6 +89,9 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({
         activeConversationId: state.activeConversationId,
         isSidebarCollapsed: state.isSidebarCollapsed,
+        isMarketPanelOpen: state.isMarketPanelOpen,
+        selectedMarketSymbol: state.selectedMarketSymbol,
+        selectedMarketType: state.selectedMarketType,
       }),
     }
   )

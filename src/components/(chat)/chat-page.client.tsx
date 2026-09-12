@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/app-store';
 import { useMessages } from '@/lib/db';
 import { ChatHeader } from './chat-header';
 import { ChatClient } from './chat-client';
+import { MarketStreamerPanel } from '@/components/market-streamer';
 
 /**
  * Main orchestrator for the chat page layout.
@@ -15,6 +16,8 @@ export function ChatPageClient() {
   const toggleMobileSidebar = useAppStore((state) => state.toggleMobileSidebar);
   const isLoading = useAppStore((state) => state.isLoading);
   const activeStreamMessage = useAppStore((state) => state.activeStreamMessage);
+  const isMarketPanelOpen = useAppStore((state) => state.isMarketPanelOpen);
+  const toggleMarketPanel = useAppStore((state) => state.toggleMarketPanel);
 
   const { isNewChatDisabled, handleNewSession, currentTitle, activeConversationId } = useChatSessions();
   const { messages, isMessagesLoading } = useMessages(activeConversationId);
@@ -69,7 +72,9 @@ export function ChatPageClient() {
         title={currentTitle}
         isNewChatDisabled={isNewChatDisabled}
         isChatEmpty={isChatEmpty}
+        isMarketPanelOpen={isMarketPanelOpen}
         onToggleMobileSidebar={toggleMobileSidebar}
+        onToggleMarketPanel={toggleMarketPanel}
         onNewChat={handleNewChat}
       />
 
@@ -77,6 +82,7 @@ export function ChatPageClient() {
         <div className="relative flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden">
           <ChatClient />
         </div>
+        <MarketStreamerPanel />
       </div>
     </div>
   );
