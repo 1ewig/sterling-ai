@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { normalizeSymbol } from '../src/lib/bitget/client';
-import type { BitgetWsMessage, BitgetWsTickerData, BitgetWsBookData } from '../src/lib/bitget/types';
+import { normalizeSymbol } from '@/lib/bitget';
+import type { BitgetWsMessage, BitgetWsTickerData, BitgetWsBookData } from '@/lib/bitget/types';
 
 const WS_URL = 'wss://ws.bitget.com/v2/ws/public';
 

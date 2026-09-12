@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "oxlint"
+    "lint": "oxlint",
+    "test": "bun test __tests__/unit",
+    "test:unit": "bun test __tests__/unit",
+    "test:integration": "bun test __tests__/integration",
+    "test:all": "bun test __tests__"
   },
   "dependencies": {
     "@ai-sdk/fireworks": "^3.0.46",
