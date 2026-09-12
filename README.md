@@ -18,14 +18,16 @@ Sterling is an **Institutional-Grade AI Trading Desk & Cross-Asset Market Intell
 ## Key Capabilities
 
 ### 1. ⚡ Sub-50ms Live WebSocket Market Streamer
-A persistent, hardware-accelerated right-dock streaming panel directly connected to the Bitget Public v2 WebSocket (`wss://ws.bitget.com/v2/ws/public`):
-* **Multiplexed Low-Latency Streams:** Subscribes concurrently to SPOT `ticker`, full depth (`books`), L2 order book depth (`books15`), and 1-minute trend bars (`candle1m`), while multiplexing the `USDT-FUTURES` ticker on the same connection.
+A persistent, hardware-accelerated streaming panel directly connected to the Bitget Public v2 WebSocket (`wss://ws.bitget.com/v2/ws/public`):
+* **Targeted Low-Latency Streams:** Subscribes concurrently to SPOT `ticker`, L2 order book depth (`books15` for standard pairs, `books` for rTokens), and 1-minute trend bars (`candle1m`), while multiplexing `USDT-FUTURES` perpetual metrics on the same connection.
+* **In-Memory L2 Order Book State Machine:** Backed by a dedicated `L2Orderbook` state machine that handles snapshots and processes incremental delta updates in real-time, preventing partial-depth flashes and maintaining rock-solid 8-level order book stability with stabilized DOM keys and CSS width transitions.
 * **Cross-Market Tokenized Equity / rToken Multiplexing:** Seamlessly unifies tokenized spot equities (e.g. `RTSLAUSDT`, `RNVDAUSDT`, `RAAPLUSDT`) with their corresponding perpetual futures (e.g. `TSLAUSDT`, `NVDAUSDT`, `AAPLUSDT`). Simultaneously multiplexes Spot prices and order book depth alongside Perpetual 8h funding rates, open interest, mark price, and contango/discount basis spread on a single unified pane.
 * **0ms Cold-Start REST Seeding & Weekend Resilience:** Asynchronously pre-seeds the initial 30 1-minute candles (`granularity=1min` on Spot, `1m` on Futures) and order book depth snapshot via REST on mount. Guarantees 0ms cold-start paint and ensures the 30-minute Micro Trend sparkline and Order Book render immediately even during weekend market closures when traditional equity exchanges are inactive.
 * **`requestAnimationFrame` (RAF) Render Throttling:** Socket frames are buffered in memory and committed to React state once per display refresh cycle (60Hz / 120Hz). This eliminates main-thread starvation and guarantees silky 60fps scrolling even during heavy volatility bursts.
 * **8-Level Order Book Depth Mini:** Features an 8-level visual bid/ask ladder, proportional depth volume bars, real-time Bid/Ask depth imbalance ratio meters, and live spread calculations in USD and basis points.
 * **30-Minute Micro Trend Sparkline:** Real-time dynamic SVG area chart generated from 30 1-minute OHLCV candles using quadratic Bézier curve geometry (`Q` and `T` SVG paths) and a gradient fill.
 * **Derivatives Flow Diagnostics:** Real-time 8-hour perpetual funding rate with an active countdown timer (`HH:MM:SS`) to settlement, notional Open Interest (OI), Mark price liquidation baseline, and Contango/Backwardation basis.
+* **Responsive Layout & Full-Screen Mobile Adaptation:** Docks as a 40% panel on desktop viewports and expands to an uncompromised full-screen experience on mobile, driven cleanly by the persistent `Live Market` header control.
 * **Zero-Overhead Lifecycle Management:** WebSocket connections, ping heartbeats (20s), and countdown timers automatically terminate when the streamer panel is closed, ensuring 0% idle CPU and network consumption.
 
 ### 2. 🔍 Full-Market Symbol Discovery Engine (2,000+ Pairs)
@@ -102,21 +104,32 @@ src/
 │   │   │   └── tools/             # MarketData, TechnicalAnalysis, Macro, Sentiment visual cards
 │   │   ├── chat-client.tsx        # Stage coordinator
 │   │   └── chat-header.tsx        # Dynamic title & live streamer toggle button
-│   ├── market-streamer/           # Live WebSocket Right-Side Streamer Panel
-│   │   ├── market-streamer-panel.tsx  # Responsive drawer/panel with single-tree viewport gating
+│   ├── market-streamer/           # Live WebSocket Market Streamer Panel
+│   │   ├── market-streamer-panel.tsx  # Unified desktop panel & full-screen mobile canvas
 │   │   ├── ticker-display.tsx     # Tick-by-tick price, range bar & 30m quadratic SVG sparkline
 │   │   ├── symbol-search-popover.tsx  # Virtualized 1,000+ symbol search popover modal
 │   │   ├── derivatives-metrics.tsx    # Live funding countdown, open interest, mark price & basis
-│   │   └── orderbook-depth-mini.tsx   # 8-level visual depth ladder with imbalance meter
+│   │   ├── orderbook-depth-mini.tsx   # 8-level visual depth ladder with stabilized DOM keys & imbalance meter
+│   │   └── micro-trend.tsx        # 30m quadratic Bézier curve sparkline component
 │   ├── sidebar/                   # Collapsible session drawer & theme controls
 │   └── common/                    # AgentLoader, SterlingIcon, ConfirmDialog
 ├── hooks/                         # Specialized React Hooks
 │   ├── chat/                      # useAgentChat, useChatSessions, useChatScroll
-│   ├── market/                    # useBitgetWebSocket (RAF batching), useMarketSymbols
+│   ├── market/                    # useBitgetWebSocket (streamlined RAF batching), useMarketSymbols
 │   └── ui/                        # useTheme, useSidebar, useActiveTimer
 ├── lib/                           # Core Libraries & Utilities
-│   ├── bitget/                    # Bitget REST & WS clients, types, and 23-indicator math
+│   ├── bitget/                    # Bitget REST & WS clients, L2 state machine, symbols & 23-indicator math
+│   │   ├── analysts.ts            # Technical, macro, sentiment, and market intel calculators
+│   │   ├── client.ts              # Unified client facade
+│   │   ├── indicators.ts          # Pure TS quantitative indicator engine (23 indicators)
+│   │   ├── l2-book.ts             # In-memory L2 order book state machine (snapshot & delta merging)
+│   │   ├── rest.ts                # Dedicated Bitget Public REST API client
+│   │   ├── symbols.ts             # Symbol & timeframe normalization & alias table
+│   │   ├── types.ts               # Exchange payloads, indicators & tool schemas
+│   │   ├── ws-seeding.ts          # Cold-start REST seeders for instant 0ms chart/order book paint
+│   │   └── ws-subscriptions.ts    # Targeted WebSocket v2 channel subscription builder
 │   ├── chat/                      # Client-side SSE transport parser & message formatting
+│   ├── datahub/                   # External DataHub MCP JSON-RPC protocol client
 │   ├── db/                        # Dexie IndexedDB (conversations, messages, market_symbols)
 │   └── exa/                       # Exa AI semantic search client
 ├── stores/                        # Zustand Persistent UI State
