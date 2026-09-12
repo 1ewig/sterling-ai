@@ -78,7 +78,6 @@ function useIsMobile() {
  */
 export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
   const isMarketPanelOpen = useAppStore((state) => state.isMarketPanelOpen);
-  const setIsMarketPanelOpen = useAppStore((state) => state.setIsMarketPanelOpen);
   const selectedMarketSymbol = useAppStore((state) => state.selectedMarketSymbol);
   const setSelectedMarketSymbol = useAppStore((state) => state.setSelectedMarketSymbol);
 
@@ -97,9 +96,6 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
     isConnecting,
   };
 
-  const handleClose = () => {
-    setIsMarketPanelOpen(false);
-  };
 
   const handleOpenSearch = () => {
     setIsSearchOpen(true);
@@ -136,36 +132,24 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Slide-Over Drawer with Backdrop */}
+      {/* Mobile Full-Screen Market Streamer View */}
       <AnimatePresence>
         {isMarketPanelOpen && isMobile && (
-          <>
-            <motion.div
-              key="mobile-streamer-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              onClick={handleClose}
-              className="fixed inset-0 bg-theme-bg-overlay/80 backdrop-blur-xs z-50"
-              aria-hidden="true"
-            />
-            <motion.aside
-              key="mobile-streamer-drawer"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Live Market Streamer"
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 w-[320px] sm:w-[380px] max-w-[85vw] h-dvh max-h-dvh bg-theme-bg-surface border-l border-theme-border-subtle z-50 flex flex-col select-none overflow-hidden shadow-2xl shadow-black/50"
-            >
-              <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
-                <StreamerContent market={market} onOpenSearch={handleOpenSearch} />
-              </div>
-            </motion.aside>
-          </>
+          <motion.aside
+            key="mobile-market-streamer-fullscreen"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Live Market Streamer"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed top-14 inset-x-0 bottom-0 w-full bg-theme-bg-base z-20 flex flex-col select-none overflow-hidden"
+          >
+            <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
+              <StreamerContent market={market} onOpenSearch={handleOpenSearch} />
+            </div>
+          </motion.aside>
         )}
       </AnimatePresence>
 
