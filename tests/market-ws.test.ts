@@ -5,12 +5,14 @@ import type { BitgetWsMessage, BitgetWsTickerData, BitgetWsBookData } from '../s
 const WS_URL = 'wss://ws.bitget.com/v2/ws/public';
 
 describe('Bitget Market WebSocket Integration & Data Contracts', () => {
+
   test('normalizeSymbol correctly cleans input assets', () => {
     expect(normalizeSymbol('btc')).toBe('BTCUSDT');
     expect(normalizeSymbol('ETHUSDT')).toBe('ETHUSDT');
     expect(normalizeSymbol('sol ')).toBe('SOLUSDT');
     expect(normalizeSymbol('TSLAUSDT')).toBe('TSLAUSDT');
     expect(normalizeSymbol('NVDA')).toBe('NVDAUSDT');
+    expect(normalizeSymbol('GOLD')).toBe('XAUUSDT');
   });
 
   test('Public WebSocket connects, pings/pongs, and streams live SPOT ticker data', async () => {
@@ -26,24 +28,15 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('WebSocket test timed out after 6000ms'));
-      }, 6000);
+        reject(new Error('WebSocket SPOT ticker test timed out after 7000ms'));
+      }, 7000);
 
       ws.onopen = () => {
-        // 1. Send Ping
         ws.send('ping');
-
-        // 2. Subscribe to BTCUSDT SPOT ticker
         ws.send(
           JSON.stringify({
             op: 'subscribe',
-            args: [
-              {
-                instType: 'SPOT',
-                channel: 'ticker',
-                instId: 'BTCUSDT',
-              },
-            ],
+            args: [{ instType: 'SPOT', channel: 'ticker', instId: 'BTCUSDT' }],
           })
         );
       };
@@ -66,11 +59,7 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
             if (subscribed && pongReceived && tickerResult) {
               clearTimeout(timeout);
               ws.close();
-              resolve({
-                subscribed,
-                pongReceived,
-                ticker: tickerResult,
-              });
+              resolve({ subscribed, pongReceived, ticker: tickerResult });
             }
           }
         } catch {
@@ -91,7 +80,7 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
     expect(parseFloat(streamData.ticker.lastPr)).toBeGreaterThan(0);
     expect(parseFloat(streamData.ticker.high24h)).toBeGreaterThan(0);
     expect(parseFloat(streamData.ticker.low24h)).toBeGreaterThan(0);
-  });
+  }, 10000);
 
   test('Public WebSocket streams live FUTURES ticker & funding rate data', async () => {
     const futuresData = await new Promise<BitgetWsTickerData>((resolve, reject) => {
@@ -99,20 +88,14 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('Futures ticker test timed out after 6000ms'));
-      }, 6000);
+        reject(new Error('Futures ticker test timed out after 7000ms'));
+      }, 7000);
 
       ws.onopen = () => {
         ws.send(
           JSON.stringify({
             op: 'subscribe',
-            args: [
-              {
-                instType: 'USDT-FUTURES',
-                channel: 'ticker',
-                instId: 'BTCUSDT',
-              },
-            ],
+            args: [{ instType: 'USDT-FUTURES', channel: 'ticker', instId: 'BTCUSDT' }],
           })
         );
       };
@@ -144,7 +127,7 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
     expect(parseFloat(futuresData.lastPr)).toBeGreaterThan(0);
     expect(futuresData.fundingRate).toBeDefined();
     expect(typeof futuresData.fundingRate).toBe('string');
-  });
+  }, 10000);
 
   test('Public WebSocket streams live Order Book Depth (L2 books)', async () => {
     const bookData = await new Promise<BitgetWsBookData>((resolve, reject) => {
@@ -152,20 +135,14 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('Orderbook depth test timed out after 6000ms'));
-      }, 6000);
+        reject(new Error('Orderbook depth test timed out after 7000ms'));
+      }, 7000);
 
       ws.onopen = () => {
         ws.send(
           JSON.stringify({
             op: 'subscribe',
-            args: [
-              {
-                instType: 'SPOT',
-                channel: 'books5',
-                instId: 'BTCUSDT',
-              },
-            ],
+            args: [{ instType: 'SPOT', channel: 'books5', instId: 'BTCUSDT' }],
           })
         );
       };
@@ -205,7 +182,73 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
     expect(parseFloat(bestBidSize)).toBeGreaterThan(0);
     expect(parseFloat(bestAskPrice)).toBeGreaterThan(0);
     expect(parseFloat(bestAskSize)).toBeGreaterThan(0);
-  });
+  }, 10000);
+
+  test('Public WebSocket streams live 1-minute OHLCV Candlesticks (candle1m)', async () => {
+    const candleData = await new Promise<{
+      instId: string;
+      rawCandles: string[][];
+    }>((resolve, reject) => {
+      const ws = new WebSocket(WS_URL);
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Candlestick stream test timed out after 7000ms'));
+      }, 7000);
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: [{ instType: 'SPOT', channel: 'candle1m', instId: 'BTCUSDT' }],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data?.toString() || '';
+        if (raw === 'pong') return;
+
+        try {
+          const parsed = JSON.parse(raw) as BitgetWsMessage<string[]>;
+          if (parsed.data && parsed.data.length > 0 && parsed.arg?.channel === 'candle1m') {
+            clearTimeout(timeout);
+            ws.close();
+            resolve({
+              instId: parsed.arg.instId,
+              rawCandles: parsed.data as string[][],
+            });
+          }
+        } catch {
+          // Ignore non-json frames
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        ws.close();
+        reject(err);
+      };
+    });
+
+    expect(candleData.instId).toBe('BTCUSDT');
+    expect(candleData.rawCandles.length).toBeGreaterThan(0);
+
+    const firstCandle = candleData.rawCandles[0];
+    // Bitget 1m candle array: [timestamp, open, high, low, close, volume, quoteVol]
+    expect(firstCandle.length).toBeGreaterThanOrEqual(5);
+
+    const timestamp = parseInt(firstCandle[0], 10);
+    const open = parseFloat(firstCandle[1]);
+    const high = parseFloat(firstCandle[2]);
+    const low = parseFloat(firstCandle[3]);
+    const close = parseFloat(firstCandle[4]);
+
+    expect(timestamp).toBeGreaterThan(1700000000000); // Valid recent epoch ms
+    expect(open).toBeGreaterThan(0);
+    expect(high).toBeGreaterThanOrEqual(low);
+    expect(close).toBeGreaterThan(0);
+  }, 10000);
 
   test('Public WebSocket streams live USDT-FUTURES data for futures-only contract (RUNEUSDT)', async () => {
     const streamData = await new Promise<{
@@ -218,24 +261,16 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('Futures-only contract WebSocket test timed out after 7000ms'));
-      }, 7000);
+        reject(new Error('Futures-only contract WebSocket test timed out after 8000ms'));
+      }, 8000);
 
       ws.onopen = () => {
         ws.send(
           JSON.stringify({
             op: 'subscribe',
             args: [
-              {
-                instType: 'USDT-FUTURES',
-                channel: 'ticker',
-                instId: 'RUNEUSDT',
-              },
-              {
-                instType: 'USDT-FUTURES',
-                channel: 'books15',
-                instId: 'RUNEUSDT',
-              },
+              { instType: 'USDT-FUTURES', channel: 'ticker', instId: 'RUNEUSDT' },
+              { instType: 'USDT-FUTURES', channel: 'books15', instId: 'RUNEUSDT' },
             ],
           })
         );
@@ -289,24 +324,16 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('rToken WebSocket test timed out after 7000ms'));
-      }, 7000);
+        reject(new Error('rToken WebSocket test timed out after 8000ms'));
+      }, 8000);
 
       ws.onopen = () => {
         ws.send(
           JSON.stringify({
             op: 'subscribe',
             args: [
-              {
-                instType: 'SPOT',
-                channel: 'ticker',
-                instId: 'RTSLAUSDT',
-              },
-              {
-                instType: 'SPOT',
-                channel: 'books',
-                instId: 'RTSLAUSDT',
-              },
+              { instType: 'SPOT', channel: 'ticker', instId: 'RTSLAUSDT' },
+              { instType: 'SPOT', channel: 'books', instId: 'RTSLAUSDT' },
             ],
           })
         );
@@ -364,8 +391,8 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
       const timeout = setTimeout(() => {
         ws.close();
-        reject(new Error('Multiplexed equity WebSocket test timed out after 7000ms'));
-      }, 7000);
+        reject(new Error('Multiplexed equity WebSocket test timed out after 8000ms'));
+      }, 8000);
 
       ws.onopen = () => {
         ws.send(
@@ -419,5 +446,119 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
     expect(streamData.markPrice).toBeGreaterThan(0);
     expect(typeof streamData.fundingRate).toBe('string');
   }, 12000);
-});
 
+  test('Public WebSocket executes graceful unsubscription lifecycle', async () => {
+    const unsubResult = await new Promise<{
+      subscribed: boolean;
+      unsubscribed: boolean;
+    }>((resolve, reject) => {
+      const ws = new WebSocket(WS_URL);
+      let subscribed = false;
+      let unsubscribed = false;
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Unsubscribe lifecycle test timed out after 7000ms'));
+      }, 7000);
+
+      ws.onopen = () => {
+        // Subscribe first
+        ws.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: [{ instType: 'SPOT', channel: 'ticker', instId: 'ETHUSDT' }],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data?.toString() || '';
+        try {
+          const parsed = JSON.parse(raw) as BitgetWsMessage<any>;
+          if (parsed.event === 'subscribe') {
+            subscribed = true;
+            // Send unsubscribe command
+            ws.send(
+              JSON.stringify({
+                op: 'unsubscribe',
+                args: [{ instType: 'SPOT', channel: 'ticker', instId: 'ETHUSDT' }],
+              })
+            );
+          } else if (parsed.event === 'unsubscribe') {
+            unsubscribed = true;
+            clearTimeout(timeout);
+            ws.close();
+            resolve({ subscribed, unsubscribed });
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        ws.close();
+        reject(err);
+      };
+    });
+
+    expect(unsubResult.subscribed).toBe(true);
+    expect(unsubResult.unsubscribed).toBe(true);
+  }, 10000);
+
+  test('Public WebSocket receives and processes subscription error without socket crash', async () => {
+    const errorResponse = await new Promise<{
+      errorReceived: boolean;
+      errorCode?: number;
+      errorMsg?: string;
+      socketOpen: boolean;
+    }>((resolve, reject) => {
+      const ws = new WebSocket(WS_URL);
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Subscription error test timed out after 7000ms'));
+      }, 7000);
+
+      ws.onopen = () => {
+        // Subscribe to intentionally invalid channel/instId
+        ws.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: [{ instType: 'SPOT', channel: 'invalid_channel', instId: 'NONEXISTENT_PAIR_123' }],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data?.toString() || '';
+        try {
+          const parsed = JSON.parse(raw) as BitgetWsMessage<any>;
+          if (parsed.event === 'error' || (parsed.code && parsed.code !== 0)) {
+            clearTimeout(timeout);
+            const isOpen = ws.readyState === WebSocket.OPEN;
+            ws.close();
+            resolve({
+              errorReceived: true,
+              errorCode: parsed.code,
+              errorMsg: parsed.msg,
+              socketOpen: isOpen,
+            });
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        ws.close();
+        reject(err);
+      };
+    });
+
+    expect(errorResponse.errorReceived).toBe(true);
+    expect(errorResponse.socketOpen).toBe(true);
+  }, 10000);
+
+});
