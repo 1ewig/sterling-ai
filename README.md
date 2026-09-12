@@ -82,7 +82,8 @@ Sterling provides a purpose-built domain tool suite matching quantitative desk s
 | **`technical_analysis`** | OHLCV K-lines + Pure TS Indicator Engine | Multi-timeframe trend alignment, 20/50/200 EMAs, RSI 14, MACD histogram, Bollinger Bands, and Fibonacci zones. |
 | **`macro_analyst`** | Fed policy, Treasury yields, Inflation data | Risk-On / Risk-Off regime verdicts, 10Y-2Y spread, CPI/PCE prints, DXY, VIX, and equity correlations. |
 | **`sentiment_analyst`** | Fear & Greed index + Derivatives flow | Sentiment scores (0–100), retail vs. top-trader positioning divergence, and short squeeze risk modeling. |
-| **`market_intel`** | DeFi analytics & On-chain metrics | Multi-chain TVL rankings, stablecoin liquidity reserves, trending DEX tokens, and gas health. |
+| **`market_intel`** | DeFiLlama Public Endpoints + DataHub MCP | Real-time multi-chain TVL rankings (ETH, SOL, TRX, ARB, Base), circulating stablecoin reserves, and gas health. |
+| **`news_briefing`** | Exa AI Neural Search (`bitget-signal` standard) | Breaking market headlines, ETF flows, protocol catalysts, and regulatory filings with structured sources. |
 | **`web_search`** | Exa AI semantic search | Institutional research, SEC filings, protocol governance proposals, and catalyst tracking. |
 | **`stage_trade_order`** | Bitget V3 Unified Trading Account | Stages limit/market buy/sell orders with optional TP/SL for user confirmation via interactive trade ticket. |
 | **`get_account_overview`** | Bitget V3 Authenticated Balance & Position APIs | Real-time UTA equity, available margin, maintenance margin ratio, and active cross-market positions. |
@@ -96,12 +97,13 @@ src/
 ├── agent/                         # AI Reasoning Engine & Tool Dispatch
 │   ├── chat/                      # Stream state machine, tool invocation & engine
 │   ├── providers/                 # Groq & Fireworks LLM provider configurations
-│   ├── tools/                     # Domain tools (macro, sentiment, technicals, market, trade, account)
+│   ├── tools/                     # Domain tools (macro, sentiment, technicals, market, news, trade, account)
 │   │   ├── account-positions.ts   # Live UTA balance & positions tool
 │   │   ├── trade-order.ts         # Staged trade order tool with parameter validation
 │   │   ├── macro-analyst.ts       # Macroeconomic regime tool
 │   │   ├── market-data.ts         # Real-time Bitget V3 market data tool
-│   │   ├── market-intel.ts        # DeFi & on-chain metrics tool
+│   │   ├── market-intel.ts        # Live DeFi TVL & on-chain metrics tool (DeFiLlama + DataHub)
+│   │   ├── news-briefing.ts       # Breaking market news & narrative briefing tool (Exa AI)
 │   │   ├── sentiment-analyst.ts   # Sentiment & crowd positioning tool
 │   │   ├── technical-analysis.ts  # Quantitative technical indicator tool
 │   │   └── web-search.ts          # Exa AI search tool
@@ -120,7 +122,7 @@ src/
 │   │   ├── input/                 # Chat input dock & prompt templates
 │   │   ├── messages/              # Streaming message list & markdown renderers
 │   │   ├── reasoning/             # Process timeline, thinking accordions & tool cards
-│   │   │   └── tools/             # Visual cards (TradeTicket, AccountOverview, MarketData, etc.)
+│   │   │   └── tools/             # Visual cards (TradeTicket, AccountOverview, NewsBriefing, etc.)
 │   │   ├── chat-client.tsx        # Stage coordinator
 │   │   └── chat-header.tsx        # Dynamic title & live streamer toggle button
 │   ├── market-streamer/           # Live WebSocket Market Streamer Panel (Bitget V3)
@@ -147,22 +149,23 @@ src/
 │   │   ├── symbols.ts             # Symbol & timeframe normalization & alias table
 │   │   ├── trade.ts               # Authenticated V3 trade client with HMAC-SHA256 signing
 │   │   ├── types.ts               # Exchange payloads, indicators & tool schemas
-│   │   ├── ws-seeding.ts          # Cold-start REST V3 seeders for instant 0ms chart/order book paint
-│   │   └── ws-subscriptions.ts    # Bitget V3 WebSocket channel subscription builder
+│   │   └── ws.ts                  # Consolidated Bitget V3 WebSocket engine (topics, seeding & wire reducers)
 │   ├── chat/                      # Client-side SSE transport parser & message formatting
 │   ├── db/                        # Dexie IndexedDB (conversations, messages, market_symbols)
 │   └── exa/                       # Exa AI semantic search client
 ├── stores/                        # Zustand Persistent UI State
 │   └── app-store.ts               # Session ID, streamer visibility & active symbol
-└── __tests__/                     # Institutional Test Suite (49 Unit + 7 Live Wire Tests)
+└── __tests__/                     # Institutional Test Suite (68 Unit + 7 Live Wire Tests)
     ├── unit/                      # Zero-latency deterministic unit tests (<120ms)
     │   ├── derivatives.test.ts    # Notional OI, basis contango/discount, funding & countdown
     │   ├── formatters.test.ts     # Adaptive price formats, volume ($B/$M/$K), size & asset parsing
+    │   ├── market-intel.test.ts   # Live DeFi TVL aggregation & news briefing schema validation
     │   ├── orderbook.test.ts      # L2Orderbook delta engine, snapshots, sorting invariants
     │   ├── search.test.ts         # Tiered fuzzy ranking algorithm (exact/prefix/contains)
     │   ├── sparkline.test.ts      # Candlestick 30m sliding window, Bézier curve math & flat guards
     │   ├── trade.test.ts          # V3 HMAC-SHA256 signing, order schema validation & rToken routing
     │   ├── ws-mock.test.ts        # Offline mock WebSocket server, heartbeat & reconnect backoff
+    │   ├── ws-protocol.test.ts    # WS frame normalization, orderbook unwrapping & sliding window
     │   └── ws-subscriptions.test.ts # V3 channel routing & phantom subscription prevention
     └── integration/               # Live exchange wire contract tests
         └── market-v3.test.ts      # Bitget V3 UTA public REST & WebSocket wire integration suite
@@ -241,10 +244,10 @@ Sterling enforces strict typing, linting, and multi-tier testing standards with 
 # 1. Typecheck with TypeScript 7 (0 errors)
 bun x tsc --noEmit
 
-# 2. Lint with Oxlint (0 warnings, 0 errors across 135+ files)
+# 2. Lint with Oxlint (0 warnings, 0 errors across 145+ files)
 bun run lint
 
-# 3. Execute deterministic offline unit test suite (49 tests in <120ms)
+# 3. Execute deterministic offline unit test suite (68 tests in <120ms)
 bun run test:unit
 
 # 4. Execute live exchange WebSocket & REST wire tests (Bitget V3 UTA)
