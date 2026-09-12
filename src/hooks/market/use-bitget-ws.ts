@@ -200,9 +200,12 @@ export function useBitgetWebSocket({
     try {
       ws = new WebSocket(WS_URL);
     } catch {
-      setHasError(true);
+      setTimeout(() => {
+        if (!isCleanedUp) setHasError(true);
+      }, 0);
       return;
     }
+
 
     ws.onopen = () => {
       if (isCleanedUp) return;

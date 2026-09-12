@@ -32,12 +32,13 @@ const StreamerContent = memo(function StreamerContent({
               : `Connecting to ${market.symbol}...`}
           </span>
           <span className="text-2xs font-mono text-theme-text-muted">
-            Bitget Public v2 WebSocket
+            Bitget Unified v3 (UTA) WebSocket
           </span>
         </div>
       </div>
     );
   }
+
 
   return (
     <>

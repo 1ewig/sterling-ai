@@ -215,9 +215,10 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
             clearTimeout(timeout);
             ws.close();
             resolve({
-              instId: parsed.arg.instId,
+              instId: parsed.arg.instId || parsed.arg.symbol || 'BTCUSDT',
               rawCandles: parsed.data as string[][],
             });
+
           }
         } catch {
           // Ignore non-json frames

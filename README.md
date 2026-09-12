@@ -18,7 +18,8 @@ Sterling is an **Institutional-Grade AI Trading Desk & Cross-Asset Market Intell
 ## Key Capabilities
 
 ### 1. ⚡ Sub-50ms Live WebSocket Market Streamer
-A persistent, hardware-accelerated streaming panel directly connected to the Bitget Public v2 WebSocket (`wss://ws.bitget.com/v2/ws/public`):
+A persistent, hardware-accelerated streaming panel directly connected to the Bitget Unified v3 (UTA) WebSocket (`wss://ws.bitget.com/v3/ws/public`):
+
 * **Targeted Low-Latency Streams:** Subscribes concurrently to SPOT `ticker`, L2 order book depth (`books15` for standard pairs, `books` for rTokens), and 1-minute trend bars (`candle1m`), while multiplexing `USDT-FUTURES` perpetual metrics on the same connection.
 * **In-Memory L2 Order Book State Machine:** Backed by a dedicated `L2Orderbook` state machine that handles snapshots and processes incremental delta updates in real-time, preventing partial-depth flashes and maintaining rock-solid 8-level order book stability with stabilized DOM keys and CSS width transitions.
 * **Cross-Market Tokenized Equity / rToken Multiplexing:** Seamlessly unifies tokenized spot equities (e.g. `RTSLAUSDT`, `RNVDAUSDT`, `RAAPLUSDT`) with their corresponding perpetual futures (e.g. `TSLAUSDT`, `NVDAUSDT`, `AAPLUSDT`). Simultaneously multiplexes Spot prices and order book depth alongside Perpetual 8h funding rates, open interest, mark price, and contango/discount basis spread on a single unified pane.
