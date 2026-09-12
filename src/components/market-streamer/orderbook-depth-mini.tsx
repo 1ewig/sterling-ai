@@ -119,7 +119,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-2xs font-mono">
           <span className="text-theme-status-success font-bold">Bids {bidPercent}%</span>
-          <span className="text-theme-text-muted text-3xs uppercase tracking-wider">Depth Imbalance</span>
+          <span className="text-theme-text-muted text-2xs uppercase tracking-wider">Depth Imbalance</span>
           <span className="text-theme-status-danger font-bold">{askPercent}% Asks</span>
         </div>
         <div className="h-1.5 w-full bg-theme-bg-elevated rounded-full flex overflow-hidden">
@@ -135,7 +135,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
       </div>
 
       {/* Column Headers */}
-      <div className="grid grid-cols-3 text-3xs font-mono text-theme-text-muted uppercase tracking-wider px-1 pt-1">
+      <div className="grid grid-cols-3 text-2xs font-mono text-theme-text-muted uppercase tracking-wider px-1 pt-1">
         <span>PRICE (USDT)</span>
         <span className="text-center">SIZE</span>
         <span className="text-right">TOTAL</span>

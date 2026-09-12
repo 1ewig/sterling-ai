@@ -77,7 +77,7 @@ export const TickerDisplay = memo(function TickerDisplay({
             </span>
             <ChevronDown className="size-3.5 text-theme-text-muted group-hover:text-theme-brand-primary transition-colors stroke-[2.5]" />
           </button>
-          <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
+          <span className="px-1.5 py-0.5 rounded text-2xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
             {marketType === 'futures' ? 'PERP' : 'SPOT'}
           </span>
         </div>
@@ -101,7 +101,7 @@ export const TickerDisplay = memo(function TickerDisplay({
       {/* Hero Last Price */}
       <div className="flex items-baseline">
         <span
-          className={`text-4xl sm:text-[44px] font-extrabold font-mono tracking-tight transition-colors duration-200 ${
+          className={`text-xl sm:text-2xl font-extrabold font-mono tracking-tight transition-colors duration-200 ${
             tickDirection === 'up'
               ? 'text-theme-status-success'
               : tickDirection === 'down'
@@ -133,19 +133,19 @@ export const TickerDisplay = memo(function TickerDisplay({
       {/* 24H Volume & Quote Volume Footer Row */}
       <div className="grid grid-cols-2 pt-1 border-t border-theme-border-subtle">
         <div className="flex flex-col">
-          <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
+          <span className="text-2xs font-mono uppercase text-theme-text-muted tracking-wider">
             24H VOLUME ({baseAsset})
           </span>
-          <span className="text-sm font-bold font-mono text-theme-text-primary mt-0.5">
+          <span className="text-base font-bold font-mono text-theme-text-primary mt-0.5">
             {formattedBaseVol}
           </span>
         </div>
 
         <div className="flex flex-col items-end text-right">
-          <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
+          <span className="text-2xs font-mono uppercase text-theme-text-muted tracking-wider">
             24H QUOTE VOL
           </span>
-          <span className="text-sm font-bold font-mono text-theme-text-primary mt-0.5">
+          <span className="text-base font-bold font-mono text-theme-text-primary mt-0.5">
             {formattedQuoteVol}
           </span>
         </div>

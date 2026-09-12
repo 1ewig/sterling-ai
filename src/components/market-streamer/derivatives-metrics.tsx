@@ -59,7 +59,7 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
             Derivatives Flow
           </span>
         </div>
-        <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
+        <span className="px-1.5 py-0.5 rounded text-2xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
           PERP
         </span>
       </div>
@@ -69,10 +69,10 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
         {/* 8H Funding Rate */}
         <div className="flex flex-col p-2.5 rounded-xl bg-theme-bg-base/40 border border-theme-border-subtle/60">
           <div className="flex items-center justify-between">
-            <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
+            <span className="text-2xs font-mono uppercase text-theme-text-muted tracking-wider">
               8H FUNDING
             </span>
-            <span className="text-3xs font-mono text-theme-text-muted" title="Countdown to next funding">
+            <span className="text-2xs font-mono text-theme-text-muted" title="Countdown to next funding">
               {countdown}
             </span>
           </div>
@@ -85,7 +85,7 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
               {isFundingPositive ? '+' : ''}{fundingPercent}%
             </span>
           </div>
-          <span className="text-3xs font-mono text-theme-text-muted mt-0.5">
+          <span className="text-2xs font-mono text-theme-text-muted mt-0.5">
             {isFundingPositive ? 'Longs pay shorts' : 'Shorts pay longs'}
           </span>
         </div>
@@ -93,10 +93,10 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
         {/* Open Interest (OI) */}
         <div className="flex flex-col p-2.5 rounded-xl bg-theme-bg-base/40 border border-theme-border-subtle/60">
           <div className="flex items-center justify-between">
-            <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
+            <span className="text-2xs font-mono uppercase text-theme-text-muted tracking-wider">
               OPEN INTEREST
             </span>
-            <span className="text-3xs font-mono text-theme-brand-primary font-medium">
+            <span className="text-2xs font-mono text-theme-brand-primary font-medium">
               Live
             </span>
           </div>
@@ -105,20 +105,20 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
               {formattedNotionalOI}
             </span>
           </div>
-          <span className="text-3xs font-mono text-theme-text-secondary truncate mt-0.5">
+          <span className="text-2xs font-mono text-theme-text-secondary truncate mt-0.5">
             {formattedHolding} {baseAsset}
           </span>
         </div>
 
         {/* Mark Price */}
         <div className="flex flex-col p-2.5 rounded-xl bg-theme-bg-base/40 border border-theme-border-subtle/60">
-          <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
+          <span className="text-2xs font-mono uppercase text-theme-text-muted tracking-wider">
             MARK PRICE
           </span>
-          <span className="text-sm font-bold font-mono text-theme-text-primary mt-1">
+          <span className="text-base font-bold font-mono text-theme-text-primary mt-1">
             ${formattedMarkPrice}
           </span>
-          <span className="text-3xs font-mono text-theme-text-muted mt-0.5">
+          <span className="text-2xs font-mono text-theme-text-muted mt-0.5">
             Liquidation baseline
           </span>
         </div>
@@ -126,21 +126,21 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
         {/* Index Price & Basis */}
         <div className="flex flex-col p-2.5 rounded-xl bg-theme-bg-base/40 border border-theme-border-subtle/60">
           <div className="flex items-center justify-between">
-            <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
+            <span className="text-2xs font-mono uppercase text-theme-text-muted tracking-wider">
               INDEX PRICE
             </span>
             <span
-              className={`text-3xs font-mono font-medium ${
+              className={`text-2xs font-mono font-medium ${
                 basisValue >= 0 ? 'text-theme-status-success' : 'text-theme-status-warning'
               }`}
             >
               {basisValue >= 0 ? 'Contango' : 'Discount'}
             </span>
           </div>
-          <span className="text-sm font-bold font-mono text-theme-text-primary mt-1">
+          <span className="text-base font-bold font-mono text-theme-text-primary mt-1">
             ${formattedIndexPrice}
           </span>
-          <span className="text-3xs font-mono text-theme-text-muted mt-0.5 truncate">
+          <span className="text-2xs font-mono text-theme-text-muted mt-0.5 truncate">
             Basis: {basisValue >= 0 ? '+' : ''}${basisValue.toFixed(2)} ({basisPercent}%)
           </span>
         </div>

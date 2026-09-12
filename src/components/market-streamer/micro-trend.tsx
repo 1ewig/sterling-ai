@@ -64,12 +64,12 @@ export const MicroTrend = memo(function MicroTrend({ candles }: MicroTrendProps)
       <div className="flex items-center justify-between text-2xs font-mono text-theme-text-secondary">
         <div className="flex items-center gap-1.5">
           <span className="text-theme-text-primary font-medium font-sans">30m Micro Trend</span>
-          <span className="text-3xs px-1.5 py-0.5 rounded bg-theme-bg-elevated text-theme-text-muted font-mono">
+          <span className="text-2xs px-1.5 py-0.5 rounded bg-theme-bg-elevated text-theme-text-muted font-mono">
             1m Candles
           </span>
         </div>
         {sparklineData && (
-          <span className="text-3xs text-theme-text-secondary">
+          <span className="text-2xs text-theme-text-secondary">
             L: ${sparklineData.minPrice.toLocaleString()} H: ${sparklineData.maxPrice.toLocaleString()}
           </span>
         )}
@@ -109,7 +109,7 @@ export const MicroTrend = memo(function MicroTrend({ candles }: MicroTrendProps)
             />
           </svg>
         ) : (
-          <div className="h-full w-full flex items-center justify-center text-3xs font-mono text-theme-text-muted">
+          <div className="h-full w-full flex items-center justify-center text-2xs font-mono text-theme-text-muted">
             Streaming candles...
           </div>
         )}
