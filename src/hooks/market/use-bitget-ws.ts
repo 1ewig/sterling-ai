@@ -9,6 +9,10 @@ import {
   seedOrderbookSnapshot,
   buildWsSubscriptions,
   isRTokenSymbol,
+  normalizeWsTicker,
+  normalizeWsOrderbook,
+  updateCandlesSlidingWindow,
+  isWsInstrumentMatch,
   type MicroCandle,
 } from '@/lib/bitget';
 
@@ -235,32 +239,16 @@ export function useBitgetWebSocket({
         const topic = parsed.arg.topic || parsed.arg.channel;
         const msgInstType = (parsed.arg.instType || '').toUpperCase();
         const msgInstId = parsed.arg.symbol || parsed.arg.instId || '';
-
         const isSpot = msgInstType === 'SPOT';
-        const isMatch = isSpot
-          ? msgInstId === cleanSymbol || msgInstId === targetSpotInstId
-          : msgInstId === cleanSymbol || msgInstId === targetFuturesInstId;
 
-        if (!isMatch) return;
+        if (!isWsInstrumentMatch(msgInstId, isSpot, cleanSymbol, targetSpotInstId, targetFuturesInstId)) {
+          return;
+        }
 
         // 1. Ticker Message
         if (topic === 'ticker') {
           const rawTicker = parsed.data[0] as BitgetWsTickerData;
-          const normalizedTicker: BitgetWsTickerData = {
-            ...rawTicker,
-            instId: rawTicker.symbol || rawTicker.instId || msgInstId,
-            symbol: rawTicker.symbol || rawTicker.instId || msgInstId,
-            lastPr: rawTicker.lastPrice || rawTicker.lastPr || '0',
-            high24h: rawTicker.highPrice24h || rawTicker.high24h || '0',
-            low24h: rawTicker.lowPrice24h || rawTicker.low24h || '0',
-            change24h: rawTicker.price24hPcnt || rawTicker.change24h || '0',
-            quoteVolume: rawTicker.turnover24h || rawTicker.quoteVolume || '0',
-            baseVolume: rawTicker.volume24h || rawTicker.baseVolume || '0',
-            fundingRate: rawTicker.fundingRate,
-            markPrice: rawTicker.markPrice,
-            openInterest: rawTicker.openInterest || rawTicker.holdingAmount,
-          };
-
+          const normalizedTicker = normalizeWsTicker(rawTicker, msgInstId);
           const currentPrice = parseFloat(normalizedTicker.lastPr || '0');
 
           if (isSpot) {
@@ -292,12 +280,7 @@ export function useBitgetWebSocket({
           const rawBook = parsed.data[0] as BitgetWsBookData;
           if (!rawBook) return;
 
-          const normalizedBook: BitgetWsBookData = {
-            asks: rawBook.a || rawBook.asks || [],
-            bids: rawBook.b || rawBook.bids || [],
-            ts: rawBook.ts,
-          };
-
+          const normalizedBook = normalizeWsOrderbook(rawBook);
           const l2Book = isSpot ? spotL2BookRef.current : futuresL2BookRef.current;
           const action = parsed.action || (topic === 'books15' || topic === 'books5' ? 'snapshot' : 'update');
           const isPreSorted = topic === 'books15' || topic === 'books5';
@@ -325,35 +308,9 @@ export function useBitgetWebSocket({
         else if (topic === 'candle1m') {
           const rawCandles = parsed.data as string[][];
           const candleRef = isSpot ? spotCandlesRef : futuresCandlesRef;
+          const isSnapshot = parsed.action === 'snapshot';
 
-          if (parsed.action === 'snapshot') {
-            const formatted: MicroCandle[] = rawCandles
-              .map((row) => ({
-                timestamp: parseInt(row[0], 10),
-                close: parseFloat(row[4]),
-                high: parseFloat(row[2]),
-                low: parseFloat(row[3]),
-              }))
-              .slice(-30);
-            candleRef.current = formatted;
-          } else if (rawCandles.length > 0) {
-            const latest = rawCandles[0];
-            const latestCandle: MicroCandle = {
-              timestamp: parseInt(latest[0], 10),
-              close: parseFloat(latest[4]),
-              high: parseFloat(latest[2]),
-              low: parseFloat(latest[3]),
-            };
-
-            const updated = [...candleRef.current];
-            const lastIdx = updated.length - 1;
-            if (lastIdx >= 0 && updated[lastIdx].timestamp === latestCandle.timestamp) {
-              updated[lastIdx] = latestCandle;
-            } else {
-              updated.push(latestCandle);
-            }
-            candleRef.current = updated.slice(-30);
-          }
+          candleRef.current = updateCandlesSlidingWindow(candleRef.current, rawCandles, isSnapshot);
 
           const record = { symbol: cleanSymbol, data: candleRef.current };
           if (isSpot) {
