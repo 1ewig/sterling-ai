@@ -12,6 +12,7 @@ export const sentimentAnalystTool = tool({
       const data = await getSentimentAnalysis(symbol, timeframe);
       return {
         success: true,
+        source: 'datahub_mcp + bitget_v3',
         ...data,
       };
     } catch (err) {

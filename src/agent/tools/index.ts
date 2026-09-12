@@ -1,4 +1,5 @@
 import { webSearchTool } from './web-search';
+import { newsBriefingTool } from './news-briefing';
 import { marketDataTool } from './market-data';
 import { technicalAnalysisTool } from './technical-analysis';
 import { macroAnalystTool } from './macro-analyst';
@@ -12,6 +13,7 @@ import { accountOverviewTool } from './account-positions';
  */
 export const agentTools = {
   web_search: webSearchTool,
+  news_briefing: newsBriefingTool,
   market_data: marketDataTool,
   technical_analysis: technicalAnalysisTool,
   macro_analyst: macroAnalystTool,
@@ -32,6 +34,7 @@ export function getAgentTools(): AgentTools {
 
 export {
   webSearchTool,
+  newsBriefingTool,
   marketDataTool,
   technicalAnalysisTool,
   macroAnalystTool,
@@ -40,5 +43,6 @@ export {
   stageTradeOrderTool,
   accountOverviewTool,
 };
+
 
 

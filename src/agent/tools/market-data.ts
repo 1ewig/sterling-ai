@@ -38,6 +38,7 @@ export const marketDataTool = tool({
 
       return {
         success: true,
+        source: 'bitget_v3',
         symbol: t.symbol,
         productType,
         price: parseFloat(t.lastPr),

@@ -11,6 +11,7 @@ export const macroAnalystTool = tool({
       const data = await getMacroAnalysis(focus);
       return {
         success: true,
+        source: 'datahub_mcp',
         ...data,
       };
     } catch (err) {

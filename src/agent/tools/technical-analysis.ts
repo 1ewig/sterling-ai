@@ -12,6 +12,7 @@ export const technicalAnalysisTool = tool({
       const report = await getTechnicalAnalysis(symbol, granularity, limit);
       return {
         success: true,
+        source: 'bitget_v3_candles + quantitative_indicators',
         ...report,
       };
     } catch (err) {

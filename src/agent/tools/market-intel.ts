@@ -11,6 +11,7 @@ export const marketIntelTool = tool({
       const data = await getMarketIntel(scope);
       return {
         success: true,
+        source: 'defillama + datahub_mcp',
         ...data,
       };
     } catch (err) {

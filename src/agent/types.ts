@@ -235,9 +235,10 @@ export interface SentimentAnalystData {
  * Market Intelligence Payload
  */
 export interface MarketIntelData {
+  source?: string;
   defi: {
     totalTvl?: string;
-    topChains?: Array<{ name: string; tvl: string; share: string }>;
+    topChains?: Array<{ name: string; tvl: string; share: string; tokenSymbol?: string }>;
     stablecoinSupply?: string;
   };
   dexTrending?: Array<{
@@ -254,6 +255,29 @@ export interface MarketIntelData {
     btcPendingTx?: number;
   };
   summary: string;
+}
+
+/**
+ * News Briefing Intelligence Payload
+ */
+export interface NewsBriefingItem {
+  id?: string;
+  title: string;
+  url: string;
+  publishedDate?: string;
+  sourceDomain?: string;
+  summary?: string;
+  highlights?: string[];
+}
+
+export interface NewsBriefingData {
+  success: boolean;
+  source: string;
+  topic: string;
+  totalResults: number;
+  headlines: NewsBriefingItem[];
+  summary: string;
+  warning?: string;
 }
 
 /**
@@ -282,3 +306,10 @@ export const sentimentAnalystParamsSchema = z.object({
 export const marketIntelParamsSchema = z.object({
   scope: z.enum(['all', 'defi_tvl', 'dex_trending', 'network_health', 'stablecoins']).default('all').describe('Market intelligence dimension to query'),
 });
+
+export const newsBriefingParamsSchema = z.object({
+  symbol: z.string().optional().describe('Crypto asset or equity ticker to scope news (e.g. BTC, ETH, SOL, TSLA, NVDA)'),
+  topic: z.string().default('crypto market').describe('News topic, catalyst, or theme (e.g. "ETF inflows", "Fed rate cut", "regulation")'),
+  limit: z.number().min(2).max(8).default(4).describe('Number of top headlines to retrieve (default 4)'),
+});
+
