@@ -116,11 +116,12 @@ src/
 ├── hooks/                         # Specialized React Hooks
 │   ├── chat/                      # useAgentChat, useChatSessions, useChatScroll
 │   ├── market/                    # useBitgetWebSocket (streamlined RAF batching), useMarketSymbols
-│   └── ui/                        # useTheme, useSidebar, useActiveTimer
+│   └── ui/                        # useTheme, useSidebar, useActiveTimer, useIsMobile, useCountdownTimer
 ├── lib/                           # Core Libraries & Utilities
 │   ├── bitget/                    # Bitget REST & WS clients, L2 state machine, symbols & 23-indicator math
 │   │   ├── analysts.ts            # Technical, macro, sentiment, and market intel calculators
 │   │   ├── client.ts              # Unified client facade
+│   │   ├── formatters.ts          # Centralized price, volume, spread formatters & asset pair parsing
 │   │   ├── indicators.ts          # Pure TS quantitative indicator engine (23 indicators)
 │   │   ├── l2-book.ts             # In-memory L2 order book state machine (snapshot & delta merging)
 │   │   ├── rest.ts                # Dedicated Bitget Public REST API client
@@ -134,8 +135,17 @@ src/
 │   └── exa/                       # Exa AI semantic search client
 ├── stores/                        # Zustand Persistent UI State
 │   └── app-store.ts               # Session ID, streamer visibility & active symbol
-└── tests/                         # Integration Test Suite
-    └── market-ws.test.ts          # Live WebSocket contract tests (ticker, depth, funding)
+└── __tests__/                     # Institutional Test Suite (44 Unit + Live Wire Tests)
+    ├── unit/                      # Zero-latency deterministic unit tests (<100ms)
+    │   ├── derivatives.test.ts    # Notional OI, basis contango/discount, funding & countdown
+    │   ├── formatters.test.ts     # Adaptive price formats, volume ($B/$M/$K), size & asset parsing
+    │   ├── orderbook.test.ts      # L2Orderbook delta engine, snapshots, sorting invariants
+    │   ├── search.test.ts         # Tiered fuzzy ranking algorithm (exact/prefix/contains)
+    │   ├── sparkline.test.ts      # Candlestick 30m sliding window, Bézier curve math & flat guards
+    │   ├── ws-mock.test.ts        # Offline mock WebSocket server, heartbeat & reconnect backoff
+    │   └── ws-subscriptions.test.ts # Targeted channel routing & phantom subscription prevention
+    └── integration/               # Live exchange wire contract tests
+        └── market-ws.test.ts      # Bitget v2 public WebSocket integration suite
 ```
 
 ---
@@ -156,7 +166,7 @@ The visual design is grounded in an **Ultra-Modern Neo-Grotesque** institutional
 
 ### Prerequisites
 * [Bun](https://bun.sh/) `v1.4.0` or higher
-* An API key from [Groq](https://console.groq.com/keys) (default: `qwen/qwen3.8-27b`) or [Fireworks AI](https://fireworks.ai/api-keys)
+* An API key from [Groq](https://console.groq.com/keys) (default: `qwen/qwen3.8-27b`) or [Fireworks AI](https://fireworks.ai/api-keys) (default: `accounts/fireworks/models/deepseek-v4p1-flash`)
 * *(Optional)* An API key from [Exa AI](https://dashboard.exa.ai/api-keys) for real-time web search
 
 ### 1. Clone & Install
@@ -180,6 +190,8 @@ GROQ_API_KEY=gsk_your_groq_api_key_here
 
 # Optional: Fireworks AI fallback/primary provider
 FIREWORKS_API_KEY=your_fireworks_api_key_here
+FIREWORKS_MODEL=accounts/fireworks/models/deepseek-v4p1-flash
+FIREWORKS_BACKUP_MODEL=accounts/fireworks/models/glm-5p3-flash
 
 # Optional: Exa AI for real-time institutional web search
 EXA_API_KEY=your_exa_api_key_here
@@ -195,19 +207,25 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Quality & Tooling Standards
 
-Sterling enforces strict typing and linting standards with zero tolerances for warnings or errors:
+Sterling enforces strict typing, linting, and multi-tier testing standards with zero tolerances for warnings or errors:
 
 ```bash
 # 1. Typecheck with TypeScript 7 (0 errors)
 bun x tsc --noEmit
 
-# 2. Lint with Oxlint (0 warnings, 0 errors across 100+ files)
+# 2. Lint with Oxlint (0 warnings, 0 errors across 125+ files)
 bun run lint
 
-# 3. Execute live WebSocket integration test suite (spot, futures, rTokens, and dual multiplexing)
-bun test
+# 3. Execute deterministic offline unit test suite (44 tests in <100ms)
+bun run test:unit
 
-# 4. Production build verification
+# 4. Execute live exchange WebSocket integration tests (Bitget public v2 wire)
+bun run test:integration
+
+# 5. Run all test suites combined
+bun run test:all
+
+# 6. Production build verification
 bun run build
 ```
 
