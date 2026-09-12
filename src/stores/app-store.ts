@@ -34,8 +34,6 @@ export interface AppState {
   toggleMarketPanel: () => void;
   selectedMarketSymbol: string;
   setSelectedMarketSymbol: (symbol: string) => void;
-  selectedMarketType: 'SPOT' | 'USDT-FUTURES';
-  setSelectedMarketType: (type: 'SPOT' | 'USDT-FUTURES') => void;
 
   _hasHydrated: boolean;
   setHasHydrated: (hasHydrated: boolean) => void;
@@ -75,8 +73,6 @@ export const useAppStore = create<AppState>()(
       toggleMarketPanel: () => set((state) => ({ isMarketPanelOpen: !state.isMarketPanelOpen })),
       selectedMarketSymbol: 'BTCUSDT',
       setSelectedMarketSymbol: (selectedMarketSymbol) => set({ selectedMarketSymbol }),
-      selectedMarketType: 'SPOT',
-      setSelectedMarketType: (selectedMarketType) => set({ selectedMarketType }),
 
       _hasHydrated: false,
       setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
@@ -91,7 +87,6 @@ export const useAppStore = create<AppState>()(
         isSidebarCollapsed: state.isSidebarCollapsed,
         isMarketPanelOpen: state.isMarketPanelOpen,
         selectedMarketSymbol: state.selectedMarketSymbol,
-        selectedMarketType: state.selectedMarketType,
       }),
     }
   )

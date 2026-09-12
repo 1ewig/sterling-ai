@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { BitgetWsTickerData, BitgetWsBookData, BitgetWsMessage } from '@/lib/bitget/types';
 import { normalizeSymbol } from '@/lib/bitget/client';
 
@@ -16,7 +16,6 @@ export interface MicroCandle {
 
 export interface UseBitgetWebSocketOptions {
   symbol: string;
-  instType: 'SPOT' | 'USDT-FUTURES';
   enabled?: boolean;
 }
 
@@ -27,7 +26,6 @@ export interface UseBitgetWebSocketReturn {
   candles: MicroCandle[];
   status: WsConnectionStatus;
   tickDirection: TickDirection;
-  reconnect: () => void;
 }
 
 const WS_URL = 'wss://ws.bitget.com/v2/ws/public';
@@ -37,11 +35,10 @@ const RECONNECT_MAX_DELAY_MS = 10000;
 
 /**
  * High-performance browser WebSocket hook for Bitget v2 public market streams.
- * Subscribes to ticker, books15 (depth), and candle1m (micro trend) with resilient keepalive.
+ * Subscribes to SPOT ticker, books15 (depth), candle1m (micro trend), and USDT-FUTURES ticker (derivatives flow).
  */
 export function useBitgetWebSocket({
   symbol,
-  instType,
   enabled = true,
 }: UseBitgetWebSocketOptions): UseBitgetWebSocketReturn {
   const [ticker, setTicker] = useState<BitgetWsTickerData | null>(null);
@@ -74,10 +71,6 @@ export function useBitgetWebSocket({
   const activeOrderbook = orderbookRecord?.symbol === cleanSymbol ? orderbookRecord.data : null;
   const activeCandles = candlesRecord?.symbol === cleanSymbol ? candlesRecord.data : [];
 
-  const reconnect = useCallback(() => {
-    setReconnectTrigger((prev) => prev + 1);
-  }, []);
-
   useEffect(() => {
     if (typeof window === 'undefined' || !enabled) {
       return;
@@ -104,37 +97,31 @@ export function useBitgetWebSocket({
         }
       }, PING_INTERVAL_MS);
 
-      // Channel subscriptions: ticker, books15, candle1m (+ USDT-FUTURES ticker)
-      const args: Array<{ instType: 'SPOT' | 'USDT-FUTURES'; channel: string; instId: string }> = [
-        {
-          instType,
-          channel: 'ticker',
-          instId: cleanSymbol,
-        },
-        {
-          instType,
-          channel: 'books15',
-          instId: cleanSymbol,
-        },
-        {
-          instType,
-          channel: 'candle1m',
-          instId: cleanSymbol,
-        },
-      ];
-
-      // Multiplex USDT-FUTURES ticker on same connection if primary is SPOT
-      if (instType === 'SPOT') {
-        args.push({
-          instType: 'USDT-FUTURES',
-          channel: 'ticker',
-          instId: cleanSymbol,
-        });
-      }
-
+      // Channel subscriptions: SPOT ticker, books15, candle1m + USDT-FUTURES ticker
       const payload = {
         op: 'subscribe',
-        args,
+        args: [
+          {
+            instType: 'SPOT' as const,
+            channel: 'ticker',
+            instId: cleanSymbol,
+          },
+          {
+            instType: 'SPOT' as const,
+            channel: 'books15',
+            instId: cleanSymbol,
+          },
+          {
+            instType: 'SPOT' as const,
+            channel: 'candle1m',
+            instId: cleanSymbol,
+          },
+          {
+            instType: 'USDT-FUTURES' as const,
+            channel: 'ticker',
+            instId: cleanSymbol,
+          },
+        ],
       };
       ws.send(JSON.stringify(payload));
     };
@@ -159,9 +146,7 @@ export function useBitgetWebSocket({
 
             if (msgInstType === 'USDT-FUTURES') {
               setFuturesTicker(tickerData);
-            }
-
-            if (msgInstType === instType) {
+            } else if (msgInstType === 'SPOT') {
               setTicker(tickerData);
 
               const currentPrice = parseFloat(tickerData.lastPr);
@@ -269,7 +254,7 @@ export function useBitgetWebSocket({
       if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
       ws.close();
     };
-  }, [cleanSymbol, instType, enabled, reconnectTrigger]);
+  }, [cleanSymbol, enabled, reconnectTrigger]);
 
   return {
     ticker: activeTicker,
@@ -278,6 +263,6 @@ export function useBitgetWebSocket({
     candles: activeCandles,
     status,
     tickDirection,
-    reconnect,
   };
 }
+

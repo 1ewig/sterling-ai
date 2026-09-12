@@ -17,12 +17,10 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
   const isMarketPanelOpen = useAppStore((state) => state.isMarketPanelOpen);
   const setIsMarketPanelOpen = useAppStore((state) => state.setIsMarketPanelOpen);
   const selectedMarketSymbol = useAppStore((state) => state.selectedMarketSymbol);
-  const selectedMarketType = useAppStore((state) => state.selectedMarketType);
 
   // Hook only runs active WebSocket connection when the panel is opened
   const { ticker, futuresTicker, orderbook, candles, status, tickDirection } = useBitgetWebSocket({
     symbol: selectedMarketSymbol,
-    instType: selectedMarketType,
     enabled: isMarketPanelOpen,
   });
 
@@ -68,7 +66,6 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                       candles={candles}
                       tickDirection={tickDirection}
                       symbol={selectedMarketSymbol}
-                      marketType={selectedMarketType}
                     />
                     <DerivativesMetrics futuresTicker={futuresTicker} />
                     <OrderbookDepthMini orderbook={orderbook} />
@@ -127,7 +124,6 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                       candles={candles}
                       tickDirection={tickDirection}
                       symbol={selectedMarketSymbol}
-                      marketType={selectedMarketType}
                     />
                     <DerivativesMetrics futuresTicker={futuresTicker} />
                     <OrderbookDepthMini orderbook={orderbook} />

@@ -11,7 +11,6 @@ interface TickerDisplayProps {
   candles: MicroCandle[];
   tickDirection: TickDirection;
   symbol: string;
-  marketType: 'SPOT' | 'USDT-FUTURES';
 }
 
 export const TickerDisplay = memo(function TickerDisplay({
@@ -19,7 +18,6 @@ export const TickerDisplay = memo(function TickerDisplay({
   candles,
   tickDirection,
   symbol,
-  marketType,
 }: TickerDisplayProps) {
   const baseAsset = symbol.replace(/USDT$|USD$|USDC$/, '');
   const quoteAsset = symbol.endsWith('USDC') ? 'USDC' : 'USDT';
@@ -117,7 +115,7 @@ export const TickerDisplay = memo(function TickerDisplay({
             {baseAsset} / {quoteAsset}
           </span>
           <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
-            {marketType === 'SPOT' ? 'SPOT' : 'PERP'}
+            SPOT
           </span>
         </div>
 
