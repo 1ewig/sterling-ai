@@ -28,13 +28,16 @@ export const ChatHeader = memo(function ChatHeader({
   onNewChat,
 }: ChatHeaderProps) {
   return (
-    <div
+    <header
       className={`relative z-30 h-14 px-spacing-md sm:px-spacing-lg flex items-center justify-between shrink-0 gap-3 transition-colors duration-300 ${
         isChatEmpty
           ? 'bg-transparent border-b border-transparent'
           : 'bg-theme-bg-base/40 backdrop-blur-xs border-b border-theme-border-subtle/50'
       }`}
     >
+      {isChatEmpty && (
+        <h1 className="sr-only">Sterling — Institutional AI Trading Desk</h1>
+      )}
       <div className="flex items-center gap-2 min-w-0">
         <motion.button
           type="button"
@@ -57,12 +60,12 @@ export const ChatHeader = memo(function ChatHeader({
               transition={{ duration: 0.2 }}
               className="flex items-center gap-2.5 overflow-hidden py-1 min-w-0"
             >
-              <span
-                className="text-xs sm:text-sm font-semibold tracking-tight text-theme-text-primary truncate"
+              <h1
+                className="text-xs sm:text-sm font-semibold tracking-tight text-theme-text-primary truncate m-0 font-sans"
                 title={title}
               >
                 {title}
-              </span>
+              </h1>
             </motion.div>
           )}
         </AnimatePresence>
@@ -119,6 +122,6 @@ export const ChatHeader = memo(function ChatHeader({
           <span className="hidden sm:inline">Live Market</span>
         </motion.button>
       </div>
-    </div>
+    </header>
   );
 });
