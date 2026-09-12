@@ -185,38 +185,39 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
       {/* Asks List (8 Fixed Rows) */}
       <div className="flex flex-col gap-0.5">
         {paddedAsks.map((row, i) => {
-          if (!row) {
-            return (
-              <div
-                key={`ask-placeholder-${i}`}
-                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-theme-text-muted/30"
-              >
-                <span>—</span>
-                <span className="text-center">—</span>
-                <span className="text-right">—</span>
-              </div>
-            );
-          }
-
-          const depthWidth = Math.min((row.total / maxCumulative) * 100, 100);
+          const depthWidth = row ? Math.min((row.total / maxCumulative) * 100, 100) : 0;
 
           return (
             <div
-              key={`ask-${i}-${row.price}`}
+              key={`ask-slot-${i}`}
               className="relative grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono overflow-hidden rounded"
             >
-              <div
-                className="absolute inset-y-0 right-0 bg-theme-status-danger/15 pointer-events-none rounded"
-                style={{ width: `${depthWidth}%` }}
-              />
-              <span className="relative z-10 text-theme-status-danger font-medium tabular-nums">
-                {formatBookPrice(row.price)}
+              {row && (
+                <div
+                  className="absolute inset-y-0 right-0 bg-theme-status-danger/15 pointer-events-none rounded transition-[width] duration-150 ease-out"
+                  style={{ width: `${depthWidth}%` }}
+                />
+              )}
+              <span
+                className={`relative z-10 font-medium tabular-nums ${
+                  row ? 'text-theme-status-danger' : 'text-theme-text-muted/30'
+                }`}
+              >
+                {row ? formatBookPrice(row.price) : '—'}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-center tabular-nums">
-                {formatBookSize(row.size)}
+              <span
+                className={`relative z-10 text-center tabular-nums ${
+                  row ? 'text-theme-text-secondary' : 'text-theme-text-muted/30'
+                }`}
+              >
+                {row ? formatBookSize(row.size) : '—'}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-right tabular-nums">
-                {formatBookSize(row.total)}
+              <span
+                className={`relative z-10 text-right tabular-nums ${
+                  row ? 'text-theme-text-secondary' : 'text-theme-text-muted/30'
+                }`}
+              >
+                {row ? formatBookSize(row.total) : '—'}
               </span>
             </div>
           );
@@ -237,38 +238,39 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
       {/* Bids List (8 Fixed Rows) */}
       <div className="flex flex-col gap-0.5">
         {paddedBids.map((row, i) => {
-          if (!row) {
-            return (
-              <div
-                key={`bid-placeholder-${i}`}
-                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-theme-text-muted/30"
-              >
-                <span>—</span>
-                <span className="text-center">—</span>
-                <span className="text-right">—</span>
-              </div>
-            );
-          }
-
-          const depthWidth = Math.min((row.total / maxCumulative) * 100, 100);
+          const depthWidth = row ? Math.min((row.total / maxCumulative) * 100, 100) : 0;
 
           return (
             <div
-              key={`bid-${i}-${row.price}`}
+              key={`bid-slot-${i}`}
               className="relative grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono overflow-hidden rounded"
             >
-              <div
-                className="absolute inset-y-0 right-0 bg-theme-status-success/15 pointer-events-none rounded"
-                style={{ width: `${depthWidth}%` }}
-              />
-              <span className="relative z-10 text-theme-status-success font-medium tabular-nums">
-                {formatBookPrice(row.price)}
+              {row && (
+                <div
+                  className="absolute inset-y-0 right-0 bg-theme-status-success/15 pointer-events-none rounded transition-[width] duration-150 ease-out"
+                  style={{ width: `${depthWidth}%` }}
+                />
+              )}
+              <span
+                className={`relative z-10 font-medium tabular-nums ${
+                  row ? 'text-theme-status-success' : 'text-theme-text-muted/30'
+                }`}
+              >
+                {row ? formatBookPrice(row.price) : '—'}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-center tabular-nums">
-                {formatBookSize(row.size)}
+              <span
+                className={`relative z-10 text-center tabular-nums ${
+                  row ? 'text-theme-text-secondary' : 'text-theme-text-muted/30'
+                }`}
+              >
+                {row ? formatBookSize(row.size) : '—'}
               </span>
-              <span className="relative z-10 text-theme-text-secondary text-right tabular-nums">
-                {formatBookSize(row.total)}
+              <span
+                className={`relative z-10 text-right tabular-nums ${
+                  row ? 'text-theme-text-secondary' : 'text-theme-text-muted/30'
+                }`}
+              >
+                {row ? formatBookSize(row.total) : '—'}
               </span>
             </div>
           );

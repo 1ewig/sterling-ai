@@ -4,8 +4,7 @@ import React, { memo, useState, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/stores/app-store';
 import { useBitgetWebSocket } from '@/hooks/market';
-import type { WsConnectionStatus, TickDirection, MicroCandle } from '@/hooks/market';
-import type { BitgetWsTickerData, BitgetWsBookData } from '@/lib/bitget/types';
+import type { MarketStreamState } from '@/hooks/market';
 import { AgentLoader } from '@/components/common';
 import { TickerDisplay } from './ticker-display';
 import { DerivativesMetrics } from './derivatives-metrics';
@@ -13,39 +12,23 @@ import { OrderbookDepthMini } from './orderbook-depth-mini';
 import { SymbolSearchPopover } from './symbol-search-popover';
 
 interface StreamerContentProps {
-  isConnecting: boolean;
-  status: WsConnectionStatus;
-  symbol: string;
-  ticker: BitgetWsTickerData | null;
-  candles: MicroCandle[];
-  tickDirection: TickDirection;
-  futuresTicker: BitgetWsTickerData | null;
-  orderbook: BitgetWsBookData | null;
-  marketType: 'spot' | 'futures' | 'both';
+  market: MarketStreamState;
   onOpenSearch: () => void;
 }
 
 const StreamerContent = memo(function StreamerContent({
-  isConnecting,
-  status,
-  symbol,
-  ticker,
-  candles,
-  tickDirection,
-  futuresTicker,
-  orderbook,
-  marketType,
+  market,
   onOpenSearch,
 }: StreamerContentProps) {
-  if (isConnecting) {
+  if (market.isConnecting) {
     return (
       <div className="flex-1 min-h-[360px] flex flex-col items-center justify-center gap-3.5 p-6 select-none text-theme-text-muted">
         <AgentLoader className="size-6 text-theme-brand-primary" />
         <div className="flex flex-col items-center gap-1 text-center">
           <span className="text-xs font-mono font-medium text-theme-text-primary">
-            {status === 'error'
+            {market.status === 'error'
               ? 'Reconnecting to live stream...'
-              : `Connecting to ${symbol}...`}
+              : `Connecting to ${market.symbol}...`}
           </span>
           <span className="text-2xs font-mono text-theme-text-muted">
             Bitget Public v2 WebSocket
@@ -58,15 +41,15 @@ const StreamerContent = memo(function StreamerContent({
   return (
     <>
       <TickerDisplay
-        ticker={ticker}
-        candles={candles}
-        tickDirection={tickDirection}
-        symbol={symbol}
-        marketType={marketType}
+        ticker={market.ticker}
+        candles={market.candles}
+        tickDirection={market.tickDirection}
+        symbol={market.symbol}
+        marketType={market.marketType}
         onOpenSearch={onOpenSearch}
       />
-      <DerivativesMetrics futuresTicker={futuresTicker} />
-      <OrderbookDepthMini orderbook={orderbook} />
+      <DerivativesMetrics futuresTicker={market.futuresTicker} />
+      <OrderbookDepthMini orderbook={market.orderbook} />
     </>
   );
 });
@@ -85,9 +68,6 @@ function getMobileServerSnapshot() {
   return false;
 }
 
-/**
- * Responsive viewport check hook to avoid duplicate React mounts on desktop vs mobile.
- */
 function useIsMobile() {
   return useSyncExternalStore(subscribeMediaQuery, getMobileSnapshot, getMobileServerSnapshot);
 }
@@ -105,11 +85,17 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Hook only runs active WebSocket connection when the panel is opened
-  const { ticker, futuresTicker, orderbook, candles, status, tickDirection, marketType } = useBitgetWebSocket({
+  const stream = useBitgetWebSocket({
     symbol: selectedMarketSymbol,
     enabled: isMarketPanelOpen,
   });
+
+  const isConnecting = stream.status !== 'connected' || (!stream.ticker && !stream.futuresTicker);
+  const market: MarketStreamState = {
+    ...stream,
+    symbol: selectedMarketSymbol,
+    isConnecting,
+  };
 
   const handleClose = () => {
     setIsMarketPanelOpen(false);
@@ -128,11 +114,9 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
     setIsSearchOpen(false);
   };
 
-  const isConnecting = status !== 'connected' || (!ticker && !futuresTicker);
-
   return (
     <>
-      {/* Desktop Persistent Collapsible Right Panel (Only mounted on desktop viewport) */}
+      {/* Desktop Persistent Collapsible Right Panel */}
       <AnimatePresence>
         {isMarketPanelOpen && !isMobile && (
           <motion.aside
@@ -145,25 +129,14 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
           >
             <div className="w-full min-w-0 flex flex-col h-full overflow-hidden">
               <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
-                <StreamerContent
-                  isConnecting={isConnecting}
-                  status={status}
-                  symbol={selectedMarketSymbol}
-                  ticker={ticker}
-                  candles={candles}
-                  tickDirection={tickDirection}
-                  futuresTicker={futuresTicker}
-                  orderbook={orderbook}
-                  marketType={marketType}
-                  onOpenSearch={handleOpenSearch}
-                />
+                <StreamerContent market={market} onOpenSearch={handleOpenSearch} />
               </div>
             </div>
           </motion.aside>
         )}
       </AnimatePresence>
 
-      {/* Mobile Slide-Over Drawer with Backdrop (Only mounted on mobile viewport) */}
+      {/* Mobile Slide-Over Drawer with Backdrop */}
       <AnimatePresence>
         {isMarketPanelOpen && isMobile && (
           <>
@@ -189,25 +162,14 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
               className="fixed inset-y-0 right-0 w-[320px] sm:w-[380px] max-w-[85vw] h-dvh max-h-dvh bg-theme-bg-surface border-l border-theme-border-subtle z-50 flex flex-col select-none overflow-hidden shadow-2xl shadow-black/50"
             >
               <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
-                <StreamerContent
-                  isConnecting={isConnecting}
-                  status={status}
-                  symbol={selectedMarketSymbol}
-                  ticker={ticker}
-                  candles={candles}
-                  tickDirection={tickDirection}
-                  futuresTicker={futuresTicker}
-                  orderbook={orderbook}
-                  marketType={marketType}
-                  onOpenSearch={handleOpenSearch}
-                />
+                <StreamerContent market={market} onOpenSearch={handleOpenSearch} />
               </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      {/* Symbol Search Modal (Orchestrated at Root Panel Level) */}
+      {/* Symbol Search Modal */}
       <SymbolSearchPopover
         isOpen={isSearchOpen}
         currentSymbol={selectedMarketSymbol}
