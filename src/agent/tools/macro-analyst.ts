@@ -17,6 +17,8 @@ export const macroAnalystTool = tool({
       return {
         success: false,
         error: err instanceof Error ? err.message : 'Macro analysis retrieval failed.',
+        actionableGuidance:
+          'Macro analysis data retrieval encountered an error. You can retry with focus="full" or query real-time crypto and equity market data directly.',
       };
     }
   },

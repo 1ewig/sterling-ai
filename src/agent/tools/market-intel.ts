@@ -17,6 +17,7 @@ export const marketIntelTool = tool({
       return {
         success: false,
         error: err instanceof Error ? err.message : 'Market intelligence retrieval failed.',
+        actionableGuidance: 'Market intelligence query failed. You can retry with scope="all" or use technical_analysis and market_data tools.',
       };
     }
   },

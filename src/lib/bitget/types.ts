@@ -9,8 +9,9 @@ export interface BitgetTicker {
   high24h: string;
   low24h: string;
   change24h: string;
-  usdtVolume: string;
+  usdtVolume?: string;
   baseVolume?: string;
+  quoteVolume?: string;
   openUtc?: string;
   ts?: string;
 }

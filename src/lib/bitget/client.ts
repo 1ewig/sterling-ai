@@ -13,85 +13,234 @@ import { generateTechnicalReport } from './indicators';
 const BITGET_REST_BASE = 'https://api.bitget.com';
 const DATAHUB_MCP_BASE = 'https://datahub.noxiaohao.com/mcp';
 
+const ASSET_ALIASES: Record<string, string> = {
+  BTC: 'BTCUSDT',
+  ETH: 'ETHUSDT',
+  SOL: 'SOLUSDT',
+  XRP: 'XRPUSDT',
+  DOGE: 'DOGEUSDT',
+  ADA: 'ADAUSDT',
+  BNB: 'BNBUSDT',
+  AVAX: 'AVAXUSDT',
+  LINK: 'LINKUSDT',
+  SUI: 'SUIUSDT',
+  NEAR: 'NEARUSDT',
+  APT: 'APTUSDT',
+  TSLA: 'TSLAUSDT',
+  NVDA: 'NVDAUSDT',
+  SPY: 'SPYUSDT',
+  QQQ: 'QQQUSDT',
+  AAPL: 'AAPLUSDT',
+  MSFT: 'MSFTUSDT',
+  AMZN: 'AMZNUSDT',
+  GOOGL: 'GOOGLUSDT',
+  META: 'METAUSDT',
+  COIN: 'COINUSDT',
+  MSTR: 'MSTRUSDT',
+  GOLD: 'XAUUSDT',
+  XAU: 'XAUUSDT',
+  SILVER: 'XAGUSDT',
+  XAG: 'XAGUSDT',
+};
+
 /**
- * Normalizes symbols (e.g. "BTC" -> "BTCUSDT", "tsla" -> "TSLAUSDT")
+ * Normalizes user and agent symbol strings into standard Bitget trading pairs.
+ * Handles suffixes (-PERP, .P, /USDT), lowercase tickers, and commodity/stock aliases.
  */
 export function normalizeSymbol(raw: string): string {
-  const clean = raw.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!raw || typeof raw !== 'string') return 'BTCUSDT';
+  let clean = raw.trim().toUpperCase();
+
+  // Strip common derivatives and punctuation suffixes
+  clean = clean
+    .replace(/[-_/]?(PERP|USDT|USD|USDC)$/i, '')
+    .replace(/\.P$/i, '')
+    .replace(/\.D$/i, '')
+    .replace(/[^A-Z0-9]/g, '');
+
   if (!clean) return 'BTCUSDT';
-  if (clean.endsWith('USDT') || clean.endsWith('USD') || clean.endsWith('USDC')) {
-    return clean;
+
+  // Check alias table first
+  if (ASSET_ALIASES[clean]) {
+    return ASSET_ALIASES[clean];
   }
+
+  // Fallback to standard USDT pair
   return `${clean}USDT`;
 }
 
 /**
- * Fetch Spot or Futures Ticker for a symbol
+ * Normalizes candlestick timeframe granularities for Bitget API v2.
+ * Bitget mix/market/candles strictly requires: [1m, 3m, 5m, 15m, 30m, 1H, 4H, 6H, 12H, 1D, 1W, 1M]
  */
-export async function fetchBitgetTicker(symbol: string, isFutures = true): Promise<BitgetTicker> {
-  const sym = normalizeSymbol(symbol);
-  const endpoint = isFutures
-    ? `${BITGET_REST_BASE}/api/v2/mix/market/tickers?productType=USDT-FUTURES&symbol=${sym}`
-    : `${BITGET_REST_BASE}/api/v2/spot/market/tickers?symbol=${sym}`;
-
-  const res = await fetch(endpoint, { next: { revalidate: 10 } });
-  if (!res.ok) {
-    throw new Error(`Bitget Ticker API returned HTTP ${res.status}`);
+export function normalizeGranularity(raw: string): string {
+  const clean = raw.trim().toLowerCase();
+  switch (clean) {
+    case '1m':
+    case '1min':
+      return '1m';
+    case '3m':
+    case '3min':
+      return '3m';
+    case '5m':
+    case '5min':
+      return '5m';
+    case '15m':
+    case '15min':
+      return '15m';
+    case '30m':
+    case '30min':
+      return '30m';
+    case '1h':
+    case '1hour':
+      return '1H';
+    case '4h':
+    case '4hour':
+      return '4H';
+    case '6h':
+    case '6hour':
+      return '6H';
+    case '12h':
+    case '12hour':
+      return '12H';
+    case '1d':
+    case '1day':
+    case 'day':
+      return '1D';
+    case '1w':
+    case '1week':
+    case 'week':
+      return '1W';
+    case '1mth':
+    case '1month':
+    case 'month':
+      return '1M';
+    default:
+      return '4H';
   }
-
-  const json = (await res.json()) as { code: string; msg: string; data?: BitgetTicker[] };
-  if (!json.data || json.data.length === 0) {
-    // If futures query returned empty, try fallback to spot
-    if (isFutures) {
-      return fetchBitgetTicker(sym, false);
-    }
-    throw new Error(`Symbol ${sym} not found on Bitget market.`);
-  }
-
-  return json.data[0];
 }
 
 /**
- * Fetch Candlesticks (OHLCV)
+ * Fetch Spot or Futures Ticker for a symbol with automatic cross-market fallback.
+ */
+export async function fetchBitgetTicker(symbol: string, isFutures = true): Promise<BitgetTicker> {
+  const sym = normalizeSymbol(symbol);
+
+  // 1. Try Futures ticker first if requested
+  if (isFutures) {
+    try {
+      const endpoint = `${BITGET_REST_BASE}/api/v2/mix/market/ticker?productType=USDT-FUTURES&symbol=${sym}`;
+      const res = await fetch(endpoint, {
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 10 },
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { code: string; msg: string; data?: BitgetTicker[] };
+        const item = json.data?.find((t) => t.symbol === sym) || json.data?.[0];
+        if (item && item.symbol === sym && item.lastPr) {
+          return item;
+        }
+      }
+    } catch {
+      // Fall through to spot fallback
+    }
+  }
+
+  // 2. Spot market query / fallback
+  try {
+    const spotEndpoint = `${BITGET_REST_BASE}/api/v2/spot/market/tickers?symbol=${sym}`;
+    const spotRes = await fetch(spotEndpoint, {
+      signal: AbortSignal.timeout(6000),
+      next: { revalidate: 10 },
+    });
+    if (spotRes.ok) {
+      const json = (await spotRes.json()) as { code: string; msg: string; data?: BitgetTicker[] };
+      const item = json.data?.find((t) => t.symbol === sym);
+      if (item && item.lastPr) {
+        return item;
+      }
+    }
+  } catch {
+    // Handled below
+  }
+
+  throw new Error(
+    `Symbol "${sym}" was not found on Bitget Futures or Spot markets. Available examples: BTCUSDT, ETHUSDT, SOLUSDT, TSLAUSDT, NVDAUSDT, SPYUSDT, XAUUSDT.`
+  );
+}
+
+/**
+ * Fetch Candlesticks (OHLCV) with timeframe normalization and cross-market fallback.
  */
 export async function fetchBitgetCandles(
   symbol: string,
-  granularity = '4h',
+  granularity = '4H',
   limit = 100,
   isFutures = true
 ): Promise<KlineCandle[]> {
   const sym = normalizeSymbol(symbol);
-  const endpoint = isFutures
-    ? `${BITGET_REST_BASE}/api/v2/mix/market/candles?productType=USDT-FUTURES&symbol=${sym}&granularity=${granularity}&limit=${limit}`
-    : `${BITGET_REST_BASE}/api/v2/spot/market/candles?symbol=${sym}&granularity=${granularity}&limit=${limit}`;
+  const gran = normalizeGranularity(granularity);
+  const safeLimit = Math.min(Math.max(limit, 30), 200);
 
-  const res = await fetch(endpoint, { next: { revalidate: 30 } });
-  if (!res.ok) {
-    throw new Error(`Bitget Candles API returned HTTP ${res.status}`);
-  }
-
-  const json = (await res.json()) as { code: string; msg: string; data?: string[][] };
-  if (!json.data || json.data.length === 0) {
-    if (isFutures) {
-      return fetchBitgetCandles(sym, granularity, limit, false);
+  // 1. Try Futures Candlesticks
+  if (isFutures) {
+    try {
+      const endpoint = `${BITGET_REST_BASE}/api/v2/mix/market/candles?productType=USDT-FUTURES&symbol=${sym}&granularity=${gran}&limit=${safeLimit}`;
+      const res = await fetch(endpoint, {
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 30 },
+      });
+      if (res.ok) {
+        const json = (await res.json()) as { code: string; msg: string; data?: string[][] };
+        if (json.data && json.data.length >= 30) {
+          return json.data
+            .map((row) => ({
+              timestamp: parseInt(row[0], 10),
+              open: parseFloat(row[1]),
+              high: parseFloat(row[2]),
+              low: parseFloat(row[3]),
+              close: parseFloat(row[4]),
+              volume: parseFloat(row[5]),
+              quoteVolume: parseFloat(row[6] || '0'),
+            }))
+            .sort((a, b) => a.timestamp - b.timestamp);
+        }
+      }
+    } catch {
+      // Fall through to spot fallback
     }
-    throw new Error(`No candle data returned for ${sym}`);
   }
 
-  // Bitget candles format: [ts, open, high, low, close, volume, quoteVol, ...]
-  const candles: KlineCandle[] = json.data
-    .map((row) => ({
-      timestamp: parseInt(row[0], 10),
-      open: parseFloat(row[1]),
-      high: parseFloat(row[2]),
-      low: parseFloat(row[3]),
-      close: parseFloat(row[4]),
-      volume: parseFloat(row[5]),
-      quoteVolume: parseFloat(row[6] || '0'),
-    }))
-    .sort((a, b) => a.timestamp - b.timestamp);
+  // 2. Try Spot Candlesticks Fallback
+  try {
+    const spotEndpoint = `${BITGET_REST_BASE}/api/v2/spot/market/candles?symbol=${sym}&granularity=${gran}&limit=${safeLimit}`;
+    const spotRes = await fetch(spotEndpoint, {
+      signal: AbortSignal.timeout(6000),
+      next: { revalidate: 30 },
+    });
+    if (spotRes.ok) {
+      const json = (await spotRes.json()) as { code: string; msg: string; data?: string[][] };
+      if (json.data && json.data.length >= 30) {
+        return json.data
+          .map((row) => ({
+            timestamp: parseInt(row[0], 10),
+            open: parseFloat(row[1]),
+            high: parseFloat(row[2]),
+            low: parseFloat(row[3]),
+            close: parseFloat(row[4]),
+            volume: parseFloat(row[5]),
+            quoteVolume: parseFloat(row[6] || '0'),
+          }))
+          .sort((a, b) => a.timestamp - b.timestamp);
+      }
+    }
+  } catch {
+    // Handled below
+  }
 
-  return candles;
+  throw new Error(
+    `Insufficient or unretrievable candlestick data for "${sym}" (${gran}). Supported timeframes: 15min, 1h, 4h, 1d, 1w.`
+  );
 }
 
 /**
@@ -102,7 +251,10 @@ export async function fetchFundingRate(symbol: string): Promise<FundingRateInfo 
   try {
     const res = await fetch(
       `${BITGET_REST_BASE}/api/v2/mix/market/current-fund-rate?symbol=${sym}&productType=USDT-FUTURES`,
-      { next: { revalidate: 60 } }
+      {
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 60 },
+      }
     );
     if (!res.ok) return null;
     const json = (await res.json()) as { data?: FundingRateInfo[] };
@@ -120,11 +272,14 @@ export async function fetchOpenInterest(symbol: string): Promise<OpenInterestInf
   try {
     const res = await fetch(
       `${BITGET_REST_BASE}/api/v2/mix/market/open-interest?symbol=${sym}&productType=USDT-FUTURES`,
-      { next: { revalidate: 60 } }
+      {
+        signal: AbortSignal.timeout(6000),
+        next: { revalidate: 60 },
+      }
     );
     if (!res.ok) return null;
     const json = (await res.json()) as { data?: { openInterestList?: Array<{ symbol: string; size: string }>; ts?: string } };
-    const item = json.data?.openInterestList?.[0];
+    const item = json.data?.openInterestList?.find((i) => i.symbol === sym) || json.data?.openInterestList?.[0];
     if (!item) return null;
     return { symbol: item.symbol, size: item.size, timestamp: json.data?.ts };
   } catch {
@@ -133,7 +288,7 @@ export async function fetchOpenInterest(symbol: string): Promise<OpenInterestInf
 }
 
 /**
- * Fetch Orderbook Depth
+ * Fetch Orderbook Depth Snapshot
  */
 export async function fetchOrderbook(symbol: string, limit = 5, isFutures = true): Promise<OrderbookDepth | null> {
   const sym = normalizeSymbol(symbol);
@@ -142,7 +297,10 @@ export async function fetchOrderbook(symbol: string, limit = 5, isFutures = true
       ? `${BITGET_REST_BASE}/api/v2/mix/market/orderbook?symbol=${sym}&productType=USDT-FUTURES&type=step0&limit=${limit}`
       : `${BITGET_REST_BASE}/api/v2/spot/market/orderbook?symbol=${sym}&type=step0&limit=${limit}`;
 
-    const res = await fetch(endpoint, { next: { revalidate: 5 } });
+    const res = await fetch(endpoint, {
+      signal: AbortSignal.timeout(6000),
+      next: { revalidate: 5 },
+    });
     if (!res.ok) return null;
     const json = (await res.json()) as { data?: { asks?: [string, string][]; bids?: [string, string][]; ts?: string } };
     if (!json.data) return null;
@@ -158,7 +316,7 @@ export async function fetchOrderbook(symbol: string, limit = 5, isFutures = true
 }
 
 /**
- * Helper to call Bitget MCP JSON-RPC tool via SSE stream
+ * Helper to call Bitget MCP JSON-RPC tool via SSE stream with fast timeout
  */
 async function callMcpTool(toolName: string, args: Record<string, unknown> = {}): Promise<Record<string, unknown> | null> {
   try {
@@ -177,7 +335,7 @@ async function callMcpTool(toolName: string, args: Record<string, unknown> = {})
         method: 'initialize',
         params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'sterling', version: '1.0.0' } },
       }),
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(3500),
     });
 
     const sessionId = initRes.headers.get('mcp-session-id') || '';
@@ -192,7 +350,7 @@ async function callMcpTool(toolName: string, args: Record<string, unknown> = {})
         method: 'tools/call',
         params: { name: toolName, arguments: args },
       }),
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(4500),
     });
 
     const reader = callRes.body?.getReader();
@@ -232,11 +390,12 @@ async function callMcpTool(toolName: string, args: Record<string, unknown> = {})
  */
 export async function getTechnicalAnalysis(
   symbol = 'BTCUSDT',
-  granularity = '4h',
+  granularity = '4H',
   limit = 100
 ) {
-  const candles = await fetchBitgetCandles(symbol, granularity, limit, true);
-  return generateTechnicalReport(symbol, granularity, candles);
+  const normGran = normalizeGranularity(granularity);
+  const candles = await fetchBitgetCandles(symbol, normGran, limit, true);
+  return generateTechnicalReport(normalizeSymbol(symbol), normGran, candles);
 }
 
 /**
