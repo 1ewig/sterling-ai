@@ -5,17 +5,19 @@ import { motion } from 'framer-motion';
 import { Bot } from 'lucide-react';
 import { sidebarHorizontalCollapseVariants, tapScalePill } from '@/constants/animation';
 
-interface SidebarNewChatProps {
+export interface SidebarAgentChatProps {
   isCollapsed: boolean;
   onNewChat: () => void;
   disabled?: boolean;
 }
 
-export const SidebarNewChat = memo(function SidebarNewChat({
+export type SidebarNewChatProps = SidebarAgentChatProps;
+
+export const SidebarAgentChat = memo(function SidebarAgentChat({
   isCollapsed,
   onNewChat,
   disabled = false,
-}: SidebarNewChatProps) {
+}: SidebarAgentChatProps) {
   return (
     <div className="py-spacing-sm px-3.5 border-b border-theme-border-subtle shrink-0 flex items-center justify-center">
       <motion.button
@@ -44,4 +46,6 @@ export const SidebarNewChat = memo(function SidebarNewChat({
     </div>
   );
 });
+
+export const SidebarNewChat = SidebarAgentChat;
 
