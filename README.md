@@ -16,9 +16,9 @@ A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench
 ## Highlights
 
 * 📈 **7×24 Cross-Asset Perception:** Real-time spot and futures market data across crypto majors (`BTCUSDT`, `ETHUSDT`) and tokenized US equities (`TSLAUSDT`, `NVDAUSDT`, `SPYUSDT`, `MSTRUSDT`, `COINUSDT`).
-* ⚡ **Multiplexed Live WebSocket Streamer:** Persistent, sub-50ms streaming panel directly connected to Bitget Public v2 WebSocket over a single connection (`SPOT` ticker, `books15`, `candle1m`, and `USDT-FUTURES` ticker). Features high-frequency `requestAnimationFrame` (RAF) batching to eliminate DOM layout thrashing during tick bursts. Automatically disconnects on dismissal for zero background CPU/network overhead.
+* ⚡ **Multiplexed Live WebSocket Streamer:** Persistent, sub-50ms streaming panel directly connected to Bitget Public v2 WebSocket (`SPOT` & `USDT-FUTURES` tickers, `books15` L2 depth, and `candle1m` micro-trend sparklines). Features adaptive channel routing across Spot-Only, Futures-Only, and Dual-Market pairs with basis-isolated tick tracking and high-frequency `requestAnimationFrame` (RAF) batching to eliminate DOM thrashing. Automatically disconnects on dismissal for zero background CPU/network overhead.
 * 🔮 **Live Derivatives Intelligence:** Real-time perpetual metrics squeezed directly between the Ticker and Order Book—displaying 8H funding rates with live settlement countdown timers, open interest ($ Notional & native coin units), mark price, index price, and perpetual basis/premium spread in basis points.
-* 🔍 **Instant Symbol Search & Switching:** Interactive popover switcher supporting over 1,720+ Spot and USDT-Margined Futures pairs. Powered by a hybrid Next.js 16 ISR API route (`GET /api/market/symbols` with 1-hour revalidation) and Dexie IndexedDB local caching (`market_symbols` table) for instantaneous, zero-latency multi-attribute prefix and substring searches.
+* 🔍 **Instant Symbol Search & Progressive Catalog:** Interactive popover switcher supporting over 2,150+ Spot, USDT-Margined Futures, and tokenized US equity pairs sorted by 24h USD liquidity. Powered by a Next.js 16 ISR API route (`GET /api/market/symbols` with 30-minute revalidation), Dexie IndexedDB local caching (`market_symbols` table), dynamic capability badges (`[SPOT]`, `[PERP]`), and progressive infinite scroll for instantaneous, zero-latency searching.
 * 📊 **Pure TypeScript Indicator Engine:** Computes 23 quantitative technical indicators across multiple timeframes (RSI 14, MACD, 20/50/200 EMAs, Bollinger Bands, SuperTrend, ATR, Fibonacci retracements) with zero Python or external daemon runtime dependencies.
 * 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy expectations, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
 * 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs. top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
@@ -70,9 +70,11 @@ src/
 │   │   └── chat-client.tsx # Chat client orchestrator
 │   ├── market-streamer/    # Live Bitget WebSocket right-side streamer panel
 │   │   ├── derivatives-metrics.tsx # Live 8H funding rate, OI, mark price & perp basis
-│   │   ├── symbol-search-popover.tsx # 1,720+ pair search & instant switcher popover
-│   │   ├── order-book.tsx  # 8-level depth ladder with bid/ask imbalance meters
-│   │   └── ticker-card.tsx # Live price, 24h stats, and sparkline trend
+│   │   ├── market-streamer-panel.tsx # Collapsible panel container & responsive drawer
+│   │   ├── micro-trend.tsx # 30m 1m candlestick micro-trend sparkline
+│   │   ├── orderbook-depth-mini.tsx # 8-level depth ladder with bid/ask imbalance meters
+│   │   ├── symbol-search-popover.tsx # 2,150+ pair search & progressive infinite scroll popover
+│   │   └── ticker-display.tsx # Live price, 24h stats, range bar & dynamic market badges
 │   ├── sidebar/            # Persistent collapsible drawer & theme toggle
 │   └── common/             # Reusable UI primitives (AgentLoader, SterlingIcon, ConfirmDialog)
 ├── hooks/                  # Custom React Hooks
