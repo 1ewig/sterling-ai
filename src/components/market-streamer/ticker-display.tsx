@@ -2,6 +2,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { AgentLoader } from '@/components/common';
 import type { BitgetWsTickerData } from '@/lib/bitget/types';
 import type { TickDirection, MicroCandle } from '@/hooks/market';
 
@@ -100,21 +101,22 @@ export const TickerDisplay = memo(function TickerDisplay({
 
   if (!ticker) {
     return (
-      <div className="p-6 rounded-2xl bg-[#121215] border border-white/5 flex flex-col items-center justify-center min-h-[220px] text-zinc-500">
+      <div className="p-6 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle flex flex-col items-center justify-center min-h-[220px] gap-2.5 text-theme-text-muted">
+        <AgentLoader className="size-5 text-theme-brand-primary" />
         <span className="text-xs font-mono">Connecting to {symbol}...</span>
       </div>
     );
   }
 
   return (
-    <div className="p-5 rounded-2xl bg-[#121215] border border-white/5 flex flex-col gap-4 select-none shadow-xl shadow-black/20">
+    <div className="p-5 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle flex flex-col gap-4 select-none shadow-xl shadow-black/20">
       {/* Top Asset Title & Change Badge */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-base font-extrabold tracking-tight text-white">
+          <span className="text-base font-extrabold tracking-tight text-theme-text-primary">
             {baseAsset} / {quoteAsset}
           </span>
-          <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-amber-400/10 text-amber-400 border border-amber-400/30">
+          <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
             {marketType === 'SPOT' ? 'SPOT' : 'PERP'}
           </span>
         </div>
@@ -122,8 +124,8 @@ export const TickerDisplay = memo(function TickerDisplay({
         <div
           className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold border ${
             isPositive
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+              ? 'bg-theme-status-success/10 text-theme-status-success border-theme-status-success/20'
+              : 'bg-theme-status-danger/10 text-theme-status-danger border-theme-status-danger/20'
           }`}
         >
           {isPositive ? (
@@ -140,25 +142,25 @@ export const TickerDisplay = memo(function TickerDisplay({
         <span
           className={`text-4xl sm:text-[44px] font-extrabold font-mono tracking-tight transition-colors duration-200 ${
             tickDirection === 'up'
-              ? 'text-emerald-400'
+              ? 'text-theme-status-success'
               : tickDirection === 'down'
-              ? 'text-rose-400'
-              : 'text-white'
+              ? 'text-theme-status-danger'
+              : 'text-theme-text-primary'
           }`}
         >
           ${formattedPrice}
         </span>
       </div>
 
-      {/* 24h Low / High Metric & Amber Bar */}
+      {/* 24h Low / High Metric & Range Bar */}
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-2xs font-mono text-zinc-400">
+        <div className="flex items-center justify-between text-2xs font-mono text-theme-text-secondary">
           <span>24h Low: ${low24h.toLocaleString()}</span>
           <span>24h High: ${high24h.toLocaleString()}</span>
         </div>
-        <div className="relative h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+        <div className="relative h-1 w-full bg-theme-bg-elevated rounded-full overflow-hidden">
           <div
-            className="absolute top-0 bottom-0 left-0 bg-amber-400 rounded-full transition-all duration-300"
+            className="absolute top-0 bottom-0 left-0 bg-theme-brand-primary rounded-full transition-all duration-300"
             style={{ width: `${rangePercent}%` }}
           />
         </div>
@@ -166,22 +168,22 @@ export const TickerDisplay = memo(function TickerDisplay({
 
       {/* 30m Micro Trend Area Sparkline */}
       <div className="flex flex-col gap-1.5 pt-1">
-        <div className="flex items-center justify-between text-2xs font-mono text-zinc-400">
+        <div className="flex items-center justify-between text-2xs font-mono text-theme-text-secondary">
           <div className="flex items-center gap-1.5">
-            <span className="text-zinc-300 font-medium font-sans">30m Micro Trend</span>
-            <span className="text-3xs px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400 font-mono">
+            <span className="text-theme-text-primary font-medium font-sans">30m Micro Trend</span>
+            <span className="text-3xs px-1.5 py-0.5 rounded bg-theme-bg-elevated text-theme-text-muted font-mono">
               1m Candles
             </span>
           </div>
           {sparklineData && (
-            <span className="text-3xs text-zinc-400">
+            <span className="text-3xs text-theme-text-secondary">
               L: ${sparklineData.minPrice.toLocaleString()} H: ${sparklineData.maxPrice.toLocaleString()}
             </span>
           )}
         </div>
 
         {/* Dynamic SVG Area Sparkline */}
-        <div className="relative h-[52px] w-full overflow-hidden rounded-lg bg-zinc-900/40">
+        <div className="relative h-[52px] w-full overflow-hidden rounded-lg bg-theme-bg-base/40">
           {sparklineData ? (
             <svg viewBox="0 0 360 52" preserveAspectRatio="none" className="w-full h-full">
               <defs>
@@ -215,7 +217,7 @@ export const TickerDisplay = memo(function TickerDisplay({
               />
             </svg>
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-3xs font-mono text-zinc-600">
+            <div className="h-full w-full flex items-center justify-center text-3xs font-mono text-theme-text-muted">
               Streaming candles...
             </div>
           )}
@@ -223,21 +225,21 @@ export const TickerDisplay = memo(function TickerDisplay({
       </div>
 
       {/* 24H Volume & Quote Volume Footer Row */}
-      <div className="grid grid-cols-2 pt-1 border-t border-white/5">
+      <div className="grid grid-cols-2 pt-1 border-t border-theme-border-subtle">
         <div className="flex flex-col">
-          <span className="text-3xs font-mono uppercase text-zinc-500 tracking-wider">
+          <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
             24H VOLUME ({baseAsset})
           </span>
-          <span className="text-sm font-bold font-mono text-white mt-0.5">
+          <span className="text-sm font-bold font-mono text-theme-text-primary mt-0.5">
             {formattedBaseVol}
           </span>
         </div>
 
         <div className="flex flex-col items-end text-right">
-          <span className="text-3xs font-mono uppercase text-zinc-500 tracking-wider">
+          <span className="text-3xs font-mono uppercase text-theme-text-muted tracking-wider">
             24H QUOTE VOL
           </span>
-          <span className="text-sm font-bold font-mono text-white mt-0.5">
+          <span className="text-sm font-bold font-mono text-theme-text-primary mt-0.5">
             {formattedQuoteVol}
           </span>
         </div>

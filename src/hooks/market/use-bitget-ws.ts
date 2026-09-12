@@ -22,6 +22,7 @@ export interface UseBitgetWebSocketOptions {
 
 export interface UseBitgetWebSocketReturn {
   ticker: BitgetWsTickerData | null;
+  futuresTicker: BitgetWsTickerData | null;
   orderbook: BitgetWsBookData | null;
   candles: MicroCandle[];
   status: WsConnectionStatus;
@@ -44,6 +45,7 @@ export function useBitgetWebSocket({
   enabled = true,
 }: UseBitgetWebSocketOptions): UseBitgetWebSocketReturn {
   const [ticker, setTicker] = useState<BitgetWsTickerData | null>(null);
+  const [futuresTicker, setFuturesTicker] = useState<BitgetWsTickerData | null>(null);
   const [orderbookRecord, setOrderbookRecord] = useState<{ symbol: string; data: BitgetWsBookData } | null>(null);
   const [candlesRecord, setCandlesRecord] = useState<{ symbol: string; data: MicroCandle[] } | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -68,6 +70,7 @@ export function useBitgetWebSocket({
 
   // Derive active data during render
   const activeTicker = ticker?.instId === cleanSymbol ? ticker : null;
+  const activeFuturesTicker = futuresTicker?.instId === cleanSymbol ? futuresTicker : null;
   const activeOrderbook = orderbookRecord?.symbol === cleanSymbol ? orderbookRecord.data : null;
   const activeCandles = candlesRecord?.symbol === cleanSymbol ? candlesRecord.data : [];
 
@@ -101,26 +104,37 @@ export function useBitgetWebSocket({
         }
       }, PING_INTERVAL_MS);
 
-      // Channel subscriptions: ticker, books15, candle1m
+      // Channel subscriptions: ticker, books15, candle1m (+ USDT-FUTURES ticker)
+      const args: Array<{ instType: 'SPOT' | 'USDT-FUTURES'; channel: string; instId: string }> = [
+        {
+          instType,
+          channel: 'ticker',
+          instId: cleanSymbol,
+        },
+        {
+          instType,
+          channel: 'books15',
+          instId: cleanSymbol,
+        },
+        {
+          instType,
+          channel: 'candle1m',
+          instId: cleanSymbol,
+        },
+      ];
+
+      // Multiplex USDT-FUTURES ticker on same connection if primary is SPOT
+      if (instType === 'SPOT') {
+        args.push({
+          instType: 'USDT-FUTURES',
+          channel: 'ticker',
+          instId: cleanSymbol,
+        });
+      }
+
       const payload = {
         op: 'subscribe',
-        args: [
-          {
-            instType,
-            channel: 'ticker',
-            instId: cleanSymbol,
-          },
-          {
-            instType,
-            channel: 'books15',
-            instId: cleanSymbol,
-          },
-          {
-            instType,
-            channel: 'candle1m',
-            instId: cleanSymbol,
-          },
-        ],
+        args,
       };
       ws.send(JSON.stringify(payload));
     };
@@ -138,28 +152,35 @@ export function useBitgetWebSocket({
         }
 
         if (parsed.data && parsed.data.length > 0 && parsed.arg) {
-          const { channel } = parsed.arg;
+          const { channel, instType: msgInstType } = parsed.arg;
 
           if (channel === 'ticker') {
             const tickerData = parsed.data[0] as BitgetWsTickerData;
-            setTicker(tickerData);
 
-            const currentPrice = parseFloat(tickerData.lastPr);
-            if (!isNaN(currentPrice)) {
-              if (prevPriceRef.current !== null) {
-                if (currentPrice > prevPriceRef.current) {
-                  setTickDirection('up');
-                } else if (currentPrice < prevPriceRef.current) {
-                  setTickDirection('down');
-                }
-                if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
-                tickTimerRef.current = setTimeout(() => {
-                  if (!isCleanedUp) {
-                    setTickDirection('neutral');
+            if (msgInstType === 'USDT-FUTURES') {
+              setFuturesTicker(tickerData);
+            }
+
+            if (msgInstType === instType) {
+              setTicker(tickerData);
+
+              const currentPrice = parseFloat(tickerData.lastPr);
+              if (!isNaN(currentPrice)) {
+                if (prevPriceRef.current !== null) {
+                  if (currentPrice > prevPriceRef.current) {
+                    setTickDirection('up');
+                  } else if (currentPrice < prevPriceRef.current) {
+                    setTickDirection('down');
                   }
-                }, 600);
+                  if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
+                  tickTimerRef.current = setTimeout(() => {
+                    if (!isCleanedUp) {
+                      setTickDirection('neutral');
+                    }
+                  }, 600);
+                }
+                prevPriceRef.current = currentPrice;
               }
-              prevPriceRef.current = currentPrice;
             }
           } else if (channel === 'books15' || channel === 'books5' || channel === 'books') {
             const bookData = parsed.data[0] as BitgetWsBookData;
@@ -252,6 +273,7 @@ export function useBitgetWebSocket({
 
   return {
     ticker: activeTicker,
+    futuresTicker: activeFuturesTicker,
     orderbook: activeOrderbook,
     candles: activeCandles,
     status,

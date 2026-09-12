@@ -69,26 +69,6 @@ export const ChatHeader = memo(function ChatHeader({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <motion.button
-          type="button"
-          whileTap={tapScalePill}
-          onClick={onToggleMarketPanel}
-          title={isMarketPanelOpen ? 'Hide Market Streamer' : 'Live Market Streamer'}
-          aria-label="Live Market Streamer"
-          className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 select-none transition-colors border cursor-pointer ${
-            isMarketPanelOpen
-              ? 'bg-theme-brand-primary/15 text-theme-brand-primary border-theme-brand-primary/30 shadow-2xs'
-              : 'bg-theme-bg-surface hover:bg-theme-bg-elevated text-theme-text-secondary hover:text-theme-text-primary border-theme-border-subtle'
-          }`}
-        >
-          <span className="relative flex size-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-theme-status-success opacity-75" />
-            <span className="relative inline-flex rounded-full size-2 bg-theme-status-success" />
-          </span>
-          <Activity className="size-3.5" />
-          <span className="hidden sm:inline">Live Market</span>
-        </motion.button>
-
         <AnimatePresence>
           {!isChatEmpty && (
             <motion.div
@@ -122,6 +102,22 @@ export const ChatHeader = memo(function ChatHeader({
             </motion.div>
           )}
         </AnimatePresence>
+
+        <motion.button
+          type="button"
+          whileTap={tapScalePill}
+          onClick={onToggleMarketPanel}
+          title={isMarketPanelOpen ? 'Hide Market Streamer' : 'Live Market Streamer'}
+          aria-label="Live Market Streamer"
+          className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 select-none transition-colors border cursor-pointer ${
+            isMarketPanelOpen
+              ? 'bg-theme-brand-primary/15 text-theme-brand-primary border-theme-brand-primary/30 shadow-2xs'
+              : 'bg-theme-bg-surface hover:bg-theme-bg-elevated text-theme-text-secondary hover:text-theme-text-primary border-theme-border-subtle'
+          }`}
+        >
+          <Activity className="size-3.5" />
+          <span className="hidden sm:inline">Live Market</span>
+        </motion.button>
       </div>
     </div>
   );

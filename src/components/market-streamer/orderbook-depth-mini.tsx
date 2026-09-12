@@ -77,11 +77,11 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   });
 
   return (
-    <div className="p-5 rounded-2xl bg-[#121215] border border-white/5 flex flex-col gap-3 select-none shadow-xl shadow-black/20">
+    <div className="p-5 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle flex flex-col gap-3 select-none shadow-xl shadow-black/20">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <Layers className="size-4 text-amber-400 stroke-[2.2]" />
-        <span className="text-sm font-bold text-white tracking-tight">
+        <Layers className="size-4 text-theme-brand-primary stroke-[2.2]" />
+        <span className="text-sm font-bold text-theme-text-primary tracking-tight">
           Order Book Depth
         </span>
       </div>
@@ -89,24 +89,24 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
       {/* Depth Imbalance Bar */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between text-2xs font-mono">
-          <span className="text-emerald-400 font-bold">Bids {bidPercent}%</span>
-          <span className="text-zinc-500 text-3xs uppercase tracking-wider">Depth Imbalance</span>
-          <span className="text-rose-400 font-bold">{askPercent}% Asks</span>
+          <span className="text-theme-status-success font-bold">Bids {bidPercent}%</span>
+          <span className="text-theme-text-muted text-3xs uppercase tracking-wider">Depth Imbalance</span>
+          <span className="text-theme-status-danger font-bold">{askPercent}% Asks</span>
         </div>
-        <div className="h-1.5 w-full bg-zinc-800 rounded-full flex overflow-hidden">
+        <div className="h-1.5 w-full bg-theme-bg-elevated rounded-full flex overflow-hidden">
           <div
-            className="bg-emerald-400 h-full transition-all duration-300 rounded-l-full"
+            className="bg-theme-status-success h-full transition-all duration-300 rounded-l-full"
             style={{ width: `${bidPercent}%` }}
           />
           <div
-            className="bg-rose-400 h-full transition-all duration-300 rounded-r-full"
+            className="bg-theme-status-danger h-full transition-all duration-300 rounded-r-full"
             style={{ width: `${askPercent}%` }}
           />
         </div>
       </div>
 
       {/* Column Headers */}
-      <div className="grid grid-cols-3 text-3xs font-mono text-zinc-500 uppercase tracking-wider px-1 pt-1">
+      <div className="grid grid-cols-3 text-3xs font-mono text-theme-text-muted uppercase tracking-wider px-1 pt-1">
         <span>PRICE (USDT)</span>
         <span className="text-center">SIZE</span>
         <span className="text-right">TOTAL</span>
@@ -119,7 +119,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
             return (
               <div
                 key={`ask-placeholder-${i}`}
-                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-zinc-700"
+                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-theme-text-muted/30"
               >
                 <span>—</span>
                 <span className="text-center">—</span>
@@ -136,16 +136,16 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
               className="relative grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono overflow-hidden rounded"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-rose-500/12 pointer-events-none rounded"
+                className="absolute inset-y-0 right-0 bg-theme-status-danger/15 pointer-events-none rounded"
                 style={{ width: `${depthWidth}%` }}
               />
-              <span className="relative z-10 text-rose-400 font-medium">
+              <span className="relative z-10 text-theme-status-danger font-medium">
                 {row.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
-              <span className="relative z-10 text-zinc-400 text-center">
+              <span className="relative z-10 text-theme-text-secondary text-center">
                 {row.size.toFixed(3)}
               </span>
-              <span className="relative z-10 text-zinc-400 text-right">
+              <span className="relative z-10 text-theme-text-secondary text-right">
                 {row.total.toFixed(3)}
               </span>
             </div>
@@ -154,13 +154,13 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
       </div>
 
       {/* Spread Indicator Box */}
-      <div className="bg-zinc-800/40 rounded-lg py-1.5 px-3 flex items-center justify-between text-xs font-mono">
-        <span className="text-zinc-500 text-2xs uppercase tracking-wider font-semibold">
+      <div className="bg-theme-bg-base/40 border border-theme-border-subtle/60 rounded-lg py-1.5 px-3 flex items-center justify-between text-xs font-mono">
+        <span className="text-theme-text-muted text-2xs uppercase tracking-wider font-semibold">
           SPREAD
         </span>
-        <span className="text-white font-bold">
+        <span className="text-theme-text-primary font-bold">
           ${spreadValue.toFixed(2)}{' '}
-          <span className="text-zinc-400 font-normal text-2xs">({spreadPercent}%)</span>
+          <span className="text-theme-text-secondary font-normal text-2xs">({spreadPercent}%)</span>
         </span>
       </div>
 
@@ -171,7 +171,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
             return (
               <div
                 key={`bid-placeholder-${i}`}
-                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-zinc-700"
+                className="grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono text-theme-text-muted/30"
               >
                 <span>—</span>
                 <span className="text-center">—</span>
@@ -188,16 +188,16 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
               className="relative grid grid-cols-3 h-[22px] items-center px-1 text-xs font-mono overflow-hidden rounded"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-emerald-500/12 pointer-events-none rounded"
+                className="absolute inset-y-0 right-0 bg-theme-status-success/15 pointer-events-none rounded"
                 style={{ width: `${depthWidth}%` }}
               />
-              <span className="relative z-10 text-emerald-400 font-medium">
+              <span className="relative z-10 text-theme-status-success font-medium">
                 {row.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
-              <span className="relative z-10 text-zinc-400 text-center">
+              <span className="relative z-10 text-theme-text-secondary text-center">
                 {row.size.toFixed(3)}
               </span>
-              <span className="relative z-10 text-zinc-400 text-right">
+              <span className="relative z-10 text-theme-text-secondary text-right">
                 {row.total.toFixed(3)}
               </span>
             </div>
