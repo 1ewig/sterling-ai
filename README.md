@@ -5,25 +5,25 @@
   <img src="https://img.shields.io/badge/TypeScript-Strict%207-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Next.js-16.3%20App%20Router-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/AI%20SDK-Vercel%20AI%20v7-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel AI SDK" />
-  <img src="https://img.shields.io/badge/Exchange-Bitget%20Public%20v2-00F0FF?style=for-the-badge" alt="Bitget" />
+  <img src="https://img.shields.io/badge/Exchange-Bitget%20Unified%20v3%20(UTA)-00F0FF?style=for-the-badge" alt="Bitget Unified v3" />
   <img src="https://img.shields.io/badge/Database-Dexie%20IndexedDB%20v4-10B981?style=for-the-badge" alt="Dexie" />
   <img src="https://img.shields.io/badge/Linter-Oxlint%20v1.81%2B-F59E0B?style=for-the-badge" alt="Oxlint" />
   <img src="https://img.shields.io/badge/Search-Exa%20AI-4F46E5?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Exa AI" />
 </p>
 
-Sterling is an **Institutional-Grade AI Trading Desk & Cross-Asset Market Intelligence Workbench** engineered for continuous **7×24 real-time trading** across cryptocurrency markets and tokenized US equities (rTokens). Built on Next.js 16 (App Router), Vercel AI SDK v7, Bun, and Dexie IndexedDB.
+Sterling is an **Institutional-Grade AI Trading Desk & Cross-Asset Market Intelligence Workbench** engineered for continuous **7×24 real-time trading**, deep quantitative analytics, and live execution across cryptocurrency markets and tokenized US equities (rTokens). Built on Next.js 16 (App Router), Vercel AI SDK v7, Bun, and Dexie IndexedDB.
 
 ---
 
 ## Key Capabilities
 
-### 1. ⚡ Sub-50ms Live WebSocket Market Streamer
+### 1. ⚡ Sub-50ms Live WebSocket Market Streamer (Bitget V3 UTA)
 A persistent, hardware-accelerated streaming panel directly connected to the Bitget Unified v3 (UTA) WebSocket (`wss://ws.bitget.com/v3/ws/public`):
 
 * **Targeted Low-Latency Streams:** Subscribes concurrently to SPOT `ticker`, L2 order book depth (`books15` for standard pairs, `books` for rTokens), and 1-minute trend bars (`candle1m`), while multiplexing `USDT-FUTURES` perpetual metrics on the same connection.
 * **In-Memory L2 Order Book State Machine:** Backed by a dedicated `L2Orderbook` state machine that handles snapshots and processes incremental delta updates in real-time, preventing partial-depth flashes and maintaining rock-solid 8-level order book stability with stabilized DOM keys and CSS width transitions.
 * **Cross-Market Tokenized Equity / rToken Multiplexing:** Seamlessly unifies tokenized spot equities (e.g. `RTSLAUSDT`, `RNVDAUSDT`, `RAAPLUSDT`) with their corresponding perpetual futures (e.g. `TSLAUSDT`, `NVDAUSDT`, `AAPLUSDT`). Simultaneously multiplexes Spot prices and order book depth alongside Perpetual 8h funding rates, open interest, mark price, and contango/discount basis spread on a single unified pane.
-* **0ms Cold-Start REST Seeding & Weekend Resilience:** Asynchronously pre-seeds the initial 30 1-minute candles (`granularity=1min` on Spot, `1m` on Futures) and order book depth snapshot via REST on mount. Guarantees 0ms cold-start paint and ensures the 30-minute Micro Trend sparkline and Order Book render immediately even during weekend market closures when traditional equity exchanges are inactive.
+* **0ms Cold-Start REST Seeding & Weekend Resilience:** Asynchronously pre-seeds the initial 30 1-minute candles (`interval=1m` across Spot & Futures) and order book depth snapshot via V3 REST on mount. Guarantees 0ms cold-start paint and ensures the 30-minute Micro Trend sparkline and Order Book render immediately even during weekend market closures when traditional equity exchanges are inactive.
 * **`requestAnimationFrame` (RAF) Render Throttling:** Socket frames are buffered in memory and committed to React state once per display refresh cycle (60Hz / 120Hz). This eliminates main-thread starvation and guarantees silky 60fps scrolling even during heavy volatility bursts.
 * **8-Level Order Book Depth Mini:** Features an 8-level visual bid/ask ladder, proportional depth volume bars, real-time Bid/Ask depth imbalance ratio meters, and live spread calculations in USD and basis points.
 * **30-Minute Micro Trend Sparkline:** Real-time dynamic SVG area chart generated from 30 1-minute OHLCV candles using quadratic Bézier curve geometry (`Q` and `T` SVG paths) and a gradient fill.
@@ -31,37 +31,44 @@ A persistent, hardware-accelerated streaming panel directly connected to the Bit
 * **Responsive Layout & Full-Screen Mobile Adaptation:** Docks as a 40% panel on desktop viewports and expands to an uncompromised full-screen experience on mobile, driven cleanly by the persistent `Live Market` header control.
 * **Zero-Overhead Lifecycle Management:** WebSocket connections, ping heartbeats (20s), and countdown timers automatically terminate when the streamer panel is closed, ensuring 0% idle CPU and network consumption.
 
-### 2. 🔍 Full-Market Symbol Discovery Engine (2,000+ Pairs)
+### 2. 🛡️ Live Order Execution & Account Management (Bitget V3 UTA)
+Institutional order staging and execution workflow with strict safety protocols:
+
+* **Human-in-the-Loop Confirmation:** AI models stage orders with explicit parameters (side, order type, price, size, stop loss, take profit) into interactive visual trade tickets. No trade executes without explicit user confirmation.
+* **Server-Side HMAC-SHA256 Signing:** Exchange API secrets never touch client memory. Requests are securely signed server-side using Node crypto (`createHmac('sha256')`) and sent directly to Bitget V3 trade endpoints (`/api/v3/trade/place-order`, `/modify-order`, `/cancel-order`).
+* **Unified Account Overview:** Inspect real-time multi-asset balances, margin utilization, unrealized PnL, and open positions across Spot and Perpetual Futures.
+
+### 3. 🔍 Full-Market Symbol Discovery Engine (2,000+ Pairs)
 Instant, zero-latency pair switcher covering thousands of crypto assets and tokenized equities:
-* **Hybrid ISR / Client Cache Architecture:** Next.js edge route (`/api/market/symbols`) fetches and validates upstream spot and perpetual tickers with 1-hour Incremental Static Regeneration (ISR) and stale-while-revalidate headers.
+* **Hybrid ISR / Client Cache Architecture:** Next.js edge route (`/api/market/symbols`) fetches and validates upstream Bitget V3 spot and perpetual tickers with 1-hour Incremental Static Regeneration (ISR) and stale-while-revalidate headers.
 * **Cross-Market Dual Badging:** Automatically cross-references tokenized equities and perpetual contracts so pairs with dual-market liquidity illuminate both `[SPOT]` and `[PERP]` badges simultaneously.
 * **0ms Local-First Paint & Self-Healing Cache:** Backed by Dexie IndexedDB (Schema v4 `market_symbols`). Cached pairs load instantly on first render while freshness is re-verified asynchronously in the background. Incomplete local caches (`< 1,500` pairs) are automatically self-healed and updated.
 * **Progressive Virtualized Batching:** Uses `IntersectionObserver` sentinels to render pairs in progressive 40-item chunks for instantaneous DOM response and minimal memory overhead.
 * **Tiered Fuzzy Ranking:** Ranks results intelligently by **Exact Match > Prefix Match > Substring Match**, sorted descending by 24-hour USD turnover so high-liquidity pairs always surface first.
 
-### 3. 📊 Pure TypeScript Quantitative Indicator Engine (23 Indicators)
+### 4. 📊 Pure TypeScript Quantitative Indicator Engine (23 Indicators)
 Institutional mathematical indicator suite written in strict, zero-dependency TypeScript—executing in-process with zero Python, C++ bindings, or external calculation services:
 * **Trend:** Exponential Moving Averages (20, 50, 200 EMA), Simple Moving Averages (SMA), and SuperTrend (ATR multiplier bands).
 * **Momentum:** Relative Strength Index (RSI 14), Moving Average Convergence Divergence (MACD 12/26/9 with Histogram), and Stochastic RSI.
 * **Volatility:** Bollinger Bands (Upper, Middle, Lower, Bandwidth, %B), Average True Range (ATR 14), and Historical Volatility.
 * **Levels & Pivots:** Fibonacci Retracement Zones (23.6%, 38.2%, 50.0%, 61.8%, 78.6%) and Standard Pivot Points.
 
-### 4. 🌐 Macroeconomic & Cross-Asset Regime Modeling
+### 5. 🌐 Macroeconomic & Cross-Asset Regime Modeling
 Dynamic cross-asset risk analysis contextualizing single-asset moves against macro liquidity:
 * **Treasury Yield Curve Spread:** Real-time 10Y-2Y yield inversion tracking for institutional recession probability modeling.
 * **Policy Expectations:** Fed funds target rate expectations, CPI/PCE inflation tracking, and liquidity cycle positioning.
 * **Cross-Asset Correlation Matrix:** Live correlation coefficients calculating BTC sensitivity against the US Dollar Index (DXY), Volatility Index (VIX), Gold (XAU), and the Nasdaq 100 (QQQ).
 
-### 5. 🧠 Smart Money & Sentiment Intelligence
+### 6. 🧠 Smart Money & Sentiment Intelligence
 Derivatives and crowd positioning analytics for detecting market turning points:
 * **Fear & Greed Indexing:** Live sentiment thermometer (0–100 scale).
 * **Smart Money vs. Retail Divergence:** Compares Top-Trader Long/Short account ratios against Retail crowd positioning to expose traps.
 * **Liquidation & Squeeze Risk Alerts:** Detects extreme funding rate skews, aggressive taker volume imbalances, and crowded perpetual positioning.
 
-### 6. 💾 Local-First Privacy Architecture (Dexie IndexedDB)
+### 7. 💾 Local-First Privacy Architecture (Dexie IndexedDB)
 * **Multi-Session Chat Threads:** Multi-conversation switching with automatic first-turn LLM title generation and intelligent follow-up suggestions.
 * **Full Audit Trail:** Every reasoning timeline, thinking step, executed tool payload, and duration timestamp is persisted locally in the browser's IndexedDB.
-* **Zero Authentication Barrier:** Real-time market streaming, indicator mathematics, symbol discovery, and macro data operate 100% out-of-the-box with zero exchange API keys or account sign-ups.
+* **Zero Authentication Barrier for Market Intel:** Real-time market streaming, indicator mathematics, symbol discovery, and macro data operate 100% out-of-the-box with zero exchange API keys or account sign-ups.
 
 ---
 
@@ -71,12 +78,14 @@ Sterling provides a purpose-built domain tool suite matching quantitative desk s
 
 | Tool | Focus & Data Sources | Output Intelligence |
 | :--- | :--- | :--- |
-| **`market_data`** | Bitget Public REST API (Spot & Futures) | Real-time prices, 24h ranges, quote volume, funding rates, open interest, and order book depth. |
+| **`market_data`** | Bitget V3 Public REST API (`/api/v3/market/*`) | Real-time prices, 24h ranges, quote turnover, funding rates, open interest, and order book depth. |
 | **`technical_analysis`** | OHLCV K-lines + Pure TS Indicator Engine | Multi-timeframe trend alignment, 20/50/200 EMAs, RSI 14, MACD histogram, Bollinger Bands, and Fibonacci zones. |
 | **`macro_analyst`** | Fed policy, Treasury yields, Inflation data | Risk-On / Risk-Off regime verdicts, 10Y-2Y spread, CPI/PCE prints, DXY, VIX, and equity correlations. |
 | **`sentiment_analyst`** | Fear & Greed index + Derivatives flow | Sentiment scores (0–100), retail vs. top-trader positioning divergence, and short squeeze risk modeling. |
 | **`market_intel`** | DeFi analytics & On-chain metrics | Multi-chain TVL rankings, stablecoin liquidity reserves, trending DEX tokens, and gas health. |
 | **`web_search`** | Exa AI semantic search | Institutional research, SEC filings, protocol governance proposals, and catalyst tracking. |
+| **`stage_trade_order`** | Bitget V3 Unified Trading Account | Stages limit/market buy/sell orders with optional TP/SL for user confirmation via interactive trade ticket. |
+| **`get_account_overview`** | Bitget V3 Authenticated Balance & Position APIs | Real-time UTA equity, available margin, maintenance margin ratio, and active cross-market positions. |
 
 ---
 
@@ -87,13 +96,22 @@ src/
 ├── agent/                         # AI Reasoning Engine & Tool Dispatch
 │   ├── chat/                      # Stream state machine, tool invocation & engine
 │   ├── providers/                 # Groq & Fireworks LLM provider configurations
-│   ├── tools/                     # Domain tool definitions (macro, sentiment, technicals, market)
+│   ├── tools/                     # Domain tools (macro, sentiment, technicals, market, trade, account)
+│   │   ├── account-positions.ts   # Live UTA balance & positions tool
+│   │   ├── trade-order.ts         # Staged trade order tool with parameter validation
+│   │   ├── macro-analyst.ts       # Macroeconomic regime tool
+│   │   ├── market-data.ts         # Real-time Bitget V3 market data tool
+│   │   ├── market-intel.ts        # DeFi & on-chain metrics tool
+│   │   ├── sentiment-analyst.ts   # Sentiment & crowd positioning tool
+│   │   ├── technical-analysis.ts  # Quantitative technical indicator tool
+│   │   └── web-search.ts          # Exa AI search tool
 │   ├── transforms/                # Automated title extraction & follow-up suggestions
 │   ├── instructions.ts            # Institutional AI desk system prompt directives
 │   └── types.ts                   # Agent execution steps, tool schemas & stream events
 ├── app/                           # Next.js 16 App Router
 │   ├── api/chat/                  # Server-Sent Events (SSE) AI streaming route
-│   ├── api/market/symbols/        # Full-market ISR symbol discovery route (1,000+ pairs)
+│   ├── api/market/symbols/        # Full-market ISR symbol discovery route (2,000+ pairs)
+│   ├── api/trade/execute/         # Secure server-side trade execution endpoint (HMAC-SHA256)
 │   ├── chat/                      # Trading desk chat stage route
 │   ├── globals.css                # Semantic CSS tokens, typography, KaTeX & animations
 │   └── layout.tsx                 # Root layout with Geist font hydration & metadata
@@ -102,13 +120,13 @@ src/
 │   │   ├── input/                 # Chat input dock & prompt templates
 │   │   ├── messages/              # Streaming message list & markdown renderers
 │   │   ├── reasoning/             # Process timeline, thinking accordions & tool cards
-│   │   │   └── tools/             # MarketData, TechnicalAnalysis, Macro, Sentiment visual cards
+│   │   │   └── tools/             # Visual cards (TradeTicket, AccountOverview, MarketData, etc.)
 │   │   ├── chat-client.tsx        # Stage coordinator
 │   │   └── chat-header.tsx        # Dynamic title & live streamer toggle button
-│   ├── market-streamer/           # Live WebSocket Market Streamer Panel
+│   ├── market-streamer/           # Live WebSocket Market Streamer Panel (Bitget V3)
 │   │   ├── market-streamer-panel.tsx  # Unified desktop panel & full-screen mobile canvas
 │   │   ├── ticker-display.tsx     # Tick-by-tick price, range bar & 30m quadratic SVG sparkline
-│   │   ├── symbol-search-popover.tsx  # Virtualized 1,000+ symbol search popover modal
+│   │   ├── symbol-search-popover.tsx  # Virtualized symbol search popover modal
 │   │   ├── derivatives-metrics.tsx    # Live funding countdown, open interest, mark price & basis
 │   │   ├── orderbook-depth-mini.tsx   # 8-level visual depth ladder with stabilized DOM keys & imbalance meter
 │   │   └── micro-trend.tsx        # 30m quadratic Bézier curve sparkline component
@@ -116,37 +134,38 @@ src/
 │   └── common/                    # AgentLoader, SterlingIcon, ConfirmDialog
 ├── hooks/                         # Specialized React Hooks
 │   ├── chat/                      # useAgentChat, useChatSessions, useChatScroll
-│   ├── market/                    # useBitgetWebSocket (streamlined RAF batching), useMarketSymbols
+│   ├── market/                    # useBitgetWebSocket (V3 RAF batching), useMarketSymbols
 │   └── ui/                        # useTheme, useSidebar, useActiveTimer, useIsMobile, useCountdownTimer
 ├── lib/                           # Core Libraries & Utilities
-│   ├── bitget/                    # Bitget REST & WS clients, L2 state machine, symbols & 23-indicator math
+│   ├── bitget/                    # Bitget V3 REST & WS clients, L2 state machine, symbols & trade client
 │   │   ├── analysts.ts            # Technical, macro, sentiment, and market intel calculators
 │   │   ├── client.ts              # Unified client facade
 │   │   ├── formatters.ts          # Centralized price, volume, spread formatters & asset pair parsing
 │   │   ├── indicators.ts          # Pure TS quantitative indicator engine (23 indicators)
 │   │   ├── l2-book.ts             # In-memory L2 order book state machine (snapshot & delta merging)
-│   │   ├── rest.ts                # Dedicated Bitget Public REST API client
+│   │   ├── rest.ts                # Dedicated Bitget Public REST API V3 client
 │   │   ├── symbols.ts             # Symbol & timeframe normalization & alias table
+│   │   ├── trade.ts               # Authenticated V3 trade client with HMAC-SHA256 signing
 │   │   ├── types.ts               # Exchange payloads, indicators & tool schemas
-│   │   ├── ws-seeding.ts          # Cold-start REST seeders for instant 0ms chart/order book paint
-│   │   └── ws-subscriptions.ts    # Targeted WebSocket v2 channel subscription builder
+│   │   ├── ws-seeding.ts          # Cold-start REST V3 seeders for instant 0ms chart/order book paint
+│   │   └── ws-subscriptions.ts    # Bitget V3 WebSocket channel subscription builder
 │   ├── chat/                      # Client-side SSE transport parser & message formatting
-│   ├── datahub/                   # External DataHub MCP JSON-RPC protocol client
 │   ├── db/                        # Dexie IndexedDB (conversations, messages, market_symbols)
 │   └── exa/                       # Exa AI semantic search client
 ├── stores/                        # Zustand Persistent UI State
 │   └── app-store.ts               # Session ID, streamer visibility & active symbol
-└── __tests__/                     # Institutional Test Suite (44 Unit + Live Wire Tests)
-    ├── unit/                      # Zero-latency deterministic unit tests (<100ms)
+└── __tests__/                     # Institutional Test Suite (49 Unit + 7 Live Wire Tests)
+    ├── unit/                      # Zero-latency deterministic unit tests (<120ms)
     │   ├── derivatives.test.ts    # Notional OI, basis contango/discount, funding & countdown
     │   ├── formatters.test.ts     # Adaptive price formats, volume ($B/$M/$K), size & asset parsing
     │   ├── orderbook.test.ts      # L2Orderbook delta engine, snapshots, sorting invariants
     │   ├── search.test.ts         # Tiered fuzzy ranking algorithm (exact/prefix/contains)
     │   ├── sparkline.test.ts      # Candlestick 30m sliding window, Bézier curve math & flat guards
+    │   ├── trade.test.ts          # V3 HMAC-SHA256 signing, order schema validation & rToken routing
     │   ├── ws-mock.test.ts        # Offline mock WebSocket server, heartbeat & reconnect backoff
-    │   └── ws-subscriptions.test.ts # Targeted channel routing & phantom subscription prevention
+    │   └── ws-subscriptions.test.ts # V3 channel routing & phantom subscription prevention
     └── integration/               # Live exchange wire contract tests
-        └── market-ws.test.ts      # Bitget v2 public WebSocket integration suite
+        └── market-v3.test.ts      # Bitget V3 UTA public REST & WebSocket wire integration suite
 ```
 
 ---
@@ -169,6 +188,7 @@ The visual design is grounded in an **Ultra-Modern Neo-Grotesque** institutional
 * [Bun](https://bun.sh/) `v1.4.0` or higher
 * An API key from [Groq](https://console.groq.com/keys) (default: `qwen/qwen3.8-27b`) or [Fireworks AI](https://fireworks.ai/api-keys) (default: `accounts/fireworks/models/deepseek-v4p1-flash`)
 * *(Optional)* An API key from [Exa AI](https://dashboard.exa.ai/api-keys) for real-time web search
+* *(Optional)* Bitget API credentials for live account balances and staged trade order execution
 
 ### 1. Clone & Install
 ```bash
@@ -196,6 +216,13 @@ FIREWORKS_BACKUP_MODEL=accounts/fireworks/models/glm-5p3-flash
 
 # Optional: Exa AI for real-time institutional web search
 EXA_API_KEY=your_exa_api_key_here
+
+# Optional: Bitget V3 (UTA) Trading Account Credentials
+# Required ONLY for live order placement and account balance inspection.
+# Public market streaming, symbol discovery, and quantitative analytics work out-of-the-box without keys.
+BITGET_API_KEY=your_bitget_api_key_here
+BITGET_API_SECRET=your_bitget_api_secret_here
+BITGET_PASSPHRASE=your_bitget_passphrase_here
 ```
 
 ### 3. Start Development Server
@@ -214,14 +241,14 @@ Sterling enforces strict typing, linting, and multi-tier testing standards with 
 # 1. Typecheck with TypeScript 7 (0 errors)
 bun x tsc --noEmit
 
-# 2. Lint with Oxlint (0 warnings, 0 errors across 125+ files)
+# 2. Lint with Oxlint (0 warnings, 0 errors across 135+ files)
 bun run lint
 
-# 3. Execute deterministic offline unit test suite (44 tests in <100ms)
+# 3. Execute deterministic offline unit test suite (49 tests in <120ms)
 bun run test:unit
 
-# 4. Execute live exchange WebSocket integration tests (Bitget public v2 wire)
-bun run test:integration
+# 4. Execute live exchange WebSocket & REST wire tests (Bitget V3 UTA)
+bun test __tests__/integration/market-v3.test.ts
 
 # 5. Run all test suites combined
 bun run test:all
