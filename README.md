@@ -16,13 +16,15 @@ A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench
 ## Highlights
 
 * 📈 **7×24 Cross-Asset Perception:** Real-time spot and futures market data across crypto majors (`BTCUSDT`, `ETHUSDT`) and tokenized US equities (`TSLAUSDT`, `NVDAUSDT`, `SPYUSDT`, `MSTRUSDT`, `COINUSDT`).
-* ⚡ **Live WebSocket Market Streamer:** Persistent, sub-50ms streaming panel directly connected to Bitget Public v2 WebSocket (`ticker`, `books15`, and `candle1m`). Features an 8-level order book depth ladder with depth imbalance meters and a 30m micro trend area sparkline. Automatically disconnects on dismissal for zero background CPU/network overhead.
+* ⚡ **Multiplexed Live WebSocket Streamer:** Persistent, sub-50ms streaming panel directly connected to Bitget Public v2 WebSocket over a single connection (`SPOT` ticker, `books15`, `candle1m`, and `USDT-FUTURES` ticker). Features high-frequency `requestAnimationFrame` (RAF) batching to eliminate DOM layout thrashing during tick bursts. Automatically disconnects on dismissal for zero background CPU/network overhead.
+* 🔮 **Live Derivatives Intelligence:** Real-time perpetual metrics squeezed directly between the Ticker and Order Book—displaying 8H funding rates with live settlement countdown timers, open interest ($ Notional & native coin units), mark price, index price, and perpetual basis/premium spread in basis points.
+* 🔍 **Instant Symbol Search & Switching:** Interactive popover switcher supporting over 1,720+ Spot and USDT-Margined Futures pairs. Powered by a hybrid Next.js 16 ISR API route (`GET /api/market/symbols` with 1-hour revalidation) and Dexie IndexedDB local caching (`market_symbols` table) for instantaneous, zero-latency multi-attribute prefix and substring searches.
 * 📊 **Pure TypeScript Indicator Engine:** Computes 23 quantitative technical indicators across multiple timeframes (RSI 14, MACD, 20/50/200 EMAs, Bollinger Bands, SuperTrend, ATR, Fibonacci retracements) with zero Python or external daemon runtime dependencies.
 * 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy expectations, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
 * 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs. top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
 * ⚡ **Single-Turn Parallel Tool Orchestration:** Dispatches multiple specialized research tools simultaneously in a single turn for low-latency multi-dimensional market briefings.
-* 🎨 **Ultra-Modern Neo-Grotesque UI:** Styled with **Geist Sans** and **Geist Mono** typography, obsidian-zinc dark basework (`#09090b`), full-stage ambient breathing glow with automatic transition management, and custom `eclipse` 2.4s loader animations.
-* 📱 **Interactive Visual Tool Cards:** Custom presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, Sentiment Meters, and real-time order book depth.
+* 🎨 **Ultra-Modern Neo-Grotesque UI:** Styled with **Geist Sans** and **Geist Mono** typography, obsidian-zinc dark basework (`#09090b`), electric cyan brand accents, full-stage ambient breathing glow with automatic transition management, and morphing `AgentLoader` animations.
+* 📱 **Interactive Visual Tool Cards:** Custom presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, Sentiment Meters, and real-time order book depth ladders.
 * 💾 **Local-First Privacy:** Multi-session conversation management, title generation, and message history stored locally with Dexie IndexedDB.
 * 🛡️ **Zero Authentication Barrier:** All market data, technical calculations, macro indicators, sentiment feeds, and live WebSockets run 100% out-of-the-box with zero API keys required.
 
@@ -55,6 +57,7 @@ src/
 │   └── instructions.ts     # AI Trading Desk system directives
 ├── app/                    # Next.js 16 App Router
 │   ├── api/chat/           # Server-Sent Events (SSE) streaming route
+│   ├── api/market/symbols/ # ISR cached market symbol catalog endpoint (1h revalidation)
 │   ├── chat/               # Trading desk chat stage route
 │   ├── globals.css         # Semantic CSS design tokens, animations & KaTeX theme integration
 │   └── layout.tsx          # Root layout with Geist typography & theme hydration
@@ -65,17 +68,21 @@ src/
 │   │   ├── reasoning/      # Process timeline, thinking accordion & visual tool cards
 │   │   │   └── tools/      # MarketData, TechnicalAnalysis, Macro, Sentiment cards
 │   │   └── chat-client.tsx # Chat client orchestrator
-│   ├── market-streamer/    # Live Bitget WebSocket right-side streamer panel (sparkline & depth)
+│   ├── market-streamer/    # Live Bitget WebSocket right-side streamer panel
+│   │   ├── derivatives-metrics.tsx # Live 8H funding rate, OI, mark price & perp basis
+│   │   ├── symbol-search-popover.tsx # 1,720+ pair search & instant switcher popover
+│   │   ├── order-book.tsx  # 8-level depth ladder with bid/ask imbalance meters
+│   │   └── ticker-card.tsx # Live price, 24h stats, and sparkline trend
 │   ├── sidebar/            # Persistent collapsible drawer & theme toggle
 │   └── common/             # Reusable UI primitives (AgentLoader, SterlingIcon, ConfirmDialog)
 ├── hooks/                  # Custom React Hooks
 │   ├── chat/               # useAgentChat, useChatSessions, useChatScroll
-│   ├── market/             # useBitgetWebSocket (native WebSocket, ticker, books15, candle1m)
-│   └── ui/                 # useTheme, useSidebar, useActiveTimer
+│   ├── market/             # useBitgetWebSocket (multiplexed WS, RAF batching), useMarketSymbols
+│   └── ui/                 # useTheme, useSidebar, useActiveTimer, useIsMobile
 ├── lib/                    # Core Libraries & Utilities
 │   ├── bitget/             # Public Bitget REST & WS clients, types & 23-indicator math engine
 │   ├── chat/               # Client-side SSE transport & history formatting
-│   ├── db/                 # Dexie IndexedDB schema & CRUD operations
+│   ├── db/                 # Dexie IndexedDB schemas (chat sessions & market symbols catalog)
 │   └── exa/                # Exa AI search client
 ├── stores/                 # Zustand Persistent UI State
 └── tests/                  # Integration test suites (Bitget WebSocket live stream)
