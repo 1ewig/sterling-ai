@@ -25,8 +25,9 @@ export async function syncMarketSymbols(force = false): Promise<MarketSymbolReco
     const existing = await getCachedMarketSymbols();
     const now = Date.now();
 
-    // Check if cache is still fresh and non-empty
-    if (!force && existing.length > 0) {
+    // Check if cache is still fresh, non-empty, and has full catalog coverage
+    const MIN_EXPECTED_SYMBOLS = 1500;
+    if (!force && existing.length >= MIN_EXPECTED_SYMBOLS) {
       const oldestOrLatest = existing[0]?.updatedAt || 0;
       if (now - oldestOrLatest < SYMBOLS_CACHE_TTL_MS) {
         return existing;

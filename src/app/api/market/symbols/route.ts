@@ -89,6 +89,15 @@ export async function GET() {
           const price = parseFloat(item.lastPr || '0') || 0;
           const volume24h = parseFloat(item.usdtVolume || item.quoteVolume || '0') || 0;
 
+          // Check direct futures match or rToken equity perpetual match (e.g. RTSLAUSDT -> TSLAUSDT)
+          const unwrappedFuturesSym =
+            baseAsset.startsWith('R') && baseAsset.length > 1
+              ? `${baseAsset.slice(1)}${quoteAsset}`
+              : null;
+          const hasFutures =
+            futuresTickerMap.has(sym) ||
+            (unwrappedFuturesSym !== null && futuresTickerMap.has(unwrappedFuturesSym));
+
           itemsMap.set(sym, {
             symbol: sym,
             baseAsset,
@@ -96,7 +105,7 @@ export async function GET() {
             price,
             volume24h,
             hasSpot: true,
-            hasFutures: futuresTickerMap.has(sym),
+            hasFutures,
           });
         }
       } catch {
@@ -104,18 +113,22 @@ export async function GET() {
       }
     }
 
-    // 3. Process Futures-Only Tickers (Pairs traded exclusively on perpetuals)
+    // 3. Process Futures Tickers (Identifies futures-only and tokenized equity futures)
     for (const [sym, f] of futuresTickerMap.entries()) {
       if (!sym.endsWith('USDT') && !sym.endsWith('USDC')) {
         continue;
       }
       if (itemsMap.has(sym)) {
-        continue; // Already processed via spot with hasFutures: true
+        continue; // Already processed via direct spot match
       }
 
       const quoteAsset = sym.endsWith('USDC') ? 'USDC' : 'USDT';
       const baseAsset = sym.replace(/(USDT|USDC)$/, '');
       if (!baseAsset) continue;
+
+      // Check if spot has the corresponding tokenized equity rToken (e.g. RTSLAUSDT for TSLAUSDT)
+      const rTokenSpotSym = `R${baseAsset}${quoteAsset}`;
+      const hasSpot = itemsMap.has(rTokenSpotSym);
 
       const price = parseFloat(f.lastPr || '0') || 0;
       const volume24h = parseFloat(f.usdtVolume || f.quoteVolume || '0') || 0;
@@ -126,7 +139,7 @@ export async function GET() {
         quoteAsset,
         price,
         volume24h,
-        hasSpot: false,
+        hasSpot,
         hasFutures: true,
       });
     }

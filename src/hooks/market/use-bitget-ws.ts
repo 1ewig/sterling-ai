@@ -62,6 +62,8 @@ export function useBitgetWebSocket({
   const retryCountRef = useRef(0);
   const spotCandlesRef = useRef<MicroCandle[]>([]);
   const futuresCandlesRef = useRef<MicroCandle[]>([]);
+  const hasSpotOrderbookRef = useRef(false);
+  const hasFuturesOrderbookRef = useRef(false);
 
   // RAF update batching buffer
   const pendingUpdatesRef = useRef<{
@@ -76,6 +78,9 @@ export function useBitgetWebSocket({
   const rafIdRef = useRef<number | null>(null);
 
   const cleanSymbol = normalizeSymbol(symbol);
+  // Cross-market tokenized equity mapping (e.g. RTSLAUSDT on spot <-> TSLAUSDT on futures)
+  const targetSpotInstId = cleanSymbol.startsWith('R') ? cleanSymbol : `R${cleanSymbol}`;
+  const targetFuturesInstId = cleanSymbol.startsWith('R') ? cleanSymbol.slice(1) : cleanSymbol;
 
   // Derive status during render
   const status: WsConnectionStatus = !enabled
@@ -87,8 +92,14 @@ export function useBitgetWebSocket({
     : 'connecting';
 
   // Derive active data during render
-  const activeSpotTicker = spotTicker?.instId === cleanSymbol ? spotTicker : null;
-  const activeFuturesTicker = futuresTicker?.instId === cleanSymbol ? futuresTicker : null;
+  const activeSpotTicker =
+    spotTicker && (spotTicker.instId === cleanSymbol || spotTicker.instId === targetSpotInstId)
+      ? spotTicker
+      : null;
+  const activeFuturesTicker =
+    futuresTicker && (futuresTicker.instId === cleanSymbol || futuresTicker.instId === targetFuturesInstId)
+      ? futuresTicker
+      : null;
   // If spot ticker exists, use it as primary; otherwise fall back to futures ticker!
   const effectiveTicker = activeSpotTicker || activeFuturesTicker;
 
@@ -125,6 +136,8 @@ export function useBitgetWebSocket({
     prevSpotPriceRef.current = null;
     prevFuturesPriceRef.current = null;
     hasSpotRef.current = false;
+    hasSpotOrderbookRef.current = false;
+    hasFuturesOrderbookRef.current = false;
     spotCandlesRef.current = [];
     futuresCandlesRef.current = [];
     pendingUpdatesRef.current = {};
@@ -163,6 +176,144 @@ export function useBitgetWebSocket({
       }
     };
 
+    // 1. Seed initial 30 1-minute candles via REST so micro trend renders immediately
+    // even if WS is idle, volume is low, or the stock market is closed on weekends
+    const seedInitialCandles = async () => {
+      const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
+      for (const sym of spotCandidates) {
+        try {
+          const spotRes = await fetch(
+            `https://api.bitget.com/api/v2/spot/market/candles?symbol=${sym}&granularity=1min&limit=30`,
+            { signal: AbortSignal.timeout(4000) }
+          );
+          if (spotRes.ok) {
+            const json = (await spotRes.json()) as { code: string; data?: string[][] };
+            if (json.code === '00000' && json.data && json.data.length >= 2) {
+              if (isCleanedUp) return;
+              if (spotCandlesRef.current.length === 0) {
+                const formatted: MicroCandle[] = json.data.map((row) => ({
+                  timestamp: parseInt(row[0], 10),
+                  close: parseFloat(row[4]),
+                  high: parseFloat(row[2]),
+                  low: parseFloat(row[3]),
+                }));
+                spotCandlesRef.current = formatted;
+                pendingUpdatesRef.current.spotCandlesRecord = { symbol: cleanSymbol, data: formatted };
+                scheduleFlush();
+                return;
+              }
+            }
+          }
+        } catch {
+          // Fall through to next candidate
+        }
+      }
+
+      const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
+      for (const sym of futCandidates) {
+        try {
+          const futRes = await fetch(
+            `https://api.bitget.com/api/v2/mix/market/candles?productType=USDT-FUTURES&symbol=${sym}&granularity=1m&limit=30`,
+            { signal: AbortSignal.timeout(4000) }
+          );
+          if (futRes.ok) {
+            const json = (await futRes.json()) as { code: string; data?: string[][] };
+            if (json.code === '00000' && json.data && json.data.length >= 2) {
+              if (isCleanedUp) return;
+              if (futuresCandlesRef.current.length === 0) {
+                const formatted: MicroCandle[] = json.data.map((row) => ({
+                  timestamp: parseInt(row[0], 10),
+                  close: parseFloat(row[4]),
+                  high: parseFloat(row[2]),
+                  low: parseFloat(row[3]),
+                }));
+                futuresCandlesRef.current = formatted;
+                pendingUpdatesRef.current.futuresCandlesRecord = { symbol: cleanSymbol, data: formatted };
+                scheduleFlush();
+                return;
+              }
+            }
+          }
+        } catch {
+          // Handled silently
+        }
+      }
+    };
+
+    // 2. Seed initial orderbook snapshot via REST for instant paint
+    const seedInitialOrderbook = async () => {
+      const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
+      for (const sym of spotCandidates) {
+        try {
+          const spotRes = await fetch(
+            `https://api.bitget.com/api/v2/spot/market/orderbook?symbol=${sym}&type=step0&limit=15`,
+            { signal: AbortSignal.timeout(4000) }
+          );
+          if (spotRes.ok) {
+            const json = (await spotRes.json()) as {
+              code: string;
+              data?: { asks?: [string, string][]; bids?: [string, string][]; ts?: string };
+            };
+            if (json.code === '00000' && json.data && (json.data.asks?.length || json.data.bids?.length)) {
+              if (isCleanedUp) return;
+              if (!pendingUpdatesRef.current.spotOrderbookRecord && !hasSpotOrderbookRef.current) {
+                const record = {
+                  symbol: cleanSymbol,
+                  data: {
+                    asks: (json.data.asks || []).slice(0, 8),
+                    bids: (json.data.bids || []).slice(0, 8),
+                    ts: json.data.ts || String(Date.now()),
+                  },
+                };
+                pendingUpdatesRef.current.spotOrderbookRecord = record;
+                scheduleFlush();
+                return;
+              }
+            }
+          }
+        } catch {
+          // Fall through to next candidate
+        }
+      }
+
+      const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
+      for (const sym of futCandidates) {
+        try {
+          const futRes = await fetch(
+            `https://api.bitget.com/api/v2/mix/market/orderbook?symbol=${sym}&productType=USDT-FUTURES&type=step0&limit=15`,
+            { signal: AbortSignal.timeout(4000) }
+          );
+          if (futRes.ok) {
+            const json = (await futRes.json()) as {
+              code: string;
+              data?: { asks?: [string, string][]; bids?: [string, string][]; ts?: string };
+            };
+            if (json.code === '00000' && json.data && (json.data.asks?.length || json.data.bids?.length)) {
+              if (isCleanedUp) return;
+              if (!pendingUpdatesRef.current.futuresOrderbookRecord && !hasFuturesOrderbookRef.current) {
+                const record = {
+                  symbol: cleanSymbol,
+                  data: {
+                    asks: (json.data.asks || []).slice(0, 8),
+                    bids: (json.data.bids || []).slice(0, 8),
+                    ts: json.data.ts || String(Date.now()),
+                  },
+                };
+                pendingUpdatesRef.current.futuresOrderbookRecord = record;
+                scheduleFlush();
+                return;
+              }
+            }
+          }
+        } catch {
+          // Handled silently
+        }
+      }
+    };
+
+    seedInitialCandles();
+    seedInitialOrderbook();
+
     const ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
@@ -179,41 +330,28 @@ export function useBitgetWebSocket({
         }
       }, PING_INTERVAL_MS);
 
-      // Channel subscriptions: Subscribe to both SPOT and USDT-FUTURES channels
+      // Channel subscriptions: Subscribe to both SPOT and USDT-FUTURES channels.
+      // Notice: For tokenized equities (e.g. TSLA <-> RTSLA), multiplex both Spot rToken
+      // and Futures perpetual so traders get dual-market live visibility.
+      const spotIds = Array.from(new Set([cleanSymbol, targetSpotInstId]));
+      const futIds = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
+
+      const spotArgs = spotIds.flatMap((instId) => [
+        { instType: 'SPOT' as const, channel: 'ticker' as const, instId },
+        { instType: 'SPOT' as const, channel: 'books' as const, instId },
+        { instType: 'SPOT' as const, channel: 'books15' as const, instId },
+        { instType: 'SPOT' as const, channel: 'candle1m' as const, instId },
+      ]);
+
+      const futArgs = futIds.flatMap((instId) => [
+        { instType: 'USDT-FUTURES' as const, channel: 'ticker' as const, instId },
+        { instType: 'USDT-FUTURES' as const, channel: 'books15' as const, instId },
+        { instType: 'USDT-FUTURES' as const, channel: 'candle1m' as const, instId },
+      ]);
+
       const payload = {
         op: 'subscribe',
-        args: [
-          {
-            instType: 'SPOT' as const,
-            channel: 'ticker',
-            instId: cleanSymbol,
-          },
-          {
-            instType: 'SPOT' as const,
-            channel: 'books15',
-            instId: cleanSymbol,
-          },
-          {
-            instType: 'SPOT' as const,
-            channel: 'candle1m',
-            instId: cleanSymbol,
-          },
-          {
-            instType: 'USDT-FUTURES' as const,
-            channel: 'ticker',
-            instId: cleanSymbol,
-          },
-          {
-            instType: 'USDT-FUTURES' as const,
-            channel: 'books15',
-            instId: cleanSymbol,
-          },
-          {
-            instType: 'USDT-FUTURES' as const,
-            channel: 'candle1m',
-            instId: cleanSymbol,
-          },
-        ],
+        args: [...spotArgs, ...futArgs],
       };
       ws.send(JSON.stringify(payload));
     };
@@ -231,38 +369,20 @@ export function useBitgetWebSocket({
         }
 
         if (parsed.data && parsed.data.length > 0 && parsed.arg) {
-          const { channel, instType: msgInstType } = parsed.arg;
+          const { channel, instType: msgInstType, instId: msgInstId } = parsed.arg;
 
           if (channel === 'ticker') {
             const tickerData = parsed.data[0] as BitgetWsTickerData;
             const currentPrice = parseFloat(tickerData.lastPr);
 
             if (msgInstType === 'SPOT') {
-              hasSpotRef.current = true;
-              pendingUpdatesRef.current.spotTicker = tickerData;
+              if (msgInstId === cleanSymbol || msgInstId === targetSpotInstId) {
+                hasSpotRef.current = true;
+                pendingUpdatesRef.current.spotTicker = tickerData;
 
-              if (!isNaN(currentPrice)) {
-                if (prevSpotPriceRef.current !== null && currentPrice !== prevSpotPriceRef.current) {
-                  const dir: TickDirection = currentPrice > prevSpotPriceRef.current ? 'up' : 'down';
-                  pendingUpdatesRef.current.tickDirection = dir;
-
-                  if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
-                  tickTimerRef.current = setTimeout(() => {
-                    if (!isCleanedUp) {
-                      setTickDirection('neutral');
-                    }
-                  }, 600);
-                }
-                prevSpotPriceRef.current = currentPrice;
-              }
-            } else if (msgInstType === 'USDT-FUTURES') {
-              pendingUpdatesRef.current.futuresTicker = tickerData;
-
-              if (!isNaN(currentPrice)) {
-                // Only drive hero tick direction from futures if this instrument has no spot feed
-                if (!hasSpotRef.current) {
-                  if (prevFuturesPriceRef.current !== null && currentPrice !== prevFuturesPriceRef.current) {
-                    const dir: TickDirection = currentPrice > prevFuturesPriceRef.current ? 'up' : 'down';
+                if (!isNaN(currentPrice)) {
+                  if (prevSpotPriceRef.current !== null && currentPrice !== prevSpotPriceRef.current) {
+                    const dir: TickDirection = currentPrice > prevSpotPriceRef.current ? 'up' : 'down';
                     pendingUpdatesRef.current.tickDirection = dir;
 
                     if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
@@ -272,8 +392,30 @@ export function useBitgetWebSocket({
                       }
                     }, 600);
                   }
+                  prevSpotPriceRef.current = currentPrice;
                 }
-                prevFuturesPriceRef.current = currentPrice;
+              }
+            } else if (msgInstType === 'USDT-FUTURES') {
+              if (msgInstId === cleanSymbol || msgInstId === targetFuturesInstId) {
+                pendingUpdatesRef.current.futuresTicker = tickerData;
+
+                if (!isNaN(currentPrice)) {
+                  // Only drive hero tick direction from futures if this instrument has no spot feed
+                  if (!hasSpotRef.current) {
+                    if (prevFuturesPriceRef.current !== null && currentPrice !== prevFuturesPriceRef.current) {
+                      const dir: TickDirection = currentPrice > prevFuturesPriceRef.current ? 'up' : 'down';
+                      pendingUpdatesRef.current.tickDirection = dir;
+
+                      if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
+                      tickTimerRef.current = setTimeout(() => {
+                        if (!isCleanedUp) {
+                          setTickDirection('neutral');
+                        }
+                      }, 600);
+                    }
+                  }
+                  prevFuturesPriceRef.current = currentPrice;
+                }
               }
             }
             scheduleFlush();
@@ -289,14 +431,26 @@ export function useBitgetWebSocket({
             };
 
             if (msgInstType === 'SPOT') {
-              pendingUpdatesRef.current.spotOrderbookRecord = record;
+              if (msgInstId === cleanSymbol || msgInstId === targetSpotInstId) {
+                hasSpotOrderbookRef.current = true;
+                pendingUpdatesRef.current.spotOrderbookRecord = record;
+                scheduleFlush();
+              }
             } else {
-              pendingUpdatesRef.current.futuresOrderbookRecord = record;
+              if (msgInstId === cleanSymbol || msgInstId === targetFuturesInstId) {
+                hasFuturesOrderbookRef.current = true;
+                pendingUpdatesRef.current.futuresOrderbookRecord = record;
+                scheduleFlush();
+              }
             }
-            scheduleFlush();
           } else if (channel === 'candle1m') {
-            const rawCandles = parsed.data as string[][];
             const isSpot = msgInstType === 'SPOT';
+            const isMatch = isSpot
+              ? (msgInstId === cleanSymbol || msgInstId === targetSpotInstId)
+              : (msgInstId === cleanSymbol || msgInstId === targetFuturesInstId);
+
+            if (!isMatch) return;
+            const rawCandles = parsed.data as string[][];
             const candleRef = isSpot ? spotCandlesRef : futuresCandlesRef;
 
             if (parsed.action === 'snapshot') {
@@ -393,7 +547,7 @@ export function useBitgetWebSocket({
       setTickDirection('neutral');
       ws.close();
     };
-  }, [cleanSymbol, enabled, reconnectTrigger]);
+  }, [cleanSymbol, targetSpotInstId, targetFuturesInstId, enabled, reconnectTrigger]);
 
   return {
     ticker: effectiveTicker,

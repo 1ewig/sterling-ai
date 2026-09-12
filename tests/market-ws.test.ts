@@ -276,5 +276,148 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
     expect(parseFloat(streamData.ticker.lastPr)).toBeGreaterThan(0);
     expect(streamData.books.bids.length).toBeGreaterThan(0);
     expect(streamData.books.asks.length).toBeGreaterThan(0);
-  });
+  }, 12000);
+
+  test('Public WebSocket streams live SPOT ticker & order book (books) for rToken (RTSLAUSDT)', async () => {
+    const streamData = await new Promise<{
+      ticker: BitgetWsTickerData;
+      books: BitgetWsBookData;
+    }>((resolve, reject) => {
+      const ws = new WebSocket(WS_URL);
+      let tickerResult: BitgetWsTickerData | null = null;
+      let bookResult: BitgetWsBookData | null = null;
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('rToken WebSocket test timed out after 7000ms'));
+      }, 7000);
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: [
+              {
+                instType: 'SPOT',
+                channel: 'ticker',
+                instId: 'RTSLAUSDT',
+              },
+              {
+                instType: 'SPOT',
+                channel: 'books',
+                instId: 'RTSLAUSDT',
+              },
+            ],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data?.toString() || '';
+        if (raw === 'pong') return;
+
+        try {
+          const parsed = JSON.parse(raw) as BitgetWsMessage<any>;
+          if (parsed.data && parsed.data.length > 0) {
+            if (parsed.arg?.channel === 'ticker') {
+              tickerResult = parsed.data[0];
+            } else if (parsed.arg?.channel === 'books') {
+              bookResult = parsed.data[0];
+            }
+
+            if (tickerResult && bookResult) {
+              clearTimeout(timeout);
+              ws.close();
+              resolve({ ticker: tickerResult, books: bookResult });
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        ws.close();
+        reject(err);
+      };
+    });
+
+    expect(streamData.ticker.instId).toBe('RTSLAUSDT');
+    expect(parseFloat(streamData.ticker.lastPr)).toBeGreaterThan(0);
+    expect(streamData.books.bids.length).toBeGreaterThan(0);
+    expect(streamData.books.asks.length).toBeGreaterThan(0);
+  }, 12000);
+
+  test('Public WebSocket multiplexes SPOT rToken (RTSLAUSDT) and FUTURES (TSLAUSDT) concurrently', async () => {
+    const streamData = await new Promise<{
+      spotPrice: number;
+      spotBids: number;
+      fundingRate: string;
+      markPrice: number;
+    }>((resolve, reject) => {
+      const ws = new WebSocket(WS_URL);
+      let spotPrice: number | null = null;
+      let spotBids: number | null = null;
+      let fundingRate: string | null = null;
+      let markPrice: number | null = null;
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Multiplexed equity WebSocket test timed out after 7000ms'));
+      }, 7000);
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: [
+              { instType: 'SPOT', channel: 'ticker', instId: 'RTSLAUSDT' },
+              { instType: 'SPOT', channel: 'books', instId: 'RTSLAUSDT' },
+              { instType: 'USDT-FUTURES', channel: 'ticker', instId: 'TSLAUSDT' },
+            ],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data?.toString() || '';
+        if (raw === 'pong') return;
+
+        try {
+          const parsed = JSON.parse(raw) as BitgetWsMessage<any>;
+          if (parsed.data && parsed.data.length > 0) {
+            if (parsed.arg?.instType === 'SPOT' && parsed.arg?.channel === 'ticker') {
+              spotPrice = parseFloat(parsed.data[0].lastPr);
+            } else if (parsed.arg?.instType === 'SPOT' && parsed.arg?.channel === 'books') {
+              spotBids = parsed.data[0].bids?.length || 0;
+            } else if (parsed.arg?.instType === 'USDT-FUTURES' && parsed.arg?.channel === 'ticker') {
+              fundingRate = parsed.data[0].fundingRate;
+              markPrice = parseFloat(parsed.data[0].markPrice);
+            }
+
+            if (spotPrice !== null && spotBids !== null && fundingRate !== null && markPrice !== null) {
+              clearTimeout(timeout);
+              ws.close();
+              resolve({ spotPrice, spotBids, fundingRate, markPrice });
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        ws.close();
+        reject(err);
+      };
+    });
+
+    expect(streamData.spotPrice).toBeGreaterThan(0);
+    expect(streamData.spotBids).toBeGreaterThan(0);
+    expect(streamData.markPrice).toBeGreaterThan(0);
+    expect(typeof streamData.fundingRate).toBe('string');
+  }, 12000);
 });
+
