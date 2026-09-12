@@ -162,7 +162,7 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
             args: [
               {
                 instType: 'SPOT',
-                channel: 'books',
+                channel: 'books5',
                 instId: 'BTCUSDT',
               },
             ],
@@ -176,7 +176,7 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
 
         try {
           const parsed = JSON.parse(raw) as BitgetWsMessage<BitgetWsBookData>;
-          if (parsed.data && parsed.data.length > 0 && parsed.arg?.channel === 'books') {
+          if (parsed.data && parsed.data.length > 0 && (parsed.arg?.channel === 'books5' || parsed.arg?.channel === 'books')) {
             clearTimeout(timeout);
             ws.close();
             resolve(parsed.data[0]);

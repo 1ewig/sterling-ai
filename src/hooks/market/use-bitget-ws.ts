@@ -102,7 +102,7 @@ export function useBitgetWebSocket({
             },
             {
               instType,
-              channel: 'books',
+              channel: 'books5',
               instId: cleanSymbol,
             },
           ],
@@ -146,28 +146,15 @@ export function useBitgetWebSocket({
                 }
                 prevPriceRef.current = currentPrice;
               }
-            } else if (channel === 'books') {
+            } else if (channel === 'books5' || channel === 'books') {
               const bookData = parsed.data[0] as BitgetWsBookData;
-              setOrderbookRecord((prev) => {
-                const currentData = prev?.symbol === cleanSymbol ? prev.data : null;
-                if (parsed.action === 'snapshot' || !currentData) {
-                  return {
-                    symbol: cleanSymbol,
-                    data: {
-                      asks: (bookData.asks || []).slice(0, 5),
-                      bids: (bookData.bids || []).slice(0, 5),
-                      ts: bookData.ts,
-                    },
-                  };
-                }
-                return {
-                  symbol: cleanSymbol,
-                  data: {
-                    asks: (bookData.asks && bookData.asks.length > 0 ? bookData.asks : currentData.asks).slice(0, 5),
-                    bids: (bookData.bids && bookData.bids.length > 0 ? bookData.bids : currentData.bids).slice(0, 5),
-                    ts: bookData.ts || currentData.ts,
-                  },
-                };
+              setOrderbookRecord({
+                symbol: cleanSymbol,
+                data: {
+                  asks: (bookData.asks || []).slice(0, 5),
+                  bids: (bookData.bids || []).slice(0, 5),
+                  ts: bookData.ts,
+                },
               });
             }
           }
