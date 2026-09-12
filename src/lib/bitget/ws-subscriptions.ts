@@ -1,15 +1,16 @@
 import { isRTokenSymbol } from './formatters';
 
 export interface BitgetWsArg {
-  instType: 'SPOT' | 'USDT-FUTURES';
-  channel: 'ticker' | 'books' | 'books15' | 'candle1m';
-  instId: string;
+  instType: 'spot' | 'usdt-futures' | 'SPOT' | 'USDT-FUTURES';
+  topic?: 'ticker' | 'books' | 'books15' | 'candle1m';
+  channel?: 'ticker' | 'books' | 'books15' | 'candle1m';
+  symbol?: string;
+  instId?: string;
 }
 
 /**
- * Builds clean, targeted WebSocket subscription payloads for Bitget v2 public channels.
- * Prevents phantom symbol cross-multiplexing and ensures rTokens subscribe to 'books'
- * while standard spot and perpetuals subscribe to 'books15'.
+ * Builds clean, targeted WebSocket subscription payloads for Bitget V3 UTA public topics.
+ * Prevents phantom symbol cross-multiplexing and routes spot & perpetual streams.
  */
 export function buildWsSubscriptions(
   cleanSymbol: string,
@@ -20,22 +21,18 @@ export function buildWsSubscriptions(
   const spotIds = Array.from(new Set(isEquity ? [cleanSymbol, targetSpotInstId] : [cleanSymbol]));
   const futIds = Array.from(new Set(isEquity ? [cleanSymbol, targetFuturesInstId] : [cleanSymbol]));
 
-  const spotArgs: BitgetWsArg[] = spotIds.flatMap((instId) => {
-    const isRToken = instId.startsWith('R');
-    return [
-      { instType: 'SPOT', channel: 'ticker', instId },
-      isRToken
-        ? { instType: 'SPOT', channel: 'books', instId }
-        : { instType: 'SPOT', channel: 'books15', instId },
-      { instType: 'SPOT', channel: 'candle1m', instId },
-    ];
-  });
+  const spotArgs: BitgetWsArg[] = spotIds.flatMap((symbol) => [
+    { instType: 'spot', topic: 'ticker', symbol, channel: 'ticker', instId: symbol },
+    { instType: 'spot', topic: 'books', symbol, channel: 'books', instId: symbol },
+    { instType: 'spot', topic: 'candle1m', symbol, channel: 'candle1m', instId: symbol },
+  ]);
 
-  const futArgs: BitgetWsArg[] = futIds.flatMap((instId) => [
-    { instType: 'USDT-FUTURES', channel: 'ticker', instId },
-    { instType: 'USDT-FUTURES', channel: 'books15', instId },
-    { instType: 'USDT-FUTURES', channel: 'candle1m', instId },
+  const futArgs: BitgetWsArg[] = futIds.flatMap((symbol) => [
+    { instType: 'usdt-futures', topic: 'ticker', symbol, channel: 'ticker', instId: symbol },
+    { instType: 'usdt-futures', topic: 'books', symbol, channel: 'books', instId: symbol },
+    { instType: 'usdt-futures', topic: 'candle1m', symbol, channel: 'candle1m', instId: symbol },
   ]);
 
   return [...spotArgs, ...futArgs];
 }
+

@@ -37,14 +37,14 @@ export interface MarketStreamState extends UseBitgetWebSocketReturn {
   isConnecting: boolean;
 }
 
-const WS_URL = 'wss://ws.bitget.com/v2/ws/public';
+const WS_URL = 'wss://ws.bitget.com/v3/ws/public';
 const PING_INTERVAL_MS = 20000;
 const RECONNECT_BASE_DELAY_MS = 1500;
 const RECONNECT_MAX_DELAY_MS = 10000;
 
 /**
- * High-performance browser WebSocket hook for Bitget v2 public market streams.
- * Subscribes to SPOT and USDT-FUTURES ticker, depth books, and 1m candles.
+ * High-performance browser WebSocket hook for Bitget V3 UTA public market streams.
+ * Subscribes to spot and usdt-futures ticker, depth books, and 1m candles.
  * Seamlessly adapts when an instrument is Spot-only, Futures-only, or Dual-market.
  */
 export function useBitgetWebSocket({
@@ -104,11 +104,11 @@ export function useBitgetWebSocket({
     : 'connecting';
 
   const activeSpotTicker =
-    spotTicker && (spotTicker.instId === cleanSymbol || spotTicker.instId === targetSpotInstId)
+    spotTicker && (spotTicker.instId === cleanSymbol || spotTicker.symbol === cleanSymbol || spotTicker.instId === targetSpotInstId || spotTicker.symbol === targetSpotInstId)
       ? spotTicker
       : null;
   const activeFuturesTicker =
-    futuresTicker && (futuresTicker.instId === cleanSymbol || futuresTicker.instId === targetFuturesInstId)
+    futuresTicker && (futuresTicker.instId === cleanSymbol || futuresTicker.symbol === cleanSymbol || futuresTicker.instId === targetFuturesInstId || futuresTicker.symbol === targetFuturesInstId)
       ? futuresTicker
       : null;
 
@@ -140,9 +140,11 @@ export function useBitgetWebSocket({
       return;
     }
 
-    let isCleanedUp = false;
+    let ws: WebSocket | null = null;
     let pingTimer: ReturnType<typeof setInterval> | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let isCleanedUp = false;
+    let isMounted = true;
 
     prevSpotPriceRef.current = null;
     prevFuturesPriceRef.current = null;
@@ -175,7 +177,7 @@ export function useBitgetWebSocket({
 
     // Cold-start REST seeding
     seedCandlesSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId).then((candles) => {
-      if (isCleanedUp || candles.length === 0) return;
+      if (!isMounted || candles.length === 0) return;
       if (spotCandlesRef.current.length === 0 && futuresCandlesRef.current.length === 0) {
         spotCandlesRef.current = candles;
         pendingUpdatesRef.current.spotCandles = { symbol: cleanSymbol, data: candles };
@@ -184,7 +186,7 @@ export function useBitgetWebSocket({
     });
 
     seedOrderbookSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId).then((book) => {
-      if (isCleanedUp || !book) return;
+      if (!isMounted || !book) return;
       if (!spotL2BookRef.current.hasData()) {
         const topLevels = spotL2BookRef.current.applySnapshot(book, true);
         pendingUpdatesRef.current.spotBook = {
@@ -195,7 +197,12 @@ export function useBitgetWebSocket({
       }
     });
 
-    const ws = new WebSocket(WS_URL);
+    try {
+      ws = new WebSocket(WS_URL);
+    } catch {
+      setHasError(true);
+      return;
+    }
 
     ws.onopen = () => {
       if (isCleanedUp) return;
@@ -204,7 +211,7 @@ export function useBitgetWebSocket({
       retryCountRef.current = 0;
 
       pingTimer = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send('ping');
+        if (ws?.readyState === WebSocket.OPEN) ws.send('ping');
       }, PING_INTERVAL_MS);
 
       const args = buildWsSubscriptions(cleanSymbol, targetSpotInstId, targetFuturesInstId);
@@ -222,7 +229,10 @@ export function useBitgetWebSocket({
           return;
         }
 
-        const { channel, instType: msgInstType, instId: msgInstId } = parsed.arg;
+        const topic = parsed.arg.topic || parsed.arg.channel;
+        const msgInstType = (parsed.arg.instType || '').toUpperCase();
+        const msgInstId = parsed.arg.symbol || parsed.arg.instId || '';
+
         const isSpot = msgInstType === 'SPOT';
         const isMatch = isSpot
           ? msgInstId === cleanSymbol || msgInstId === targetSpotInstId
@@ -231,15 +241,30 @@ export function useBitgetWebSocket({
         if (!isMatch) return;
 
         // 1. Ticker Message
-        if (channel === 'ticker') {
-          const tickerData = parsed.data[0] as BitgetWsTickerData;
-          const currentPrice = parseFloat(tickerData.lastPr);
+        if (topic === 'ticker') {
+          const rawTicker = parsed.data[0] as BitgetWsTickerData;
+          const normalizedTicker: BitgetWsTickerData = {
+            ...rawTicker,
+            instId: rawTicker.symbol || rawTicker.instId || msgInstId,
+            symbol: rawTicker.symbol || rawTicker.instId || msgInstId,
+            lastPr: rawTicker.lastPrice || rawTicker.lastPr || '0',
+            high24h: rawTicker.highPrice24h || rawTicker.high24h || '0',
+            low24h: rawTicker.lowPrice24h || rawTicker.low24h || '0',
+            change24h: rawTicker.price24hPcnt || rawTicker.change24h || '0',
+            quoteVolume: rawTicker.turnover24h || rawTicker.quoteVolume || '0',
+            baseVolume: rawTicker.volume24h || rawTicker.baseVolume || '0',
+            fundingRate: rawTicker.fundingRate,
+            markPrice: rawTicker.markPrice,
+            openInterest: rawTicker.openInterest || rawTicker.holdingAmount,
+          };
+
+          const currentPrice = parseFloat(normalizedTicker.lastPr || '0');
 
           if (isSpot) {
             hasSpotRef.current = true;
-            pendingUpdatesRef.current.spotTicker = tickerData;
+            pendingUpdatesRef.current.spotTicker = normalizedTicker;
           } else {
-            pendingUpdatesRef.current.futuresTicker = tickerData;
+            pendingUpdatesRef.current.futuresTicker = normalizedTicker;
           }
 
           // Evaluate tick direction
@@ -260,23 +285,29 @@ export function useBitgetWebSocket({
         }
 
         // 2. Order Book Depth Message
-        else if (channel === 'books15' || channel === 'books5' || channel === 'books') {
-          const bookData = parsed.data[0] as BitgetWsBookData;
-          if (!bookData) return;
+        else if (topic === 'books15' || topic === 'books5' || topic === 'books') {
+          const rawBook = parsed.data[0] as BitgetWsBookData;
+          if (!rawBook) return;
+
+          const normalizedBook: BitgetWsBookData = {
+            asks: rawBook.a || rawBook.asks || [],
+            bids: rawBook.b || rawBook.bids || [],
+            ts: rawBook.ts,
+          };
 
           const l2Book = isSpot ? spotL2BookRef.current : futuresL2BookRef.current;
-          const action = parsed.action || (channel === 'books15' || channel === 'books5' ? 'snapshot' : 'update');
-          const isPreSorted = channel === 'books15' || channel === 'books5';
+          const action = parsed.action || (topic === 'books15' || topic === 'books5' ? 'snapshot' : 'update');
+          const isPreSorted = topic === 'books15' || topic === 'books5';
 
           const topLevels =
             action === 'snapshot'
-              ? l2Book.applySnapshot(bookData, isPreSorted)
-              : l2Book.applyUpdate(bookData);
+              ? l2Book.applySnapshot(normalizedBook, isPreSorted)
+              : l2Book.applyUpdate(normalizedBook);
 
           if (topLevels && (topLevels.asks.length > 0 || topLevels.bids.length > 0)) {
             const record = {
               symbol: cleanSymbol,
-              data: { ...topLevels, ts: bookData.ts },
+              data: { ...topLevels, ts: normalizedBook.ts },
             };
             if (isSpot) {
               pendingUpdatesRef.current.spotBook = record;
@@ -288,7 +319,7 @@ export function useBitgetWebSocket({
         }
 
         // 3. 1-Minute Candle Message
-        else if (channel === 'candle1m') {
+        else if (topic === 'candle1m') {
           const rawCandles = parsed.data as string[][];
           const candleRef = isSpot ? spotCandlesRef : futuresCandlesRef;
 
