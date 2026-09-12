@@ -4,6 +4,8 @@ import { technicalAnalysisTool } from './technical-analysis';
 import { macroAnalystTool } from './macro-analyst';
 import { sentimentAnalystTool } from './sentiment-analyst';
 import { marketIntelTool } from './market-intel';
+import { stageTradeOrderTool } from './trade-order';
+import { accountOverviewTool } from './account-positions';
 
 /**
  * Registry of all agent tools.
@@ -15,6 +17,8 @@ export const agentTools = {
   macro_analyst: macroAnalystTool,
   sentiment_analyst: sentimentAnalystTool,
   market_intel: marketIntelTool,
+  stage_trade_order: stageTradeOrderTool,
+  get_account_overview: accountOverviewTool,
 };
 
 export type AgentTools = typeof agentTools;
@@ -33,5 +37,8 @@ export {
   macroAnalystTool,
   sentimentAnalystTool,
   marketIntelTool,
+  stageTradeOrderTool,
+  accountOverviewTool,
 };
+
 

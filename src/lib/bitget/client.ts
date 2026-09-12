@@ -6,4 +6,6 @@
 export * from './symbols';
 export * from './rest';
 export * from './analysts';
+export * from './trade';
 export { callMcpTool } from '@/lib/datahub';
+

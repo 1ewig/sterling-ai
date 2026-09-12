@@ -5,6 +5,8 @@ import {
   Gauge,
   Layers,
   Sparkles,
+  ShieldCheck,
+  Wallet,
 } from 'lucide-react';
 import type { ToolDisplayInfo } from './types';
 
@@ -19,6 +21,7 @@ export function getToolDisplayInfo(
   const query = typeof toolArgs?.query === 'string' ? toolArgs.query : undefined;
   const symbol = typeof toolArgs?.symbol === 'string' ? toolArgs.symbol.toUpperCase() : undefined;
   const focus = typeof toolArgs?.focus === 'string' ? toolArgs.focus : undefined;
+  const side = typeof toolArgs?.side === 'string' ? toolArgs.side.toUpperCase() : undefined;
 
   switch (normalizedName) {
     case 'web_search':
@@ -63,6 +66,19 @@ export function getToolDisplayInfo(
         icon: Layers,
       };
 
+    case 'stage_trade_order':
+      return {
+        title: symbol ? `Staging ${side || ''} Trade Ticket for ${symbol}` : 'Staging Trade Order Ticket',
+        icon: ShieldCheck,
+        symbol,
+      };
+
+    case 'get_account_overview':
+      return {
+        title: 'Bitget v3 Account Overview & Positions',
+        icon: Wallet,
+      };
+
     default:
       return {
         title: normalizedName ? normalizedName.replace(/_/g, ' ') : 'tool',
@@ -71,3 +87,4 @@ export function getToolDisplayInfo(
       };
   }
 }
+

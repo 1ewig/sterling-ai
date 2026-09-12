@@ -1,0 +1,94 @@
+import { tool } from 'ai';
+import { stageTradeOrderParamsSchema } from '@/lib/bitget/types';
+import { fetchBitgetTicker, normalizeSymbol } from '@/lib/bitget/client';
+
+export const stageTradeOrderTool = tool({
+  description:
+    'Stage an institutional trade order ticket for Bitget v3 Unified Trading Account (Spot, USDT-Futures, or tokenized US equity rTokens like RTSLA). Calculates notional value, required margin, estimated liquidation, and risk-reward ratio before user confirmation.',
+  inputSchema: stageTradeOrderParamsSchema,
+  execute: async ({
+    symbol,
+    category,
+    side,
+    orderType,
+    size,
+    price,
+    tradeSide,
+    leverage = 5,
+    stopLossPrice,
+    takeProfitPrice,
+    rationale,
+  }) => {
+    const sym = normalizeSymbol(symbol);
+    const isFutures = category !== 'spot';
+
+    try {
+      // 1. Fetch live market price for sanity and margin checks
+      let livePrice = price || 0;
+      try {
+        const ticker = await fetchBitgetTicker(sym, isFutures);
+        livePrice = parseFloat(ticker.lastPr) || livePrice;
+      } catch {
+        // Fallback to limit price if ticker lookup fails
+      }
+
+      const executionPrice = orderType === 'market' ? livePrice : (price || livePrice);
+      const notionalUsdt = size * executionPrice;
+      const effectiveLeverage = isFutures ? Math.max(1, leverage) : 1;
+      const initialMarginUsdt = notionalUsdt / effectiveLeverage;
+
+      // 2. Compute approximate liquidation baseline for futures
+      let estimatedLiquidation: number | undefined;
+      if (isFutures && effectiveLeverage > 1) {
+        const maintenanceMarginRate = 0.005; // 0.5% base MMR
+        if (side === 'buy') {
+          estimatedLiquidation = executionPrice * (1 - 1 / effectiveLeverage + maintenanceMarginRate);
+        } else {
+          estimatedLiquidation = executionPrice * (1 + 1 / effectiveLeverage - maintenanceMarginRate);
+        }
+      }
+
+      // 3. Compute Risk/Reward if TP & SL provided
+      let riskRewardRatio: string | undefined;
+      if (stopLossPrice && takeProfitPrice) {
+        const risk = Math.abs(executionPrice - stopLossPrice);
+        const reward = Math.abs(takeProfitPrice - executionPrice);
+        if (risk > 0) {
+          riskRewardRatio = `1:${(reward / risk).toFixed(2)}`;
+        }
+      }
+
+      const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
+      return {
+        success: true,
+        ticketId,
+        symbol: sym,
+        category,
+        side,
+        orderType,
+        size,
+        price: executionPrice,
+        tradeSide,
+        leverage: isFutures ? effectiveLeverage : 1,
+        notionalUsdt: parseFloat(notionalUsdt.toFixed(2)),
+        initialMarginUsdt: parseFloat(initialMarginUsdt.toFixed(2)),
+        estimatedLiquidation: estimatedLiquidation ? parseFloat(estimatedLiquidation.toFixed(2)) : undefined,
+        stopLossPrice,
+        takeProfitPrice,
+        riskRewardRatio,
+        rationale: rationale || `Algorithmic ${side.toUpperCase()} setup on ${sym} (${category})`,
+        status: 'staged_pending_user_confirmation',
+        actionableGuidance:
+          `Trade Ticket ${ticketId} staged successfully. Review the parameters and confirm to submit the order to Bitget v3.`,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : `Failed to stage trade order for ${symbol}.`,
+        requestedSymbol: symbol,
+        normalizedSymbol: sym,
+      };
+    }
+  },
+});

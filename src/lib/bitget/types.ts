@@ -270,3 +270,94 @@ export const marketIntelParamsSchema = z.object({
   scope: z.enum(['all', 'defi_tvl', 'dex_trending', 'network_health', 'stablecoins']).default('all').describe('Market intelligence dimension to query'),
 });
 
+/**
+ * Bitget v3 Unified Trading Account (UTA) Types
+ */
+export interface BitgetV3OrderParams {
+  symbol: string;
+  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures';
+  side: 'buy' | 'sell';
+  orderType: 'limit' | 'market';
+  size: string;
+  price?: string;
+  tradeSide?: 'open' | 'close';
+  marginMode?: 'crossed' | 'isolated';
+  marginCoin?: string;
+  timeInForce?: 'gtc' | 'ioc' | 'fok' | 'post_only';
+  clientOid?: string;
+  presetStopLossPrice?: string;
+  presetTakeProfitPrice?: string;
+  slOrderType?: 'market';
+  tpOrderType?: 'market';
+}
+
+export interface BitgetV3ModifyParams {
+  symbol: string;
+  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures';
+  orderId?: string;
+  clientOid?: string;
+  newPrice?: string;
+  newSize?: string;
+}
+
+export interface BitgetV3CancelParams {
+  symbol: string;
+  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures';
+  orderId?: string;
+  clientOid?: string;
+}
+
+export interface BitgetV3OrderResponse {
+  orderId: string;
+  clientOid?: string;
+  symbol: string;
+  category: string;
+  status?: string;
+}
+
+export interface BitgetV3Position {
+  symbol: string;
+  marginCoin: string;
+  holdSide: 'long' | 'short' | 'net';
+  total: string;
+  available: string;
+  locked: string;
+  margin: string;
+  leverage: number;
+  openPriceAvg: string;
+  markPrice: string;
+  liquidationPrice: string;
+  unrealizedPL: string;
+  marginRate: string;
+  marginMode: 'crossed' | 'isolated';
+  cTime: string;
+}
+
+export interface BitgetAccountOverview {
+  totalEquityUsdt: number;
+  availableEquityUsdt: number;
+  unrealizedPnlUsdt: number;
+  marginRatioPercent: number;
+  accountMode: 'basic' | 'advanced' | 'isolated';
+  positions: BitgetV3Position[];
+}
+
+export const stageTradeOrderParamsSchema = z.object({
+  symbol: z.string().describe('Trading pair symbol (e.g. BTCUSDT, ETHUSDT, RTSLAUSDT, SOLUSDT)'),
+  category: z.enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures']).default('usdt-futures').describe('Market category'),
+  side: z.enum(['buy', 'sell']).describe('Order direction (buy = long, sell = short)'),
+  orderType: z.enum(['limit', 'market']).default('limit').describe('Order execution type'),
+  size: z.number().positive().describe('Order size / quantity in base asset units (e.g. 0.05 BTC or 2.0 TSLA)'),
+  price: z.number().positive().optional().describe('Limit price (required for limit orders)'),
+  tradeSide: z.enum(['open', 'close']).default('open').describe('Position intent: open new position or close existing'),
+  leverage: z.number().min(1).max(50).default(5).optional().describe('Leverage multiple (for futures)'),
+  stopLossPrice: z.number().positive().optional().describe('Preset Stop-Loss price level'),
+  takeProfitPrice: z.number().positive().optional().describe('Preset Take-Profit price level'),
+  rationale: z.string().optional().describe('Short trading rationale or catalyst for this setup'),
+});
+
+export const accountOverviewParamsSchema = z.object({
+  category: z.enum(['all', 'spot', 'usdt-futures']).default('all').describe('Scope of account overview to query'),
+});
+
+
