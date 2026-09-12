@@ -206,4 +206,75 @@ describe('Bitget Market WebSocket Integration & Data Contracts', () => {
     expect(parseFloat(bestAskPrice)).toBeGreaterThan(0);
     expect(parseFloat(bestAskSize)).toBeGreaterThan(0);
   });
+
+  test('Public WebSocket streams live USDT-FUTURES data for futures-only contract (RUNEUSDT)', async () => {
+    const streamData = await new Promise<{
+      ticker: BitgetWsTickerData;
+      books: BitgetWsBookData;
+    }>((resolve, reject) => {
+      const ws = new WebSocket(WS_URL);
+      let tickerResult: BitgetWsTickerData | null = null;
+      let bookResult: BitgetWsBookData | null = null;
+
+      const timeout = setTimeout(() => {
+        ws.close();
+        reject(new Error('Futures-only contract WebSocket test timed out after 7000ms'));
+      }, 7000);
+
+      ws.onopen = () => {
+        ws.send(
+          JSON.stringify({
+            op: 'subscribe',
+            args: [
+              {
+                instType: 'USDT-FUTURES',
+                channel: 'ticker',
+                instId: 'RUNEUSDT',
+              },
+              {
+                instType: 'USDT-FUTURES',
+                channel: 'books15',
+                instId: 'RUNEUSDT',
+              },
+            ],
+          })
+        );
+      };
+
+      ws.onmessage = (event) => {
+        const raw = event.data?.toString() || '';
+        if (raw === 'pong') return;
+
+        try {
+          const parsed = JSON.parse(raw) as BitgetWsMessage<any>;
+          if (parsed.data && parsed.data.length > 0) {
+            if (parsed.arg?.channel === 'ticker') {
+              tickerResult = parsed.data[0];
+            } else if (parsed.arg?.channel === 'books15') {
+              bookResult = parsed.data[0];
+            }
+
+            if (tickerResult && bookResult) {
+              clearTimeout(timeout);
+              ws.close();
+              resolve({ ticker: tickerResult, books: bookResult });
+            }
+          }
+        } catch {
+          // Ignore
+        }
+      };
+
+      ws.onerror = (err) => {
+        clearTimeout(timeout);
+        ws.close();
+        reject(err);
+      };
+    });
+
+    expect(streamData.ticker.instId).toBe('RUNEUSDT');
+    expect(parseFloat(streamData.ticker.lastPr)).toBeGreaterThan(0);
+    expect(streamData.books.bids.length).toBeGreaterThan(0);
+    expect(streamData.books.asks.length).toBeGreaterThan(0);
+  });
 });

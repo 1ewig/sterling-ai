@@ -6,6 +6,7 @@ import { normalizeSymbol } from '@/lib/bitget/client';
 
 export type WsConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 export type TickDirection = 'up' | 'down' | 'neutral';
+export type MarketType = 'spot' | 'futures' | 'both';
 
 export interface MicroCandle {
   timestamp: number;
@@ -26,6 +27,7 @@ export interface UseBitgetWebSocketReturn {
   candles: MicroCandle[];
   status: WsConnectionStatus;
   tickDirection: TickDirection;
+  marketType: MarketType;
 }
 
 const WS_URL = 'wss://ws.bitget.com/v2/ws/public';
@@ -35,17 +37,19 @@ const RECONNECT_MAX_DELAY_MS = 10000;
 
 /**
  * High-performance browser WebSocket hook for Bitget v2 public market streams.
- * Subscribes to SPOT ticker, books15 (depth), candle1m (micro trend), and USDT-FUTURES ticker (derivatives flow).
- * Uses requestAnimationFrame batching to prevent main-thread saturation and scroll lag during high-frequency tick bursts.
+ * Subscribes to SPOT and USDT-FUTURES ticker, depth books, and 1m candles.
+ * Seamlessly adapts when an instrument is Spot-only, Futures-only, or Dual-market.
  */
 export function useBitgetWebSocket({
   symbol,
   enabled = true,
 }: UseBitgetWebSocketOptions): UseBitgetWebSocketReturn {
-  const [ticker, setTicker] = useState<BitgetWsTickerData | null>(null);
+  const [spotTicker, setSpotTicker] = useState<BitgetWsTickerData | null>(null);
   const [futuresTicker, setFuturesTicker] = useState<BitgetWsTickerData | null>(null);
-  const [orderbookRecord, setOrderbookRecord] = useState<{ symbol: string; data: BitgetWsBookData } | null>(null);
-  const [candlesRecord, setCandlesRecord] = useState<{ symbol: string; data: MicroCandle[] } | null>(null);
+  const [spotOrderbookRecord, setSpotOrderbookRecord] = useState<{ symbol: string; data: BitgetWsBookData } | null>(null);
+  const [futuresOrderbookRecord, setFuturesOrderbookRecord] = useState<{ symbol: string; data: BitgetWsBookData } | null>(null);
+  const [spotCandlesRecord, setSpotCandlesRecord] = useState<{ symbol: string; data: MicroCandle[] } | null>(null);
+  const [futuresCandlesRecord, setFuturesCandlesRecord] = useState<{ symbol: string; data: MicroCandle[] } | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [tickDirection, setTickDirection] = useState<TickDirection>('neutral');
@@ -54,14 +58,17 @@ export function useBitgetWebSocket({
   const prevPriceRef = useRef<number | null>(null);
   const tickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
-  const candlesRef = useRef<MicroCandle[]>([]);
+  const spotCandlesRef = useRef<MicroCandle[]>([]);
+  const futuresCandlesRef = useRef<MicroCandle[]>([]);
 
   // RAF update batching buffer
   const pendingUpdatesRef = useRef<{
-    ticker?: BitgetWsTickerData;
+    spotTicker?: BitgetWsTickerData;
     futuresTicker?: BitgetWsTickerData;
-    orderbookRecord?: { symbol: string; data: BitgetWsBookData };
-    candlesRecord?: { symbol: string; data: MicroCandle[] };
+    spotOrderbookRecord?: { symbol: string; data: BitgetWsBookData };
+    futuresOrderbookRecord?: { symbol: string; data: BitgetWsBookData };
+    spotCandlesRecord?: { symbol: string; data: MicroCandle[] };
+    futuresCandlesRecord?: { symbol: string; data: MicroCandle[] };
     tickDirection?: TickDirection;
   }>({});
   const rafIdRef = useRef<number | null>(null);
@@ -78,10 +85,31 @@ export function useBitgetWebSocket({
     : 'connecting';
 
   // Derive active data during render
-  const activeTicker = ticker?.instId === cleanSymbol ? ticker : null;
+  const activeSpotTicker = spotTicker?.instId === cleanSymbol ? spotTicker : null;
   const activeFuturesTicker = futuresTicker?.instId === cleanSymbol ? futuresTicker : null;
-  const activeOrderbook = orderbookRecord?.symbol === cleanSymbol ? orderbookRecord.data : null;
-  const activeCandles = candlesRecord?.symbol === cleanSymbol ? candlesRecord.data : [];
+  // If spot ticker exists, use it as primary; otherwise fall back to futures ticker!
+  const effectiveTicker = activeSpotTicker || activeFuturesTicker;
+
+  const marketType: MarketType =
+    activeSpotTicker && activeFuturesTicker
+      ? 'both'
+      : activeFuturesTicker && !activeSpotTicker
+      ? 'futures'
+      : 'spot';
+
+  const activeOrderbook =
+    spotOrderbookRecord?.symbol === cleanSymbol
+      ? spotOrderbookRecord.data
+      : futuresOrderbookRecord?.symbol === cleanSymbol
+      ? futuresOrderbookRecord.data
+      : null;
+
+  const activeCandles =
+    spotCandlesRecord?.symbol === cleanSymbol && spotCandlesRecord.data.length > 0
+      ? spotCandlesRecord.data
+      : futuresCandlesRecord?.symbol === cleanSymbol
+      ? futuresCandlesRecord.data
+      : [];
 
   useEffect(() => {
     if (typeof window === 'undefined' || !enabled) {
@@ -93,23 +121,30 @@ export function useBitgetWebSocket({
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
     prevPriceRef.current = null;
-    candlesRef.current = [];
+    spotCandlesRef.current = [];
+    futuresCandlesRef.current = [];
     pendingUpdatesRef.current = {};
 
     const flushUpdates = () => {
       if (isCleanedUp) return;
       const pending = pendingUpdatesRef.current;
-      if (pending.ticker !== undefined) {
-        setTicker(pending.ticker);
+      if (pending.spotTicker !== undefined) {
+        setSpotTicker(pending.spotTicker);
       }
       if (pending.futuresTicker !== undefined) {
         setFuturesTicker(pending.futuresTicker);
       }
-      if (pending.orderbookRecord !== undefined) {
-        setOrderbookRecord(pending.orderbookRecord);
+      if (pending.spotOrderbookRecord !== undefined) {
+        setSpotOrderbookRecord(pending.spotOrderbookRecord);
       }
-      if (pending.candlesRecord !== undefined) {
-        setCandlesRecord(pending.candlesRecord);
+      if (pending.futuresOrderbookRecord !== undefined) {
+        setFuturesOrderbookRecord(pending.futuresOrderbookRecord);
+      }
+      if (pending.spotCandlesRecord !== undefined) {
+        setSpotCandlesRecord(pending.spotCandlesRecord);
+      }
+      if (pending.futuresCandlesRecord !== undefined) {
+        setFuturesCandlesRecord(pending.futuresCandlesRecord);
       }
       if (pending.tickDirection !== undefined) {
         setTickDirection(pending.tickDirection);
@@ -139,7 +174,7 @@ export function useBitgetWebSocket({
         }
       }, PING_INTERVAL_MS);
 
-      // Channel subscriptions: SPOT ticker, books15, candle1m + USDT-FUTURES ticker
+      // Channel subscriptions: Subscribe to both SPOT and USDT-FUTURES channels
       const payload = {
         op: 'subscribe',
         args: [
@@ -163,6 +198,16 @@ export function useBitgetWebSocket({
             channel: 'ticker',
             instId: cleanSymbol,
           },
+          {
+            instType: 'USDT-FUTURES' as const,
+            channel: 'books15',
+            instId: cleanSymbol,
+          },
+          {
+            instType: 'USDT-FUTURES' as const,
+            channel: 'candle1m',
+            instId: cleanSymbol,
+          },
         ],
       };
       ws.send(JSON.stringify(payload));
@@ -176,7 +221,7 @@ export function useBitgetWebSocket({
       try {
         const parsed = JSON.parse(raw) as BitgetWsMessage<BitgetWsTickerData | BitgetWsBookData | string[]>;
         if (parsed.event === 'error') {
-          console.warn('[Bitget WS] Subscription error:', parsed.msg);
+          // Normal: Exchange sends error for channels not supported by this instrument
           return;
         }
 
@@ -188,35 +233,34 @@ export function useBitgetWebSocket({
 
             if (msgInstType === 'USDT-FUTURES') {
               pendingUpdatesRef.current.futuresTicker = tickerData;
-              scheduleFlush();
             } else if (msgInstType === 'SPOT') {
-              pendingUpdatesRef.current.ticker = tickerData;
-
-              const currentPrice = parseFloat(tickerData.lastPr);
-              if (!isNaN(currentPrice)) {
-                if (prevPriceRef.current !== null) {
-                  let dir: TickDirection = 'neutral';
-                  if (currentPrice > prevPriceRef.current) {
-                    dir = 'up';
-                  } else if (currentPrice < prevPriceRef.current) {
-                    dir = 'down';
-                  }
-                  pendingUpdatesRef.current.tickDirection = dir;
-
-                  if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
-                  tickTimerRef.current = setTimeout(() => {
-                    if (!isCleanedUp) {
-                      setTickDirection('neutral');
-                    }
-                  }, 600);
-                }
-                prevPriceRef.current = currentPrice;
-              }
-              scheduleFlush();
+              pendingUpdatesRef.current.spotTicker = tickerData;
             }
+
+            const currentPrice = parseFloat(tickerData.lastPr);
+            if (!isNaN(currentPrice)) {
+              if (prevPriceRef.current !== null) {
+                let dir: TickDirection = 'neutral';
+                if (currentPrice > prevPriceRef.current) {
+                  dir = 'up';
+                } else if (currentPrice < prevPriceRef.current) {
+                  dir = 'down';
+                }
+                pendingUpdatesRef.current.tickDirection = dir;
+
+                if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
+                tickTimerRef.current = setTimeout(() => {
+                  if (!isCleanedUp) {
+                    setTickDirection('neutral');
+                  }
+                }, 600);
+              }
+              prevPriceRef.current = currentPrice;
+            }
+            scheduleFlush();
           } else if (channel === 'books15' || channel === 'books5' || channel === 'books') {
             const bookData = parsed.data[0] as BitgetWsBookData;
-            pendingUpdatesRef.current.orderbookRecord = {
+            const record = {
               symbol: cleanSymbol,
               data: {
                 asks: (bookData.asks || []).slice(0, 8),
@@ -224,9 +268,18 @@ export function useBitgetWebSocket({
                 ts: bookData.ts,
               },
             };
+
+            if (msgInstType === 'SPOT') {
+              pendingUpdatesRef.current.spotOrderbookRecord = record;
+            } else {
+              pendingUpdatesRef.current.futuresOrderbookRecord = record;
+            }
             scheduleFlush();
           } else if (channel === 'candle1m') {
             const rawCandles = parsed.data as string[][];
+            const isSpot = msgInstType === 'SPOT';
+            const candleRef = isSpot ? spotCandlesRef : futuresCandlesRef;
+
             if (parsed.action === 'snapshot') {
               const formatted: MicroCandle[] = rawCandles
                 .map((row) => ({
@@ -236,8 +289,12 @@ export function useBitgetWebSocket({
                   low: parseFloat(row[3]),
                 }))
                 .slice(-30);
-              candlesRef.current = formatted;
-              pendingUpdatesRef.current.candlesRecord = { symbol: cleanSymbol, data: formatted };
+              candleRef.current = formatted;
+              if (isSpot) {
+                pendingUpdatesRef.current.spotCandlesRecord = { symbol: cleanSymbol, data: formatted };
+              } else {
+                pendingUpdatesRef.current.futuresCandlesRecord = { symbol: cleanSymbol, data: formatted };
+              }
               scheduleFlush();
             } else if (rawCandles.length > 0) {
               const latest = rawCandles[0];
@@ -248,15 +305,19 @@ export function useBitgetWebSocket({
                 low: parseFloat(latest[3]),
               };
 
-              const updated = [...candlesRef.current];
+              const updated = [...candleRef.current];
               const lastIdx = updated.length - 1;
               if (lastIdx >= 0 && updated[lastIdx].timestamp === latestCandle.timestamp) {
                 updated[lastIdx] = latestCandle;
               } else {
                 updated.push(latestCandle);
               }
-              candlesRef.current = updated.slice(-30);
-              pendingUpdatesRef.current.candlesRecord = { symbol: cleanSymbol, data: candlesRef.current };
+              candleRef.current = updated.slice(-30);
+              if (isSpot) {
+                pendingUpdatesRef.current.spotCandlesRecord = { symbol: cleanSymbol, data: candleRef.current };
+              } else {
+                pendingUpdatesRef.current.futuresCandlesRecord = { symbol: cleanSymbol, data: candleRef.current };
+              }
               scheduleFlush();
             }
           }
@@ -306,12 +367,13 @@ export function useBitgetWebSocket({
   }, [cleanSymbol, enabled, reconnectTrigger]);
 
   return {
-    ticker: activeTicker,
+    ticker: effectiveTicker,
     futuresTicker: activeFuturesTicker,
     orderbook: activeOrderbook,
     candles: activeCandles,
     status,
     tickDirection,
+    marketType,
   };
 }
 

@@ -55,12 +55,11 @@ export function useMarketSymbols(searchTerm = ''): UseMarketSymbolsReturn {
     setIsLoading(false);
   };
 
-  // Instant in-memory client fuzzy filter
+  // Instant in-memory client fuzzy filter (returns all matching pairs without truncation)
   const filteredSymbols = useMemo(() => {
     const clean = searchTerm.trim().toUpperCase();
     if (!clean) {
-      // When empty search, show top 50 by volume
-      return allSymbols.slice(0, 50);
+      return allSymbols;
     }
 
     // Exact matches or prefix matches first, then partial contains
@@ -79,11 +78,6 @@ export function useMarketSymbols(searchTerm = ''): UseMarketSymbolsReturn {
         prefix.push(item);
       } else if (base.includes(clean) || sym.includes(clean)) {
         contains.push(item);
-      }
-
-      // Limit results to top 60 matches for rendering performance
-      if (exact.length + prefix.length + contains.length >= 60) {
-        break;
       }
     }
 

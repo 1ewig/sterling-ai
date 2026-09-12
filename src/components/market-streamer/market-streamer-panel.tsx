@@ -20,6 +20,7 @@ interface StreamerContentProps {
   tickDirection: TickDirection;
   futuresTicker: BitgetWsTickerData | null;
   orderbook: BitgetWsBookData | null;
+  marketType: 'spot' | 'futures' | 'both';
 }
 
 const StreamerContent = memo(function StreamerContent({
@@ -31,6 +32,7 @@ const StreamerContent = memo(function StreamerContent({
   tickDirection,
   futuresTicker,
   orderbook,
+  marketType,
 }: StreamerContentProps) {
   if (isConnecting) {
     return (
@@ -57,6 +59,7 @@ const StreamerContent = memo(function StreamerContent({
         candles={candles}
         tickDirection={tickDirection}
         symbol={symbol}
+        marketType={marketType}
       />
       <DerivativesMetrics futuresTicker={futuresTicker} />
       <OrderbookDepthMini orderbook={orderbook} />
@@ -97,7 +100,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
   const isMobile = useIsMobile();
 
   // Hook only runs active WebSocket connection when the panel is opened
-  const { ticker, futuresTicker, orderbook, candles, status, tickDirection } = useBitgetWebSocket({
+  const { ticker, futuresTicker, orderbook, candles, status, tickDirection, marketType } = useBitgetWebSocket({
     symbol: selectedMarketSymbol,
     enabled: isMarketPanelOpen,
   });
@@ -106,7 +109,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
     setIsMarketPanelOpen(false);
   };
 
-  const isConnecting = status !== 'connected' || !ticker;
+  const isConnecting = status !== 'connected' || (!ticker && !futuresTicker);
 
   return (
     <>
@@ -132,6 +135,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                   tickDirection={tickDirection}
                   futuresTicker={futuresTicker}
                   orderbook={orderbook}
+                  marketType={marketType}
                 />
               </div>
             </div>
@@ -174,6 +178,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
                   tickDirection={tickDirection}
                   futuresTicker={futuresTicker}
                   orderbook={orderbook}
+                  marketType={marketType}
                 />
               </div>
             </motion.aside>

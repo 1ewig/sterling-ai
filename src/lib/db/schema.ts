@@ -31,6 +31,7 @@ export interface MarketSymbolRecord {
   quoteAsset: string;
   price: number;
   volume24h: number;
+  hasSpot?: boolean;
   hasFutures: boolean;
   updatedAt: number;
 }

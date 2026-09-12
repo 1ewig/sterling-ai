@@ -10,10 +10,14 @@ interface BitgetSpotTickerRaw {
   quoteVolume?: string;
 }
 
-interface BitgetFuturesContractRaw {
+interface BitgetFuturesTickerRaw {
   symbol: string;
-  baseCoin: string;
-  quoteCoin: string;
+  lastPr: string;
+  usdtVolume?: string;
+  baseVolume?: string;
+  quoteVolume?: string;
+  high24h?: string;
+  low24h?: string;
 }
 
 export interface MarketSymbolItem {
@@ -22,11 +26,12 @@ export interface MarketSymbolItem {
   quoteAsset: string;
   price: number;
   volume24h: number;
+  hasSpot: boolean;
   hasFutures: boolean;
 }
 
 const BITGET_SPOT_TICKERS_URL = 'https://api.bitget.com/api/v2/spot/market/tickers';
-const BITGET_FUTURES_CONTRACTS_URL = 'https://api.bitget.com/api/v2/mix/market/contracts?productType=USDT-FUTURES';
+const BITGET_FUTURES_TICKERS_URL = 'https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES';
 
 export async function GET() {
   try {
@@ -35,64 +40,99 @@ export async function GET() {
         next: { revalidate: 3600 },
         signal: AbortSignal.timeout(8000),
       }),
-      fetch(BITGET_FUTURES_CONTRACTS_URL, {
+      fetch(BITGET_FUTURES_TICKERS_URL, {
         next: { revalidate: 3600 },
         signal: AbortSignal.timeout(8000),
       }),
     ]);
 
-    if (!spotRes.ok) {
+    if (!spotRes.ok && !futuresRes.ok) {
       return NextResponse.json(
-        { error: 'Failed to fetch spot symbols from upstream market' },
+        { error: 'Failed to fetch market symbols from upstream exchange' },
         { status: 502 }
       );
     }
 
-    const spotJson = (await spotRes.json()) as { code: string; data?: BitgetSpotTickerRaw[] };
-    const rawSpotTickers = spotJson.data || [];
+    const itemsMap = new Map<string, MarketSymbolItem>();
 
-    // Parse futures set for O(1) perpetual availability lookup
-    const futuresSet = new Set<string>();
+    // 1. Process Futures Tickers
+    const futuresTickerMap = new Map<string, BitgetFuturesTickerRaw>();
     if (futuresRes.ok) {
       try {
-        const futuresJson = (await futuresRes.json()) as { code: string; data?: BitgetFuturesContractRaw[] };
-        (futuresJson.data || []).forEach((c) => {
-          if (c.symbol) futuresSet.add(c.symbol.toUpperCase());
+        const futuresJson = (await futuresRes.json()) as { code: string; data?: BitgetFuturesTickerRaw[] };
+        (futuresJson.data || []).forEach((f) => {
+          if (f.symbol) {
+            futuresTickerMap.set(f.symbol.toUpperCase(), f);
+          }
         });
       } catch {
-        // Continue with spot even if futures contracts parse fails
+        // Ignore futures parse error if spot succeeds
       }
     }
 
-    // Process and normalize spot tickers into MarketSymbolItems
-    const items: MarketSymbolItem[] = [];
+    // 2. Process Spot Tickers (Marks dual-market and spot-only pairs)
+    if (spotRes.ok) {
+      try {
+        const spotJson = (await spotRes.json()) as { code: string; data?: BitgetSpotTickerRaw[] };
+        const rawSpotTickers = spotJson.data || [];
 
-    for (const item of rawSpotTickers) {
-      const sym = (item.symbol || '').toUpperCase().trim();
-      // Focus on primary liquid USDT pairs
+        for (const item of rawSpotTickers) {
+          const sym = (item.symbol || '').toUpperCase().trim();
+          if (!sym.endsWith('USDT') && !sym.endsWith('USDC')) {
+            continue;
+          }
+
+          const quoteAsset = sym.endsWith('USDC') ? 'USDC' : 'USDT';
+          const baseAsset = sym.replace(/(USDT|USDC)$/, '');
+          if (!baseAsset) continue;
+
+          const price = parseFloat(item.lastPr || '0') || 0;
+          const volume24h = parseFloat(item.usdtVolume || item.quoteVolume || '0') || 0;
+
+          itemsMap.set(sym, {
+            symbol: sym,
+            baseAsset,
+            quoteAsset,
+            price,
+            volume24h,
+            hasSpot: true,
+            hasFutures: futuresTickerMap.has(sym),
+          });
+        }
+      } catch {
+        // Ignore spot error if futures succeeds
+      }
+    }
+
+    // 3. Process Futures-Only Tickers (Pairs traded exclusively on perpetuals)
+    for (const [sym, f] of futuresTickerMap.entries()) {
       if (!sym.endsWith('USDT') && !sym.endsWith('USDC')) {
         continue;
+      }
+      if (itemsMap.has(sym)) {
+        continue; // Already processed via spot with hasFutures: true
       }
 
       const quoteAsset = sym.endsWith('USDC') ? 'USDC' : 'USDT';
       const baseAsset = sym.replace(/(USDT|USDC)$/, '');
       if (!baseAsset) continue;
 
-      const price = parseFloat(item.lastPr || '0') || 0;
-      const volume24h = parseFloat(item.usdtVolume || item.quoteVolume || '0') || 0;
+      const price = parseFloat(f.lastPr || '0') || 0;
+      const volume24h = parseFloat(f.usdtVolume || f.quoteVolume || '0') || 0;
 
-      items.push({
+      itemsMap.set(sym, {
         symbol: sym,
         baseAsset,
         quoteAsset,
         price,
         volume24h,
-        hasFutures: futuresSet.has(sym),
+        hasSpot: false,
+        hasFutures: true,
       });
     }
 
     // Sort descending by 24h USD volume so top liquid pairs appear first
-    items.sort((a, b) => b.volume24h - a.volume24h);
+    const items = Array.from(itemsMap.values()).sort((a, b) => b.volume24h - a.volume24h);
 
     return NextResponse.json(
       {

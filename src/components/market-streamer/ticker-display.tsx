@@ -14,6 +14,7 @@ interface TickerDisplayProps {
   candles: MicroCandle[];
   tickDirection: TickDirection;
   symbol: string;
+  marketType?: 'spot' | 'futures' | 'both';
 }
 
 export const TickerDisplay = memo(function TickerDisplay({
@@ -21,6 +22,7 @@ export const TickerDisplay = memo(function TickerDisplay({
   candles,
   tickDirection,
   symbol,
+  marketType = 'spot',
 }: TickerDisplayProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const setSelectedMarketSymbol = useAppStore((state) => state.setSelectedMarketSymbol);
@@ -88,7 +90,7 @@ export const TickerDisplay = memo(function TickerDisplay({
             <ChevronDown className="size-3.5 text-theme-text-muted group-hover:text-theme-brand-primary transition-colors stroke-[2.5]" />
           </button>
           <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
-            SPOT
+            {marketType === 'futures' ? 'PERP' : 'SPOT'}
           </span>
         </div>
 
