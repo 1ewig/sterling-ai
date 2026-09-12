@@ -30,7 +30,7 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
   const listRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const { symbols, isLoading, totalCount } = useMarketSymbols(searchTerm);
+  const { symbols, isLoading, isSyncing, totalCount } = useMarketSymbols(searchTerm, { enabled: true });
 
   // Sliced batch for smooth progressive DOM rendering
   const visibleSymbols = useMemo(() => {
@@ -145,7 +145,11 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
       >
         {/* Header Search Input */}
         <div className="px-3 py-2 border-b border-theme-border-subtle flex items-center gap-2 bg-theme-bg-base/70">
-          <Search className="size-3.5 text-theme-brand-primary shrink-0 ml-0.5" />
+          {isSyncing || (isLoading && symbols.length === 0) ? (
+            <AgentLoader className="size-3.5 text-theme-brand-primary shrink-0 ml-0.5" />
+          ) : (
+            <Search className="size-3.5 text-theme-brand-primary shrink-0 ml-0.5" />
+          )}
           <input
             ref={inputRef}
             type="text"
@@ -176,23 +180,31 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
 
         {/* Quick Context Subheader */}
         <div className="px-3 py-1 bg-theme-bg-elevated/30 border-b border-theme-border-subtle/40 flex items-center justify-between text-2xs font-mono text-theme-text-muted">
-          <span className="flex items-center gap-1.5">
-            <TrendingUp className="size-3 text-theme-brand-primary" />
-            {searchTerm ? (
-              <span>
-                {visibleSymbols.length < symbols.length
-                  ? `${visibleSymbols.length} of ${symbols.length} matches`
-                  : `${symbols.length} matches`}
-              </span>
-            ) : (
-              <span>
-                {visibleSymbols.length < totalCount
-                  ? `${visibleSymbols.length} of ${totalCount} pairs`
-                  : `All ${totalCount} pairs`}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex items-center gap-1.5 truncate">
+              <TrendingUp className="size-3 text-theme-brand-primary shrink-0" />
+              {searchTerm ? (
+                <span>
+                  {visibleSymbols.length < symbols.length
+                    ? `${visibleSymbols.length} of ${symbols.length} matches`
+                    : `${symbols.length} matches`}
+                </span>
+              ) : (
+                <span>
+                  {visibleSymbols.length < totalCount
+                    ? `${visibleSymbols.length} of ${totalCount} pairs`
+                    : `All ${totalCount} pairs`}
+                </span>
+              )}
+            </span>
+            {isSyncing && symbols.length > 0 && (
+              <span className="inline-flex items-center gap-1 text-2xs font-mono text-theme-brand-primary bg-theme-brand-primary/10 px-1.5 py-0.5 rounded border border-theme-brand-primary/20 animate-pulse shrink-0">
+                <span className="size-1 rounded-full bg-theme-brand-primary" />
+                Syncing live
               </span>
             )}
-          </span>
-          <span className="text-theme-text-muted/70">↑↓ Navigate • ↵ Select</span>
+          </div>
+          <span className="text-theme-text-muted/70 shrink-0">↑↓ Navigate • ↵ Select</span>
         </div>
 
         {/* Symbols List */}
@@ -202,9 +214,16 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
           className="flex-1 overflow-y-auto p-1 flex flex-col gap-px no-scrollbar max-h-[340px]"
         >
           {isLoading && symbols.length === 0 ? (
-            <div className="py-8 flex flex-col items-center justify-center gap-2 text-theme-text-muted">
-              <AgentLoader className="size-4 text-theme-brand-primary" />
-              <span className="text-xs font-mono">Indexing symbols...</span>
+            <div className="py-12 flex flex-col items-center justify-center gap-3 text-theme-text-muted">
+              <AgentLoader className="size-5 text-theme-brand-primary" />
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="text-xs font-mono font-medium text-theme-text-primary">
+                  Fetching live symbols...
+                </span>
+                <span className="text-2xs font-mono text-theme-text-muted px-4">
+                  Indexing 2,000+ crypto & tokenized US equity pairs from Bitget V3
+                </span>
+              </div>
             </div>
           ) : symbols.length === 0 ? (
             <div className="py-7 flex flex-col items-center justify-center gap-0.5 text-theme-text-muted">

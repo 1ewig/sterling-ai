@@ -7,23 +7,39 @@ export interface UseMarketSymbolsReturn {
   symbols: MarketSymbolRecord[];
   allSymbols: MarketSymbolRecord[];
   isLoading: boolean;
+  isSyncing: boolean;
   totalCount: number;
   refresh: () => Promise<void>;
+}
+
+export interface UseMarketSymbolsOptions {
+  enabled?: boolean;
 }
 
 /**
  * High-performance hook for querying and fuzzy-searching market symbols.
  * Backed by Dexie IndexedDB local cache and /api/market/symbols.
  */
-export function useMarketSymbols(searchTerm = ''): UseMarketSymbolsReturn {
+export function useMarketSymbols(
+  searchTerm = '',
+  options: UseMarketSymbolsOptions = {}
+): UseMarketSymbolsReturn {
+  const { enabled = true } = options;
   const [allSymbols, setAllSymbols] = useState<MarketSymbolRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let isMounted = true;
 
     async function loadSymbols() {
+      setIsSyncing(true);
+
       // 1. Immediately read whatever is already cached in IndexedDB for 0ms paint
       const cached = await getCachedMarketSymbols();
       if (isMounted && cached.length > 0) {
@@ -32,12 +48,20 @@ export function useMarketSymbols(searchTerm = ''): UseMarketSymbolsReturn {
       }
 
       // 2. Validate cache freshness in background and update if needed
-      const synced = await syncMarketSymbols();
-      if (isMounted) {
-        startTransition(() => {
-          setAllSymbols(synced);
+      try {
+        const synced = await syncMarketSymbols();
+        if (isMounted) {
+          startTransition(() => {
+            setAllSymbols(synced);
+            setIsLoading(false);
+            setIsSyncing(false);
+          });
+        }
+      } catch {
+        if (isMounted) {
           setIsLoading(false);
-        });
+          setIsSyncing(false);
+        }
       }
     }
 
@@ -46,13 +70,20 @@ export function useMarketSymbols(searchTerm = ''): UseMarketSymbolsReturn {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [enabled]);
 
   const refresh = async () => {
-    setIsLoading(true);
-    const fresh = await syncMarketSymbols(true);
-    setAllSymbols(fresh);
-    setIsLoading(false);
+    setIsSyncing(true);
+    if (allSymbols.length === 0) {
+      setIsLoading(true);
+    }
+    try {
+      const fresh = await syncMarketSymbols(true);
+      setAllSymbols(fresh);
+    } finally {
+      setIsLoading(false);
+      setIsSyncing(false);
+    }
   };
 
   // Instant in-memory client fuzzy filter (returns all matching pairs without truncation)
