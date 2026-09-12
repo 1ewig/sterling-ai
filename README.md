@@ -16,14 +16,15 @@ A high-performance **AI Trading Desk & Cross-Asset Market Intelligence Workbench
 ## Highlights
 
 * 📈 **7×24 Cross-Asset Perception:** Real-time spot and futures market data across crypto majors (`BTCUSDT`, `ETHUSDT`) and tokenized US equities (`TSLAUSDT`, `NVDAUSDT`, `SPYUSDT`, `MSTRUSDT`, `COINUSDT`).
+* ⚡ **Live WebSocket Market Streamer:** Persistent, sub-50ms streaming panel directly connected to Bitget Public v2 WebSocket (`ticker`, `books15`, and `candle1m`). Features an 8-level order book depth ladder with depth imbalance meters and a 30m micro trend area sparkline. Automatically disconnects on dismissal for zero background CPU/network overhead.
 * 📊 **Pure TypeScript Indicator Engine:** Computes 23 quantitative technical indicators across multiple timeframes (RSI 14, MACD, 20/50/200 EMAs, Bollinger Bands, SuperTrend, ATR, Fibonacci retracements) with zero Python or external daemon runtime dependencies.
 * 🌐 **Macro & Cross-Asset Correlations:** Real-time yield curve analysis (10Y-2Y spread), Fed funds rate policy expectations, CPI/PCE inflation tracking, and BTC vs DXY / VIX / Gold / Nasdaq correlation matrices.
 * 🧠 **Sentiment & Smart Money Divergence:** Live Fear & Greed indexing, retail vs. top-trader Long/Short ratio divergence detection, taker volume ratios, and derivatives squeeze risk alerts.
 * ⚡ **Single-Turn Parallel Tool Orchestration:** Dispatches multiple specialized research tools simultaneously in a single turn for low-latency multi-dimensional market briefings.
 * 🎨 **Ultra-Modern Neo-Grotesque UI:** Styled with **Geist Sans** and **Geist Mono** typography, obsidian-zinc dark basework (`#09090b`), full-stage ambient breathing glow with automatic transition management, and custom `eclipse` 2.4s loader animations.
-* 📱 **Interactive Visual Tool Cards:** Custom presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, and Sentiment Meters.
+* 📱 **Interactive Visual Tool Cards:** Custom presentation widgets for Market Tickers, Technical Indicator Tables, Macro Gauges, Sentiment Meters, and real-time order book depth.
 * 💾 **Local-First Privacy:** Multi-session conversation management, title generation, and message history stored locally with Dexie IndexedDB.
-* 🛡️ **Zero Authentication Barrier:** All market data, technical calculations, macro indicators, and sentiment feeds run 100% out-of-the-box with zero API keys required.
+* 🛡️ **Zero Authentication Barrier:** All market data, technical calculations, macro indicators, sentiment feeds, and live WebSockets run 100% out-of-the-box with zero API keys required.
 
 ---
 
@@ -64,17 +65,20 @@ src/
 │   │   ├── reasoning/      # Process timeline, thinking accordion & visual tool cards
 │   │   │   └── tools/      # MarketData, TechnicalAnalysis, Macro, Sentiment cards
 │   │   └── chat-client.tsx # Chat client orchestrator
+│   ├── market-streamer/    # Live Bitget WebSocket right-side streamer panel (sparkline & depth)
 │   ├── sidebar/            # Persistent collapsible drawer & theme toggle
 │   └── common/             # Reusable UI primitives (AgentLoader, SterlingIcon, ConfirmDialog)
 ├── hooks/                  # Custom React Hooks
 │   ├── chat/               # useAgentChat, useChatSessions, useChatScroll
+│   ├── market/             # useBitgetWebSocket (native WebSocket, ticker, books15, candle1m)
 │   └── ui/                 # useTheme, useSidebar, useActiveTimer
 ├── lib/                    # Core Libraries & Utilities
-│   ├── bitget/             # Public Bitget REST client, types & 23-indicator math engine
+│   ├── bitget/             # Public Bitget REST & WS clients, types & 23-indicator math engine
 │   ├── chat/               # Client-side SSE transport & history formatting
 │   ├── db/                 # Dexie IndexedDB schema & CRUD operations
 │   └── exa/                # Exa AI search client
-└── stores/                 # Zustand Persistent UI State
+├── stores/                 # Zustand Persistent UI State
+└── tests/                  # Integration test suites (Bitget WebSocket live stream)
 ```
 
 ---
@@ -137,6 +141,9 @@ bun x tsc --noEmit
 
 # Lint with Oxlint (0 warnings, 0 errors)
 bun run lint
+
+# Run live WebSocket & integration test suite
+bun test
 
 # Production build test
 bun run build
