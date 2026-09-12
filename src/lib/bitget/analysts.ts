@@ -1,4 +1,4 @@
-import type { MacroAnalystData, SentimentAnalystData, MarketIntelData } from './types';
+import type { MacroAnalystData, SentimentAnalystData, MarketIntelData } from '@/agent/types';
 import { generateTechnicalReport } from './indicators';
 import { normalizeSymbol, normalizeGranularity } from './symbols';
 import { fetchBitgetCandles, fetchFundingRate, fetchOpenInterest } from './rest';

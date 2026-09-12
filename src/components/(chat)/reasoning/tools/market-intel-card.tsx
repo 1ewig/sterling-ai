@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Layers, ShieldCheck, Flame } from 'lucide-react';
-import type { MarketIntelData } from '@/lib/bitget/types';
+import type { MarketIntelData } from '@/agent/types';
 
 interface MarketIntelCardProps {
   resultObj: Record<string, unknown>;

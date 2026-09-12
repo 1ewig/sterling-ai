@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Activity, ShieldAlert, CheckCircle2 } from 'lucide-react';
-import type { TechnicalIndicatorReport } from '@/lib/bitget/types';
+import type { TechnicalIndicatorReport } from '@/agent/types';
 
 interface TechnicalAnalysisCardProps {
   resultObj: Record<string, unknown>;

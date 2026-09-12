@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { marketIntelParamsSchema } from '@/lib/bitget/types';
+import { marketIntelParamsSchema } from '@/agent/types';
 import { getMarketIntel } from '@/lib/bitget/client';
 
 export const marketIntelTool = tool({

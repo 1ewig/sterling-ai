@@ -1,24 +1,22 @@
 import { NextResponse } from 'next/server';
-import { parseAssetPair } from '@/lib/bitget';
+import { parseAssetPair, isRTokenSymbol } from '@/lib/bitget';
 
 export const revalidate = 3600; // Cache for 1 hour via ISR
 
-interface BitgetSpotTickerRaw {
-  symbol: string;
-  lastPr: string;
+interface BitgetV3TickerItem {
+  symbol?: string;
+  lastPrice?: string;
+  lastPr?: string;
+  highPrice24h?: string;
+  lowPrice24h?: string;
+  price24hPcnt?: string;
+  change24h?: string;
+  turnover24h?: string;
+  volume24h?: string;
   usdtVolume?: string;
-  baseVolume?: string;
   quoteVolume?: string;
-}
-
-interface BitgetFuturesTickerRaw {
-  symbol: string;
-  lastPr: string;
-  usdtVolume?: string;
   baseVolume?: string;
-  quoteVolume?: string;
-  high24h?: string;
-  low24h?: string;
+  ts?: string;
 }
 
 export interface MarketSymbolItem {
@@ -26,13 +24,15 @@ export interface MarketSymbolItem {
   baseAsset: string;
   quoteAsset: string;
   price: number;
+  change24h?: string;
   volume24h: number;
+  isRToken?: boolean;
   hasSpot: boolean;
   hasFutures: boolean;
 }
 
-const BITGET_SPOT_TICKERS_URL = 'https://api.bitget.com/api/v2/spot/market/tickers';
-const BITGET_FUTURES_TICKERS_URL = 'https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES';
+const BITGET_SPOT_TICKERS_URL = 'https://api.bitget.com/api/v3/market/tickers?category=SPOT';
+const BITGET_FUTURES_TICKERS_URL = 'https://api.bitget.com/api/v3/market/tickers?category=USDT-FUTURES';
 
 export async function GET() {
   try {
@@ -57,10 +57,10 @@ export async function GET() {
     const itemsMap = new Map<string, MarketSymbolItem>();
 
     // 1. Process Futures Tickers
-    const futuresTickerMap = new Map<string, BitgetFuturesTickerRaw>();
+    const futuresTickerMap = new Map<string, BitgetV3TickerItem>();
     if (futuresRes.ok) {
       try {
-        const futuresJson = (await futuresRes.json()) as { code: string; data?: BitgetFuturesTickerRaw[] };
+        const futuresJson = (await futuresRes.json()) as { code: string; data?: BitgetV3TickerItem[] };
         (futuresJson.data || []).forEach((f) => {
           if (f.symbol) {
             futuresTickerMap.set(f.symbol.toUpperCase(), f);
@@ -74,7 +74,7 @@ export async function GET() {
     // 2. Process Spot Tickers (Marks dual-market and spot-only pairs)
     if (spotRes.ok) {
       try {
-        const spotJson = (await spotRes.json()) as { code: string; data?: BitgetSpotTickerRaw[] };
+        const spotJson = (await spotRes.json()) as { code: string; data?: BitgetV3TickerItem[] };
         const rawSpotTickers = spotJson.data || [];
 
         for (const item of rawSpotTickers) {
@@ -86,8 +86,8 @@ export async function GET() {
           const { baseAsset, quoteAsset } = parseAssetPair(sym);
           if (!baseAsset) continue;
 
-          const price = parseFloat(item.lastPr || '0') || 0;
-          const volume24h = parseFloat(item.usdtVolume || item.quoteVolume || '0') || 0;
+          const price = parseFloat(item.lastPrice || item.lastPr || '0') || 0;
+          const volume24h = parseFloat(item.turnover24h || item.usdtVolume || item.quoteVolume || '0') || 0;
 
           // Check direct futures match or rToken equity perpetual match (e.g. RTSLAUSDT -> TSLAUSDT)
           const unwrappedFuturesSym =
@@ -98,50 +98,48 @@ export async function GET() {
             futuresTickerMap.has(sym) ||
             (unwrappedFuturesSym !== null && futuresTickerMap.has(unwrappedFuturesSym));
 
+          const isRToken = isRTokenSymbol(sym);
+
           itemsMap.set(sym, {
             symbol: sym,
             baseAsset,
             quoteAsset,
             price,
+            change24h: `${(parseFloat(item.price24hPcnt || item.change24h || '0') * 100).toFixed(2)}%`,
             volume24h,
+            isRToken,
             hasSpot: true,
             hasFutures,
           });
         }
       } catch {
-        // Ignore spot error if futures succeeds
+        // Ignore spot parse error
       }
     }
 
-    // 3. Process Futures Tickers (Identifies futures-only and tokenized equity futures)
-    for (const [sym, f] of futuresTickerMap.entries()) {
-      if (!sym.endsWith('USDT') && !sym.endsWith('USDC')) {
-        continue;
+    // 3. Add Futures-only pairs not present in spot
+    futuresTickerMap.forEach((item, sym) => {
+      if (!itemsMap.has(sym) && (sym.endsWith('USDT') || sym.endsWith('USDC'))) {
+        const { baseAsset, quoteAsset } = parseAssetPair(sym);
+        if (!baseAsset) return;
+
+        const price = parseFloat(item.lastPrice || item.lastPr || '0') || 0;
+        const volume24h = parseFloat(item.turnover24h || item.usdtVolume || item.quoteVolume || '0') || 0;
+        const isRToken = isRTokenSymbol(sym);
+
+        itemsMap.set(sym, {
+          symbol: sym,
+          baseAsset,
+          quoteAsset,
+          price,
+          change24h: `${(parseFloat(item.price24hPcnt || item.change24h || '0') * 100).toFixed(2)}%`,
+          volume24h,
+          isRToken,
+          hasSpot: false,
+          hasFutures: true,
+        });
       }
-      if (itemsMap.has(sym)) {
-        continue; // Already processed via direct spot match
-      }
-
-      const { baseAsset, quoteAsset } = parseAssetPair(sym);
-      if (!baseAsset) continue;
-
-      // Check if spot has the corresponding tokenized equity rToken (e.g. RTSLAUSDT for TSLAUSDT)
-      const rTokenSpotSym = `R${baseAsset}${quoteAsset}`;
-      const hasSpot = itemsMap.has(rTokenSpotSym);
-
-      const price = parseFloat(f.lastPr || '0') || 0;
-      const volume24h = parseFloat(f.usdtVolume || f.quoteVolume || '0') || 0;
-
-      itemsMap.set(sym, {
-        symbol: sym,
-        baseAsset,
-        quoteAsset,
-        price,
-        volume24h,
-        hasSpot,
-        hasFutures: true,
-      });
-    }
+    });
 
     // Sort descending by 24h USD volume so top liquid pairs appear first
     const items = Array.from(itemsMap.values()).sort((a, b) => b.volume24h - a.volume24h);

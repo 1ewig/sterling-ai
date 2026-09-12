@@ -104,19 +104,6 @@ export async function fetchBitgetTicker(symbol: string, isFutures = true): Promi
     // Handled below
   }
 
-  // 3. Fallback to v2 ticker if needed
-  try {
-    const v2Endpoint = `${BITGET_REST_BASE}/api/v2/mix/market/ticker?productType=USDT-FUTURES&symbol=${sym}`;
-    const v2Res = await fetch(v2Endpoint, { signal: AbortSignal.timeout(4000) });
-    if (v2Res.ok) {
-      const json = (await v2Res.json()) as { data?: BitgetTicker[] };
-      const item = json.data?.find((t) => t.symbol === sym) || json.data?.[0];
-      if (item && item.lastPr) return item;
-    }
-  } catch {
-    // Ignore
-  }
-
   throw new Error(
     `Symbol "${sym}" was not found on Bitget V3 Futures or Spot markets. Available examples: BTCUSDT, ETHUSDT, SOLUSDT, TSLAUSDT, NVDAUSDT, SPYUSDT, XAUUSDT.`
   );

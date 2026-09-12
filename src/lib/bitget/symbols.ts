@@ -55,8 +55,8 @@ export function normalizeSymbol(raw: string): string {
 }
 
 /**
- * Normalizes candlestick timeframe granularities for Bitget API v2.
- * Bitget mix/market/candles strictly requires: [1m, 3m, 5m, 15m, 30m, 1H, 4H, 6H, 12H, 1D, 1W, 1M]
+ * Normalizes candlestick timeframe granularities for Bitget API V3.
+ * Bitget market/candles strictly requires: [1m, 3m, 5m, 15m, 30m, 1H, 4H, 6H, 12H, 1D, 1W, 1M]
  */
 export function normalizeGranularity(raw: string): string {
   const clean = raw.trim().toLowerCase();

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Globe, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import type { MacroAnalystData } from '@/lib/bitget/types';
+import type { MacroAnalystData } from '@/agent/types';
 
 interface MacroAnalystCardProps {
   resultObj: Record<string, unknown>;

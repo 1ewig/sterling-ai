@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { sentimentAnalystParamsSchema } from '@/lib/bitget/types';
+import { sentimentAnalystParamsSchema } from '@/agent/types';
 import { getSentimentAnalysis, normalizeSymbol } from '@/lib/bitget/client';
 
 export const sentimentAnalystTool = tool({

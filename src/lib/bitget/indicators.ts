@@ -1,4 +1,5 @@
-import type { KlineCandle, TechnicalIndicatorReport } from './types';
+import type { KlineCandle } from './types';
+import type { TechnicalIndicatorReport } from '@/agent/types';
 
 /**
  * Calculates Simple Moving Average (SMA)

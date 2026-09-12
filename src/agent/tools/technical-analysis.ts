@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { technicalAnalysisParamsSchema } from '@/lib/bitget/types';
+import { technicalAnalysisParamsSchema } from '@/agent/types';
 import { getTechnicalAnalysis, normalizeSymbol } from '@/lib/bitget/client';
 
 export const technicalAnalysisTool = tool({

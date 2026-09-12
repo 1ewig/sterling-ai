@@ -75,48 +75,64 @@ export async function seedOrderbookSnapshot(
   targetSpotInstId: string,
   targetFuturesInstId: string
 ): Promise<BitgetWsBookData | null> {
-  const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
-  for (const sym of spotCandidates) {
-    try {
-      const res = await fetch(
-        `https://api.bitget.com/api/v2/spot/market/orderbook?symbol=${sym}&type=step0&limit=15`,
-        { signal: AbortSignal.timeout(3000) }
-      );
-      if (res.ok) {
-        const json = (await res.json()) as {
-          code: string;
-          data?: { asks?: [string, string][]; bids?: [string, string][]; ts?: string };
-        };
-        if (json.code === '00000' && json.data && (json.data.asks?.length || json.data.bids?.length)) {
-          return {
-            asks: (json.data.asks || []).slice(0, 8),
-            bids: (json.data.bids || []).slice(0, 8),
-            ts: json.data.ts || String(Date.now()),
-          };
-        }
-      }
-    } catch {
-      // Fall through to futures candidate
-    }
-  }
-
   const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
   for (const sym of futCandidates) {
     try {
       const res = await fetch(
-        `https://api.bitget.com/api/v2/mix/market/orderbook?symbol=${sym}&productType=USDT-FUTURES&type=step0&limit=15`,
+        `https://api.bitget.com/api/v3/market/orderbook?category=USDT-FUTURES&symbol=${sym}&limit=15`,
         { signal: AbortSignal.timeout(3000) }
       );
       if (res.ok) {
         const json = (await res.json()) as {
           code: string;
-          data?: { asks?: [string, string][]; bids?: [string, string][]; ts?: string };
+          data?: {
+            a?: [number | string, number | string][];
+            b?: [number | string, number | string][];
+            asks?: [string, string][];
+            bids?: [string, string][];
+            ts?: string;
+          };
         };
-        if (json.code === '00000' && json.data && (json.data.asks?.length || json.data.bids?.length)) {
+        const rawAsks = json.data?.a || json.data?.asks || [];
+        const rawBids = json.data?.b || json.data?.bids || [];
+        if ((json.code === '00000' || json.code === '0') && (rawAsks.length || rawBids.length)) {
           return {
-            asks: (json.data.asks || []).slice(0, 8),
-            bids: (json.data.bids || []).slice(0, 8),
-            ts: json.data.ts || String(Date.now()),
+            asks: rawAsks.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+            bids: rawBids.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+            ts: json.data?.ts || String(Date.now()),
+          };
+        }
+      }
+    } catch {
+      // Fall through to spot candidate
+    }
+  }
+
+  const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
+  for (const sym of spotCandidates) {
+    try {
+      const res = await fetch(
+        `https://api.bitget.com/api/v3/market/orderbook?category=SPOT&symbol=${sym}&limit=15`,
+        { signal: AbortSignal.timeout(3000) }
+      );
+      if (res.ok) {
+        const json = (await res.json()) as {
+          code: string;
+          data?: {
+            a?: [number | string, number | string][];
+            b?: [number | string, number | string][];
+            asks?: [string, string][];
+            bids?: [string, string][];
+            ts?: string;
+          };
+        };
+        const rawAsks = json.data?.a || json.data?.asks || [];
+        const rawBids = json.data?.b || json.data?.bids || [];
+        if ((json.code === '00000' || json.code === '0') && (rawAsks.length || rawBids.length)) {
+          return {
+            asks: rawAsks.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+            bids: rawBids.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+            ts: json.data?.ts || String(Date.now()),
           };
         }
       }

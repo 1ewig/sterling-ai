@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Gauge, Users, AlertCircle } from 'lucide-react';
-import type { SentimentAnalystData } from '@/lib/bitget/types';
+import type { SentimentAnalystData } from '@/agent/types';
 
 interface SentimentAnalystCardProps {
   resultObj: Record<string, unknown>;

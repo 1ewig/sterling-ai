@@ -47,7 +47,7 @@ describe('Market Formatters & Normalization Suite', () => {
       expect(normalizeSymbol(undefined)).toBe('BTCUSDT');
     });
 
-    test('normalizes candlestick granularities strictly to Bitget API v2 requirements', () => {
+    test('normalizes candlestick granularities strictly to Bitget API V3 requirements', () => {
       expect(normalizeGranularity('1m')).toBe('1m');
       expect(normalizeGranularity('1min')).toBe('1m');
       expect(normalizeGranularity('3m')).toBe('3m');
