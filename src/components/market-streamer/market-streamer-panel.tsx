@@ -40,12 +40,12 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
           <motion.aside
             key="desktop-market-streamer"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 330, opacity: 1 }}
+            animate={{ width: '40%', opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
             className="hidden md:flex flex-col h-full bg-theme-bg-base border-l border-theme-border-subtle shrink-0 select-none overflow-hidden relative z-20"
           >
-            <div className="w-[330px] flex flex-col h-full overflow-y-auto no-scrollbar">
+            <div className="w-full min-w-0 flex flex-col h-full overflow-y-auto no-scrollbar">
               <StreamerHeader
                 status={status}
                 symbol={selectedMarketSymbol}
