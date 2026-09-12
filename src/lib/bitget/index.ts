@@ -9,8 +9,6 @@ export * from './rest';
 export * from './analysts';
 export * from './client';
 export * from './l2-book';
-export * from './ws-seeding';
-export * from './ws-subscriptions';
+export * from './ws';
 export * from './formatters';
-export * from './ws-protocol';
 

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { buildWsSubscriptions } from '@/lib/bitget/ws-subscriptions';
+import { buildWsSubscriptions } from '@/lib/bitget/ws';
 
 describe('WebSocket Subscription Builder & Channel Topology Suite', () => {
   test('builds accurate topics for standard spot & perpetual crypto pairs in V3 format', () => {
