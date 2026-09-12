@@ -38,25 +38,20 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   const spread = bestAsk > 0 && bestBid > 0 ? (bestAsk - bestBid).toFixed(2) : '—';
 
   return (
-    <div className="p-3.5 flex flex-col gap-2 select-none">
-      <div className="flex items-center justify-between text-2xs font-bold text-theme-text-secondary uppercase tracking-wider">
-        <span>Order Book Depth (L2)</span>
-        <span className="text-theme-text-muted font-mono">Top 5</span>
+    <div className="px-3.5 py-2.5 flex flex-col gap-1 select-none">
+      <div className="flex items-center justify-between text-3xs font-mono text-theme-text-muted pb-1 border-b border-theme-border-subtle/50">
+        <span>Order Book</span>
+        <span>Spread ${spread}</span>
       </div>
 
-      <div className="flex items-center justify-between text-3xs font-mono text-theme-text-muted px-1">
-        <span>Price (USDT)</span>
-        <span>Size</span>
-      </div>
-
-      {/* Asks (Sells - Red) - Guaranteed exactly 5 rows */}
-      <div className="flex flex-col gap-0.5">
+      {/* Asks (Sells - Muted Red) - Guaranteed 5 rows */}
+      <div className="flex flex-col">
         {paddedAsks.map((row, i) => {
           if (!row) {
             return (
               <div
                 key={`ask-empty-${i}`}
-                className="h-[24px] flex items-center justify-between py-0.5 px-1 rounded text-2xs font-mono text-theme-text-muted/30"
+                className="h-[20px] flex items-center justify-between px-1 text-3xs font-mono text-theme-text-muted/20"
               >
                 <span>—</span>
                 <span>—</span>
@@ -72,16 +67,16 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
           return (
             <div
               key={`ask-${i}-${priceStr}`}
-              className="relative h-[24px] flex items-center justify-between py-0.5 px-1 rounded text-2xs font-mono overflow-hidden"
+              className="relative h-[20px] flex items-center justify-between px-1 text-3xs font-mono overflow-hidden"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-theme-status-danger/15 pointer-events-none transition-all duration-150"
+                className="absolute inset-y-0 right-0 bg-theme-status-danger/8 pointer-events-none"
                 style={{ width: `${depthPercent}%` }}
               />
-              <span className="relative z-10 text-theme-status-danger font-medium font-mono">
+              <span className="relative z-10 text-theme-status-danger/90">
                 {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
-              <span className="relative z-10 text-theme-text-secondary font-mono">
+              <span className="relative z-10 text-theme-text-muted">
                 {size.toFixed(4)}
               </span>
             </div>
@@ -89,20 +84,17 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
         })}
       </div>
 
-      {/* Spread Divider - Fixed height */}
-      <div className="h-[24px] px-2 rounded bg-theme-bg-surface/80 border border-theme-border-subtle/50 flex items-center justify-between text-3xs font-mono text-theme-text-muted">
-        <span>Spread</span>
-        <span className="font-bold text-theme-text-primary">${spread}</span>
-      </div>
+      {/* Mid Spread Hairline Divider */}
+      <div className="my-0.5 border-t border-theme-border-subtle/50" />
 
-      {/* Bids (Buys - Green) - Guaranteed exactly 5 rows */}
-      <div className="flex flex-col gap-0.5">
+      {/* Bids (Buys - Muted Green) - Guaranteed 5 rows */}
+      <div className="flex flex-col">
         {paddedBids.map((row, i) => {
           if (!row) {
             return (
               <div
                 key={`bid-empty-${i}`}
-                className="h-[24px] flex items-center justify-between py-0.5 px-1 rounded text-2xs font-mono text-theme-text-muted/30"
+                className="h-[20px] flex items-center justify-between px-1 text-3xs font-mono text-theme-text-muted/20"
               >
                 <span>—</span>
                 <span>—</span>
@@ -118,16 +110,16 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
           return (
             <div
               key={`bid-${i}-${priceStr}`}
-              className="relative h-[24px] flex items-center justify-between py-0.5 px-1 rounded text-2xs font-mono overflow-hidden"
+              className="relative h-[20px] flex items-center justify-between px-1 text-3xs font-mono overflow-hidden"
             >
               <div
-                className="absolute inset-y-0 right-0 bg-theme-status-success/15 pointer-events-none transition-all duration-150"
+                className="absolute inset-y-0 right-0 bg-theme-status-success/8 pointer-events-none"
                 style={{ width: `${depthPercent}%` }}
               />
-              <span className="relative z-10 text-theme-status-success font-medium font-mono">
+              <span className="relative z-10 text-theme-status-success/90">
                 {price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </span>
-              <span className="relative z-10 text-theme-text-secondary font-mono">
+              <span className="relative z-10 text-theme-text-muted">
                 {size.toFixed(4)}
               </span>
             </div>
