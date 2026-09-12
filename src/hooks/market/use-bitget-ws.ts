@@ -55,7 +55,9 @@ export function useBitgetWebSocket({
   const [tickDirection, setTickDirection] = useState<TickDirection>('neutral');
   const [reconnectTrigger, setReconnectTrigger] = useState(0);
 
-  const prevPriceRef = useRef<number | null>(null);
+  const prevSpotPriceRef = useRef<number | null>(null);
+  const prevFuturesPriceRef = useRef<number | null>(null);
+  const hasSpotRef = useRef(false);
   const tickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef = useRef(0);
   const spotCandlesRef = useRef<MicroCandle[]>([]);
@@ -120,7 +122,9 @@ export function useBitgetWebSocket({
     let pingTimer: ReturnType<typeof setInterval> | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    prevPriceRef.current = null;
+    prevSpotPriceRef.current = null;
+    prevFuturesPriceRef.current = null;
+    hasSpotRef.current = false;
     spotCandlesRef.current = [];
     futuresCandlesRef.current = [];
     pendingUpdatesRef.current = {};
@@ -230,32 +234,46 @@ export function useBitgetWebSocket({
 
           if (channel === 'ticker') {
             const tickerData = parsed.data[0] as BitgetWsTickerData;
-
-            if (msgInstType === 'USDT-FUTURES') {
-              pendingUpdatesRef.current.futuresTicker = tickerData;
-            } else if (msgInstType === 'SPOT') {
-              pendingUpdatesRef.current.spotTicker = tickerData;
-            }
-
             const currentPrice = parseFloat(tickerData.lastPr);
-            if (!isNaN(currentPrice)) {
-              if (prevPriceRef.current !== null) {
-                let dir: TickDirection = 'neutral';
-                if (currentPrice > prevPriceRef.current) {
-                  dir = 'up';
-                } else if (currentPrice < prevPriceRef.current) {
-                  dir = 'down';
-                }
-                pendingUpdatesRef.current.tickDirection = dir;
 
-                if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
-                tickTimerRef.current = setTimeout(() => {
-                  if (!isCleanedUp) {
-                    setTickDirection('neutral');
-                  }
-                }, 600);
+            if (msgInstType === 'SPOT') {
+              hasSpotRef.current = true;
+              pendingUpdatesRef.current.spotTicker = tickerData;
+
+              if (!isNaN(currentPrice)) {
+                if (prevSpotPriceRef.current !== null && currentPrice !== prevSpotPriceRef.current) {
+                  const dir: TickDirection = currentPrice > prevSpotPriceRef.current ? 'up' : 'down';
+                  pendingUpdatesRef.current.tickDirection = dir;
+
+                  if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
+                  tickTimerRef.current = setTimeout(() => {
+                    if (!isCleanedUp) {
+                      setTickDirection('neutral');
+                    }
+                  }, 600);
+                }
+                prevSpotPriceRef.current = currentPrice;
               }
-              prevPriceRef.current = currentPrice;
+            } else if (msgInstType === 'USDT-FUTURES') {
+              pendingUpdatesRef.current.futuresTicker = tickerData;
+
+              if (!isNaN(currentPrice)) {
+                // Only drive hero tick direction from futures if this instrument has no spot feed
+                if (!hasSpotRef.current) {
+                  if (prevFuturesPriceRef.current !== null && currentPrice !== prevFuturesPriceRef.current) {
+                    const dir: TickDirection = currentPrice > prevFuturesPriceRef.current ? 'up' : 'down';
+                    pendingUpdatesRef.current.tickDirection = dir;
+
+                    if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
+                    tickTimerRef.current = setTimeout(() => {
+                      if (!isCleanedUp) {
+                        setTickDirection('neutral');
+                      }
+                    }, 600);
+                  }
+                }
+                prevFuturesPriceRef.current = currentPrice;
+              }
             }
             scheduleFlush();
           } else if (channel === 'books15' || channel === 'books5' || channel === 'books') {
@@ -361,7 +379,11 @@ export function useBitgetWebSocket({
       }
       if (pingTimer) clearInterval(pingTimer);
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (tickTimerRef.current) clearTimeout(tickTimerRef.current);
+      if (tickTimerRef.current) {
+        clearTimeout(tickTimerRef.current);
+        tickTimerRef.current = null;
+      }
+      setTickDirection('neutral');
       ws.close();
     };
   }, [cleanSymbol, enabled, reconnectTrigger]);
