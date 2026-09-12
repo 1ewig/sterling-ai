@@ -170,6 +170,7 @@ export function useBitgetWebSocket({
       setIsConnected(true);
       setHasError(false);
       retryCountRef.current = 0;
+      console.log(`[Bitget WS] Connected (${cleanSymbol})`);
 
       // Keepalive heartbeat
       pingTimer = setInterval(() => {
@@ -345,13 +346,14 @@ export function useBitgetWebSocket({
       }
     };
 
-    ws.onerror = () => {
+    ws.onerror = (err) => {
       if (isCleanedUp) return;
       setHasError(true);
       setIsConnected(false);
+      console.error(`[Bitget WS] Connection failed (${cleanSymbol}):`, err);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (isCleanedUp) return;
       setIsConnected(false);
       if (pingTimer) {
@@ -364,6 +366,11 @@ export function useBitgetWebSocket({
         RECONNECT_MAX_DELAY_MS
       );
       retryCountRef.current += 1;
+
+      console.warn(
+        `[Bitget WS] Connection closed (${cleanSymbol}) [code: ${event.code}]. Reconnecting in ${delay}ms...`
+      );
+
       reconnectTimer = setTimeout(() => {
         if (!isCleanedUp) {
           setReconnectTrigger((prev) => prev + 1);
