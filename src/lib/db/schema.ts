@@ -25,18 +25,28 @@ export interface ChatMessageRecord {
   timestamp: number;
 }
 
+export interface MarketSymbolRecord {
+  symbol: string;
+  baseAsset: string;
+  quoteAsset: string;
+  price: number;
+  volume24h: number;
+  hasFutures: boolean;
+  updatedAt: number;
+}
+
 export const MAX_MESSAGES_PER_CONVERSATION = 100;
 export const DEFAULT_CONVERSATION_ID = 'default';
-
 
 export const DEFAULT_CONVERSATION_TITLE = 'New Chat';
 
 /**
- * Institutional Dexie IndexedDB Database for Sterling multi-session chat history.
+ * Institutional Dexie IndexedDB Database for Sterling multi-session chat history and market symbol cache.
  */
 export class SterlingDatabase extends Dexie {
   conversations!: EntityTable<ConversationRecord, 'id'>;
   messages!: EntityTable<ChatMessageRecord, 'id'>;
+  market_symbols!: EntityTable<MarketSymbolRecord, 'symbol'>;
 
   constructor() {
     super('SterlingDatabase');
@@ -66,6 +76,13 @@ export class SterlingDatabase extends Dexie {
     this.version(3).stores({
       conversations: 'id, createdAt, updatedAt',
       messages: 'id, conversationId, timestamp, role, status',
+    });
+
+    // Schema v4: Cached market symbols
+    this.version(4).stores({
+      conversations: 'id, createdAt, updatedAt',
+      messages: 'id, conversationId, timestamp, role, status',
+      market_symbols: 'symbol, baseAsset, volume24h, updatedAt',
     });
   }
 }

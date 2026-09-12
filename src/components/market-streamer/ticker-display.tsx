@@ -1,8 +1,10 @@
 'use client';
 
-import React, { memo, useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import React, { memo, useMemo, useState } from 'react';
+import { ArrowDownRight, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { AgentLoader } from '@/components/common';
+import { useAppStore } from '@/stores/app-store';
+import { SymbolSearchPopover } from './symbol-search-popover';
 import type { BitgetWsTickerData } from '@/lib/bitget/types';
 import type { TickDirection, MicroCandle } from '@/hooks/market';
 
@@ -19,6 +21,9 @@ export const TickerDisplay = memo(function TickerDisplay({
   tickDirection,
   symbol,
 }: TickerDisplayProps) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const setSelectedMarketSymbol = useAppStore((state) => state.setSelectedMarketSymbol);
+
   const baseAsset = symbol.replace(/USDT$|USD$|USDC$/, '');
   const quoteAsset = symbol.endsWith('USDC') ? 'USDC' : 'USDT';
 
@@ -110,10 +115,19 @@ export const TickerDisplay = memo(function TickerDisplay({
     <div className="p-5 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle flex flex-col gap-4 select-none shadow-xl shadow-black/20">
       {/* Top Asset Title & Change Badge */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-base font-extrabold tracking-tight text-theme-text-primary">
-            {baseAsset} / {quoteAsset}
-          </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            className="group flex items-center gap-1.5 hover:bg-theme-bg-elevated/70 px-2 py-1 -ml-2 rounded-lg transition-colors cursor-pointer select-none"
+            title="Search & change trading pair"
+            aria-label="Change trading pair"
+          >
+            <span className="text-base font-extrabold tracking-tight text-theme-text-primary group-hover:text-theme-brand-primary transition-colors">
+              {baseAsset} / {quoteAsset}
+            </span>
+            <ChevronDown className="size-3.5 text-theme-text-muted group-hover:text-theme-brand-primary transition-colors stroke-[2.5]" />
+          </button>
           <span className="px-1.5 py-0.5 rounded text-3xs font-mono font-bold tracking-wide uppercase bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
             SPOT
           </span>
@@ -241,6 +255,14 @@ export const TickerDisplay = memo(function TickerDisplay({
           </span>
         </div>
       </div>
+
+      {/* Symbol Search Modal */}
+      <SymbolSearchPopover
+        isOpen={isSearchOpen}
+        currentSymbol={symbol}
+        onSelectSymbol={setSelectedMarketSymbol}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 });
