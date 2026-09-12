@@ -118,7 +118,9 @@ src/
 │   ├── globals.css                # Semantic CSS tokens, typography, KaTeX & animations
 │   └── layout.tsx                 # Root layout with Geist font hydration & metadata
 ├── components/                    # Decoupled Presentation Layer
-│   ├── (chat)/                    # Main trading stage
+│   ├── chat-page.client.tsx       # Trading desk stage orchestrator (composes chat & market streamer)
+│   ├── left-sidebar.tsx           # Navigation drawer orchestrator (desktop sidebar & mobile drawer)
+│   ├── (chat)/                    # Conversational desk interface
 │   │   ├── input/                 # Chat input dock & prompt templates
 │   │   ├── messages/              # Streaming message list & markdown renderers
 │   │   ├── reasoning/             # Process timeline, thinking accordions & tool cards

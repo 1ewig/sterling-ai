@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChatPageClient } from '@/components/(chat)/chat-page.client';
+import { ChatPageClient } from '@/components/chat-page.client';
 
 export default function ChatPage() {
   return (
