@@ -1,10 +1,11 @@
 'use client';
 
-import React, { memo, useState, useSyncExternalStore } from 'react';
+import React, { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/stores/app-store';
 import { useBitgetWebSocket } from '@/hooks/market';
 import type { MarketStreamState } from '@/hooks/market';
+import { useIsMobile } from '@/hooks/ui/use-is-mobile';
 import { AgentLoader } from '@/components/common';
 import { TickerDisplay } from './ticker-display';
 import { DerivativesMetrics } from './derivatives-metrics';
@@ -54,23 +55,16 @@ const StreamerContent = memo(function StreamerContent({
   );
 });
 
-function subscribeMediaQuery(callback: () => void) {
-  const mql = window.matchMedia('(max-width: 767px)');
-  mql.addEventListener('change', callback);
-  return () => mql.removeEventListener('change', callback);
-}
-
-function getMobileSnapshot() {
-  return window.matchMedia('(max-width: 767px)').matches;
-}
-
-function getMobileServerSnapshot() {
-  return false;
-}
-
-function useIsMobile() {
-  return useSyncExternalStore(subscribeMediaQuery, getMobileSnapshot, getMobileServerSnapshot);
-}
+const StreamerScrollBody = memo(function StreamerScrollBody({
+  market,
+  onOpenSearch,
+}: StreamerContentProps) {
+  return (
+    <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
+      <StreamerContent market={market} onOpenSearch={onOpenSearch} />
+    </div>
+  );
+});
 
 /**
  * Main Orchestrator for the Market Streamer.
@@ -95,7 +89,6 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
     symbol: selectedMarketSymbol,
     isConnecting,
   };
-
 
   const handleOpenSearch = () => {
     setIsSearchOpen(true);
@@ -124,9 +117,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
             className="flex flex-col h-full bg-transparent shrink-0 select-none overflow-hidden relative z-20"
           >
             <div className="w-full min-w-0 flex flex-col h-full overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
-                <StreamerContent market={market} onOpenSearch={handleOpenSearch} />
-              </div>
+              <StreamerScrollBody market={market} onOpenSearch={handleOpenSearch} />
             </div>
           </motion.aside>
         )}
@@ -146,9 +137,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
             transition={{ duration: 0.2, ease: 'easeOut' }}
             className="fixed top-14 inset-x-0 bottom-0 w-full bg-theme-bg-base z-20 flex flex-col select-none overflow-hidden"
           >
-            <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3.5 overscroll-contain transform-gpu [will-change:scroll-position]">
-              <StreamerContent market={market} onOpenSearch={handleOpenSearch} />
-            </div>
+            <StreamerScrollBody market={market} onOpenSearch={handleOpenSearch} />
           </motion.aside>
         )}
       </AnimatePresence>
@@ -163,3 +152,4 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
     </>
   );
 });
+

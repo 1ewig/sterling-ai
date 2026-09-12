@@ -3,54 +3,13 @@
 import React, { memo, useMemo } from 'react';
 import { Layers } from 'lucide-react';
 import type { BitgetWsBookData } from '@/lib/bitget/types';
+import { formatMarketPrice, formatBookSize, formatSpread } from '@/lib/bitget';
 
 interface OrderbookDepthMiniProps {
   orderbook: BitgetWsBookData | null;
 }
 
 const ROW_COUNT = 8;
-
-function formatBookPrice(price: number): string {
-  if (price >= 1000) {
-    return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  if (price >= 1) {
-    return price.toFixed(4);
-  }
-  if (price >= 0.01) {
-    return price.toFixed(5);
-  }
-  if (price >= 0.0001) {
-    return price.toFixed(6);
-  }
-  return price.toFixed(8);
-}
-
-function formatSpreadValue(spread: number): string {
-  if (spread >= 1) {
-    return spread.toFixed(2);
-  }
-  if (spread >= 0.01) {
-    return spread.toFixed(4);
-  }
-  if (spread >= 0.0001) {
-    return spread.toFixed(6);
-  }
-  return spread.toFixed(8);
-}
-
-function formatBookSize(size: number): string {
-  if (size >= 1_000_000) {
-    return `${(size / 1_000_000).toFixed(2)}M`;
-  }
-  if (size >= 10_000) {
-    return `${(size / 1_000).toFixed(1)}K`;
-  }
-  if (size >= 1) {
-    return size.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-  return size.toFixed(3);
-}
 
 export const OrderbookDepthMini = memo(function OrderbookDepthMini({
   orderbook,
@@ -203,7 +162,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
                   row ? 'text-theme-status-danger' : 'text-theme-text-muted/30'
                 }`}
               >
-                {row ? formatBookPrice(row.price) : '—'}
+                {row ? formatMarketPrice(row.price) : '—'}
               </span>
               <span
                 className={`relative z-10 text-center tabular-nums ${
@@ -230,7 +189,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
           SPREAD
         </span>
         <span className="text-theme-text-primary font-bold tabular-nums">
-          ${formatSpreadValue(spreadValue)}{' '}
+          ${formatSpread(spreadValue)}{' '}
           <span className="text-theme-text-secondary font-normal text-2xs">({spreadPercent}%)</span>
         </span>
       </div>
@@ -256,7 +215,7 @@ export const OrderbookDepthMini = memo(function OrderbookDepthMini({
                   row ? 'text-theme-status-success' : 'text-theme-text-muted/30'
                 }`}
               >
-                {row ? formatBookPrice(row.price) : '—'}
+                {row ? formatMarketPrice(row.price) : '—'}
               </span>
               <span
                 className={`relative z-10 text-center tabular-nums ${

@@ -1,8 +1,10 @@
 'use client';
 
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo } from 'react';
 import { Zap } from 'lucide-react';
 import type { BitgetWsTickerData } from '@/lib/bitget/types';
+import { useCountdownTimer } from '@/hooks/ui/use-countdown-timer';
+import { formatMarketPrice, formatMarketVolume, parseAssetPair } from '@/lib/bitget';
 
 interface DerivativesMetricsProps {
   futuresTicker: BitgetWsTickerData | null;
@@ -11,44 +13,17 @@ interface DerivativesMetricsProps {
 export const DerivativesMetrics = memo(function DerivativesMetrics({
   futuresTicker,
 }: DerivativesMetricsProps) {
-  const [countdown, setCountdown] = useState<string>('--:--');
-
   const nextFundingTime = futuresTicker?.nextFundingTime
     ? parseInt(futuresTicker.nextFundingTime, 10)
     : 0;
 
-  // Live countdown update to the next funding settlement
-  useEffect(() => {
-    if (!nextFundingTime) return;
-
-    const updateCountdown = () => {
-      const now = Date.now();
-      const diff = nextFundingTime - now;
-
-      if (diff <= 0) {
-        setCountdown('Settling');
-        return;
-      }
-
-      const totalSeconds = Math.floor(diff / 1000);
-      const hours = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
-
-      const pad = (n: number) => n.toString().padStart(2, '0');
-      setCountdown(`${pad(hours)}:${pad(minutes)}:${pad(seconds)}`);
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
-  }, [nextFundingTime]);
+  const { countdown } = useCountdownTimer(nextFundingTime);
 
   if (!futuresTicker || !futuresTicker.fundingRate) {
     return null;
   }
 
-  const baseAsset = futuresTicker.instId.replace(/USDT$|USD$|USDC$/, '');
+  const { baseAsset } = parseAssetPair(futuresTicker.instId);
   const fundingRate = parseFloat(futuresTicker.fundingRate || '0');
   const isFundingPositive = fundingRate >= 0;
   const fundingPercent = (fundingRate * 100).toFixed(4);
@@ -60,12 +35,7 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
 
   // Notional Open Interest (OI) in USD
   const notionalOI = holdingAmount * (markPrice || lastPrice);
-  const formattedNotionalOI =
-    notionalOI > 1_000_000_000
-      ? `$${(notionalOI / 1_000_000_000).toFixed(2)}B`
-      : notionalOI > 1_000_000
-      ? `$${(notionalOI / 1_000_000).toFixed(2)}M`
-      : `$${(notionalOI / 1_000).toFixed(2)}K`;
+  const formattedNotionalOI = formatMarketVolume(notionalOI);
 
   const formattedHolding =
     holdingAmount > 10_000
@@ -76,15 +46,8 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
   const basisValue = (lastPrice || markPrice) - indexPrice;
   const basisPercent = indexPrice > 0 ? ((basisValue / indexPrice) * 100).toFixed(2) : '0';
 
-  const formattedMarkPrice =
-    markPrice >= 1000
-      ? markPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : markPrice.toFixed(4);
-
-  const formattedIndexPrice =
-    indexPrice >= 1000
-      ? indexPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : indexPrice.toFixed(4);
+  const formattedMarkPrice = formatMarketPrice(markPrice);
+  const formattedIndexPrice = formatMarketPrice(indexPrice);
 
   return (
     <div className="p-5 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle flex flex-col gap-3.5 select-none shadow-xl shadow-black/20">

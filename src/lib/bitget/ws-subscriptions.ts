@@ -1,3 +1,5 @@
+import { isRTokenSymbol } from './formatters';
+
 export interface BitgetWsArg {
   instType: 'SPOT' | 'USDT-FUTURES';
   channel: 'ticker' | 'books' | 'books15' | 'candle1m';
@@ -14,8 +16,9 @@ export function buildWsSubscriptions(
   targetSpotInstId: string,
   targetFuturesInstId: string
 ): BitgetWsArg[] {
-  const spotIds = Array.from(new Set([cleanSymbol, targetSpotInstId]));
-  const futIds = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
+  const isEquity = isRTokenSymbol(cleanSymbol) || cleanSymbol.startsWith('R');
+  const spotIds = Array.from(new Set(isEquity ? [cleanSymbol, targetSpotInstId] : [cleanSymbol]));
+  const futIds = Array.from(new Set(isEquity ? [cleanSymbol, targetFuturesInstId] : [cleanSymbol]));
 
   const spotArgs: BitgetWsArg[] = spotIds.flatMap((instId) => {
     const isRToken = instId.startsWith('R');

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { parseAssetPair } from '@/lib/bitget';
 
 export const revalidate = 3600; // Cache for 1 hour via ISR
 
@@ -82,8 +83,7 @@ export async function GET() {
             continue;
           }
 
-          const quoteAsset = sym.endsWith('USDC') ? 'USDC' : 'USDT';
-          const baseAsset = sym.replace(/(USDT|USDC)$/, '');
+          const { baseAsset, quoteAsset } = parseAssetPair(sym);
           if (!baseAsset) continue;
 
           const price = parseFloat(item.lastPr || '0') || 0;
@@ -122,8 +122,7 @@ export async function GET() {
         continue; // Already processed via direct spot match
       }
 
-      const quoteAsset = sym.endsWith('USDC') ? 'USDC' : 'USDT';
-      const baseAsset = sym.replace(/(USDT|USDC)$/, '');
+      const { baseAsset, quoteAsset } = parseAssetPair(sym);
       if (!baseAsset) continue;
 
       // Check if spot has the corresponding tokenized equity rToken (e.g. RTSLAUSDT for TSLAUSDT)

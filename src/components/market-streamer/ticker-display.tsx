@@ -5,6 +5,7 @@ import { ArrowDownRight, ArrowUpRight, ChevronDown } from 'lucide-react';
 import { AgentLoader } from '@/components/common';
 import { MicroTrend } from './micro-trend';
 import type { BitgetWsTickerData } from '@/lib/bitget/types';
+import { formatMarketPrice, formatMarketVolume, parseAssetPair } from '@/lib/bitget';
 import type { TickDirection, MicroCandle } from '@/hooks/market';
 
 interface TickerDisplayProps {
@@ -25,8 +26,7 @@ export const TickerDisplay = memo(function TickerDisplay({
   onOpenSearch,
 }: TickerDisplayProps) {
 
-  const baseAsset = symbol.replace(/USDT$|USD$|USDC$/, '');
-  const quoteAsset = symbol.endsWith('USDC') ? 'USDC' : 'USDT';
+  const { baseAsset, quoteAsset } = parseAssetPair(symbol);
 
   const price = ticker ? parseFloat(ticker.lastPr) : 0;
   const changeRatio = ticker ? parseFloat(ticker.change24h || '0') : 0;
@@ -41,25 +41,15 @@ export const TickerDisplay = memo(function TickerDisplay({
   const rangePercent =
     rangeSpan > 0 ? Math.min(Math.max(((price - low24h) / rangeSpan) * 100, 2), 98) : 50;
 
-  // Format volume
-  const formattedQuoteVol =
-    quoteVol > 1_000_000_000
-      ? `$${(quoteVol / 1_000_000_000).toFixed(2)}B`
-      : quoteVol > 1_000_000
-      ? `$${(quoteVol / 1_000_000).toFixed(2)}M`
-      : `$${(quoteVol / 1_000).toFixed(2)}K`;
+  // Format volume & prices with centralized utilities
+  const formattedQuoteVol = formatMarketVolume(quoteVol);
 
   const formattedBaseVol =
     baseVol > 10_000
       ? baseVol.toLocaleString('en-US', { maximumFractionDigits: 2 })
       : baseVol.toFixed(4);
 
-  const formattedPrice =
-    price >= 1000
-      ? price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : price >= 1
-      ? price.toFixed(4)
-      : price.toFixed(6);
+  const formattedPrice = formatMarketPrice(price);
 
   if (!ticker) {
     return (

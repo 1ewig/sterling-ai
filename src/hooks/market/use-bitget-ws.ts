@@ -8,6 +8,7 @@ import {
   seedCandlesSnapshot,
   seedOrderbookSnapshot,
   buildWsSubscriptions,
+  isRTokenSymbol,
   type MicroCandle,
 } from '@/lib/bitget';
 
@@ -85,8 +86,13 @@ export function useBitgetWebSocket({
   const rafIdRef = useRef<number | null>(null);
 
   const cleanSymbol = normalizeSymbol(symbol);
-  const targetSpotInstId = cleanSymbol.startsWith('R') ? cleanSymbol : `R${cleanSymbol}`;
-  const targetFuturesInstId = cleanSymbol.startsWith('R') ? cleanSymbol.slice(1) : cleanSymbol;
+  const isEquity = isRTokenSymbol(cleanSymbol) || cleanSymbol.startsWith('R');
+  const targetSpotInstId = isEquity
+    ? (cleanSymbol.startsWith('R') ? cleanSymbol : `R${cleanSymbol}`)
+    : cleanSymbol;
+  const targetFuturesInstId = isEquity
+    ? (cleanSymbol.startsWith('R') ? cleanSymbol.slice(1) : cleanSymbol)
+    : cleanSymbol;
 
   // Derived status & active data
   const status: WsConnectionStatus = !enabled

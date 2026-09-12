@@ -6,6 +6,7 @@ import { Search, X, TrendingUp } from 'lucide-react';
 import { useMarketSymbols } from '@/hooks/market';
 import { AgentLoader } from '@/components/common';
 import type { MarketSymbolRecord } from '@/lib/db';
+import { formatMarketPrice, formatMarketVolume } from '@/lib/bitget';
 
 interface SymbolSearchPopoverProps {
   isOpen: boolean;
@@ -113,19 +114,6 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
       e.preventDefault();
       onClose();
     }
-  };
-
-  const formatVol = (v: number) => {
-    if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(2)}B`;
-    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M`;
-    if (v >= 1_000) return `$${(v / 1_000).toFixed(1)}K`;
-    return `$${v.toFixed(0)}`;
-  };
-
-  const formatPrice = (p: number) => {
-    if (p >= 1000) return p.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    if (p >= 1) return p.toFixed(4);
-    return p.toFixed(6);
   };
 
   return (
@@ -276,10 +264,10 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
                     {/* Right: Price & 24h Volume */}
                     <div className="flex flex-col items-end shrink-0 pl-2 text-right">
                       <span className="text-xs font-semibold font-mono tabular-nums text-theme-text-primary leading-tight">
-                        ${formatPrice(item.price)}
+                        ${formatMarketPrice(item.price)}
                       </span>
                       <span className="text-2xs font-mono tabular-nums text-theme-text-muted/70 leading-tight">
-                        {formatVol(item.volume24h)}
+                        {formatMarketVolume(item.volume24h)}
                       </span>
                     </div>
                   </button>
