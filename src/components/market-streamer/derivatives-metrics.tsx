@@ -30,7 +30,7 @@ export const DerivativesMetrics = memo(function DerivativesMetrics({
 
   const markPrice = parseFloat(futuresTicker.markPrice || '0');
   const indexPrice = parseFloat(futuresTicker.indexPrice || '0');
-  const holdingAmount = parseFloat(futuresTicker.holdingAmount || '0');
+  const holdingAmount = parseFloat(futuresTicker.holdingAmount || futuresTicker.openInterest || '0');
   const lastPrice = parseFloat(futuresTicker.lastPr || '0');
 
   // Notional Open Interest (OI) in USD

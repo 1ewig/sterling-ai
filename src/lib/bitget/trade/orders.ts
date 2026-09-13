@@ -164,8 +164,9 @@ export async function closePositionsV3(
   categoryInput: string,
   side: 'buy' | 'sell',
   size?: string,
-  posSide: 'long' | 'short' | 'net' = 'net'
+  posSide: 'long' | 'short' | 'net' = 'net',
+  marginMode?: 'crossed' | 'isolated'
 ): Promise<BitgetV3OrderResponse> {
-  const payload = buildClosePositionsPayload(symbol, categoryInput, side, size, posSide);
+  const payload = buildClosePositionsPayload(symbol, categoryInput, side, size, posSide, marginMode);
   return placeOrderV3(payload as unknown as BitgetV3OrderParams);
 }

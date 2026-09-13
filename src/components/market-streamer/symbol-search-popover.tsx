@@ -78,16 +78,6 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
     [onSelectSymbol, onClose]
   );
 
-  const handleScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      if (scrollHeight - scrollTop - clientHeight < 150) {
-        setVisibleCount((prev) => (prev < symbols.length ? prev + BATCH_INCREMENT : prev));
-      }
-    },
-    [symbols.length]
-  );
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -100,11 +90,7 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
       });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setSelectedIndex((prev) => {
-        if (prev > 0) return prev - 1;
-        setVisibleCount(symbols.length);
-        return Math.max(0, symbols.length - 1);
-      });
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : Math.max(0, visibleSymbols.length - 1)));
     } else if (e.key === 'Enter') {
       e.preventDefault();
       if (symbols[selectedIndex]) {
@@ -210,7 +196,6 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
         {/* Symbols List */}
         <div
           ref={listRef}
-          onScroll={handleScroll}
           className="flex-1 overflow-y-auto p-1 flex flex-col gap-px no-scrollbar max-h-[340px]"
         >
           {isLoading && symbols.length === 0 ? (

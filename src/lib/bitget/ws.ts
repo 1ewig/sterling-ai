@@ -54,13 +54,13 @@ export function buildWsSubscriptions(
 
 /**
  * Asynchronously seeds the initial 30 1-minute candles via REST for instant 0ms chart paint.
- * Tries Spot endpoints first, then falls back to Futures.
+ * Tries Futures endpoints first, then falls back to Spot.
  */
 export async function seedCandlesSnapshot(
   cleanSymbol: string,
   targetSpotInstId: string,
   targetFuturesInstId: string
-): Promise<MicroCandle[]> {
+): Promise<{ candles: MicroCandle[]; isFutures: boolean }> {
   const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
   for (const sym of futCandidates) {
     try {
@@ -71,12 +71,15 @@ export async function seedCandlesSnapshot(
       if (res.ok) {
         const json = (await res.json()) as { code: string; data?: string[][] };
         if ((json.code === '00000' || json.code === '0') && json.data && json.data.length >= 2) {
-          return json.data.map((row) => ({
-            timestamp: parseInt(row[0], 10),
-            close: parseFloat(row[4]),
-            high: parseFloat(row[2]),
-            low: parseFloat(row[3]),
-          }));
+          return {
+            candles: json.data.map((row) => ({
+              timestamp: parseInt(row[0], 10),
+              close: parseFloat(row[4]),
+              high: parseFloat(row[2]),
+              low: parseFloat(row[3]),
+            })),
+            isFutures: true,
+          };
         }
       }
     } catch {
@@ -94,12 +97,15 @@ export async function seedCandlesSnapshot(
       if (res.ok) {
         const json = (await res.json()) as { code: string; data?: string[][] };
         if ((json.code === '00000' || json.code === '0') && json.data && json.data.length >= 2) {
-          return json.data.map((row) => ({
-            timestamp: parseInt(row[0], 10),
-            close: parseFloat(row[4]),
-            high: parseFloat(row[2]),
-            low: parseFloat(row[3]),
-          }));
+          return {
+            candles: json.data.map((row) => ({
+              timestamp: parseInt(row[0], 10),
+              close: parseFloat(row[4]),
+              high: parseFloat(row[2]),
+              low: parseFloat(row[3]),
+            })),
+            isFutures: false,
+          };
         }
       }
     } catch {
@@ -107,18 +113,18 @@ export async function seedCandlesSnapshot(
     }
   }
 
-  return [];
+  return { candles: [], isFutures: false };
 }
 
 /**
  * Asynchronously seeds the initial order book depth snapshot via REST for instant paint.
- * Tries Spot endpoints first, then falls back to Futures.
+ * Tries Futures endpoints first, then falls back to Spot.
  */
 export async function seedOrderbookSnapshot(
   cleanSymbol: string,
   targetSpotInstId: string,
   targetFuturesInstId: string
-): Promise<BitgetWsBookData | null> {
+): Promise<{ book: BitgetWsBookData | null; isFutures: boolean }> {
   const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
   for (const sym of futCandidates) {
     try {
@@ -141,9 +147,12 @@ export async function seedOrderbookSnapshot(
         const rawBids = json.data?.b || json.data?.bids || [];
         if ((json.code === '00000' || json.code === '0') && (rawAsks.length || rawBids.length)) {
           return {
-            asks: rawAsks.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
-            bids: rawBids.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
-            ts: json.data?.ts || String(Date.now()),
+            book: {
+              asks: rawAsks.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+              bids: rawBids.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+              ts: json.data?.ts || String(Date.now()),
+            },
+            isFutures: true,
           };
         }
       }
@@ -174,9 +183,12 @@ export async function seedOrderbookSnapshot(
         const rawBids = json.data?.b || json.data?.bids || [];
         if ((json.code === '00000' || json.code === '0') && (rawAsks.length || rawBids.length)) {
           return {
-            asks: rawAsks.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
-            bids: rawBids.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
-            ts: json.data?.ts || String(Date.now()),
+            book: {
+              asks: rawAsks.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+              bids: rawBids.slice(0, 8).map(([p, s]) => [p.toString(), s.toString()]),
+              ts: json.data?.ts || String(Date.now()),
+            },
+            isFutures: false,
           };
         }
       }
@@ -185,7 +197,71 @@ export async function seedOrderbookSnapshot(
     }
   }
 
-  return null;
+  return { book: null, isFutures: false };
+}
+
+/**
+ * Asynchronously seeds the initial ticker via REST for instant 0ms hero price paint.
+ * Tries Spot and Futures endpoints concurrently.
+ */
+export async function seedTickerSnapshot(
+  cleanSymbol: string,
+  targetSpotInstId: string,
+  targetFuturesInstId: string
+): Promise<{ spot: BitgetWsTickerData | null; futures: BitgetWsTickerData | null }> {
+  let spot: BitgetWsTickerData | null = null;
+  let futures: BitgetWsTickerData | null = null;
+
+  const futCandidates = Array.from(new Set([cleanSymbol, targetFuturesInstId]));
+  const spotCandidates = Array.from(new Set([cleanSymbol, targetSpotInstId]));
+
+  const [futRes, spotRes] = await Promise.allSettled([
+    (async () => {
+      for (const sym of futCandidates) {
+        try {
+          const res = await fetch(
+            `https://api.bitget.com/api/v3/market/tickers?category=USDT-FUTURES&symbol=${sym}`,
+            { signal: AbortSignal.timeout(3000) }
+          );
+          if (res.ok) {
+            const json = (await res.json()) as { code: string; data?: Array<Record<string, string>> };
+            const item = json.data?.find((t) => (t.symbol || '').toUpperCase() === sym) || json.data?.[0];
+            if (item && (item.lastPrice || item.lastPr)) {
+              return normalizeWsTicker(item as Partial<BitgetWsTickerData>, sym);
+            }
+          }
+        } catch {
+          // Fall through
+        }
+      }
+      return null;
+    })(),
+    (async () => {
+      for (const sym of spotCandidates) {
+        try {
+          const res = await fetch(
+            `https://api.bitget.com/api/v3/market/tickers?category=SPOT&symbol=${sym}`,
+            { signal: AbortSignal.timeout(3000) }
+          );
+          if (res.ok) {
+            const json = (await res.json()) as { code: string; data?: Array<Record<string, string>> };
+            const item = json.data?.find((t) => (t.symbol || '').toUpperCase() === sym) || json.data?.[0];
+            if (item && (item.lastPrice || item.lastPr)) {
+              return normalizeWsTicker(item as Partial<BitgetWsTickerData>, sym);
+            }
+          }
+        } catch {
+          // Fall through
+        }
+      }
+      return null;
+    })(),
+  ]);
+
+  if (futRes.status === 'fulfilled') futures = futRes.value;
+  if (spotRes.status === 'fulfilled') spot = spotRes.value;
+
+  return { spot, futures };
 }
 
 /* -------------------------------------------------------------------------- */

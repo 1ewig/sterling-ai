@@ -41,8 +41,8 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
   }
 
   // IP Whitelist restrictions
+  // Note: 40034 is NOT an IP error — it is "Parameter X does not exist" (category/pair param).
   if (
-    cleanCode === '40034' ||
     cleanCode === '40035' ||
     lowerMsg.includes('whitelist') ||
     lowerMsg.includes('ip address') ||
@@ -154,6 +154,38 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
       message: rawMsg || 'Order size or parameters exceed Bitget market constraints.',
       actionableGuidance:
         'Adjust the trade size or price to meet minimum notional/tick size constraints.',
+      canRetry: false,
+    };
+  }
+
+  // Position Close Errors (UTA v3)
+  if (cleanCode === '25227') {
+    return {
+      category: 'ORDER_INVALID',
+      code: cleanCode,
+      message: rawMsg || 'No position available to close.',
+      actionableGuidance:
+        'Verify an open position exists for this symbol and posSide (get_account_overview) before closing.',
+      canRetry: false,
+    };
+  }
+  if (cleanCode === '25236') {
+    return {
+      category: 'ORDER_INVALID',
+      code: cleanCode,
+      message: rawMsg || 'Incorrect position open type (posSide/marginMode mismatch).',
+      actionableGuidance:
+        'In hedge mode, posSide must be long or short and must match the open position. Resolve posSide from the live position before closing.',
+      canRetry: false,
+    };
+  }
+  if (cleanCode === '25238') {
+    return {
+      category: 'ORDER_INVALID',
+      code: cleanCode,
+      message: rawMsg || 'posSide and reduceOnly cannot be assigned at the same time.',
+      actionableGuidance:
+        'Do not combine posSide with reduceOnly: hedge mode uses posSide only; one-way mode uses reduceOnly only.',
       canRetry: false,
     };
   }

@@ -50,6 +50,7 @@ export interface V3ClosePositionPayload {
   orderType: 'market';
   qty?: string;
   posSide?: 'long' | 'short' | 'net';
+  marginMode?: 'crossed' | 'isolated';
   reduceOnly?: 'YES';
   clientOid?: string;
 }
@@ -185,7 +186,8 @@ export function buildClosePositionsPayload(
   category: string,
   side: 'buy' | 'sell',
   size?: string,
-  posSide: 'long' | 'short' | 'net' = 'net'
+  posSide: 'long' | 'short' | 'net' = 'net',
+  marginMode?: 'crossed' | 'isolated'
 ): V3ClosePositionPayload {
   const normCategory = toV3Category(category);
   const normSymbol = normalizeSymbol(symbol);
@@ -199,6 +201,11 @@ export function buildClosePositionsPayload(
     posSide: normCategory === 'SPOT' ? 'net' : posSide,
     clientOid: `close_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
   };
+
+  // Carry the position's own marginMode; an isolated close must not default to crossed.
+  if (normCategory !== 'SPOT' && marginMode) {
+    payload.marginMode = marginMode;
+  }
 
   // Only pass reduceOnly when posSide is 'net' (One-Way mode) to avoid Bitget error 25238
   if (payload.posSide === 'net' && normCategory !== 'SPOT') {

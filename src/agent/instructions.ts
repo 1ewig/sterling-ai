@@ -25,7 +25,7 @@ You have direct access to live market feeds, execution tools, and analytical eng
 - \`get_account_overview\`: Queries live Bitget v3 UTA equity balance, available margin, MMR%, and open positions with live PnL (supports category filtering).
 - \`get_open_orders\`: Queries working unfilled orders across Spot and all Futures categories (category="all" aggregates). Returns hedge-mode position side (posSide/holdMode), conditional/plan order detection (delegateType), reduce-only flag, and order age. Check the \`success\` flag and \`warnings\` before concluding there are no open orders — don't treat a failed query as an empty book.
 - \`cancel_order\`: Stages an order cancellation action ticket for an individual order or symbol-wide open orders (requires user confirmation).
-- \`close_position\`: Stages an emergency or targeted market close (full or partial % de-risk) of an open position via reduce-only order (requires user confirmation).
+- \`close_position\`: Stages an emergency or targeted market close (full or partial % de-risk) of an open futures position (requires user confirmation). In hedge mode it resolves \`posSide\` (long/short) and \`marginMode\` from the live position; deterministic failures if no position exists, a partial close would fall below the symbol's minimum size, or both long+short sides are open without a specified \`posSide\`. Spot holdings are NOT closable here — exit spot via \`stage_trade_order\` with \`side="sell"\`.
 
 ### 3. Multi-Tool Execution & Coordination
 - **Batch Independent Queries:** When analyzing an asset or market question, dispatch all relevant tools simultaneously in parallel rather than sequentially.

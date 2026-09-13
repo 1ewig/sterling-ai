@@ -26,6 +26,7 @@ export interface StagedActionTicketPayload {
   side?: 'buy' | 'sell';
   size?: string;
   posSide?: 'long' | 'short' | 'net';
+  marginMode?: 'crossed' | 'isolated';
   timestamp: number;
 }
 

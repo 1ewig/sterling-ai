@@ -5,6 +5,8 @@ import {
   getPositionsV3,
   normalizeSymbol,
   createActionTicketToken,
+  getInstrument,
+  snapQtyToStep,
 } from '@/lib/bitget/trade';
 
 export const getOpenOrdersParamsSchema = z.object({
@@ -32,7 +34,7 @@ export const closePositionParamsSchema = z.object({
     .enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
     .default('usdt-futures')
     .describe('Market category of the position'),
-  posSide: z.enum(['long', 'short', 'net']).default('net').optional().describe('Position side to close'),
+  posSide: z.enum(['long', 'short', 'net']).default('net').optional().describe('Position side to close. "net" (default) resolves the side from the live position; required explicitly when both long and short are open on the same symbol (hedge mode)'),
   sizePercent: z.coerce.number().min(1).max(100).default(100).optional().describe('Percentage of position to close (e.g. 50 for 50% de-risk, 100 for full close)'),
   rationale: z.string().optional().describe('Reason for closing or taking profit/cutting loss on this position'),
 });
@@ -222,20 +224,74 @@ export const closePositionTool = tool({
     const actionId = `close_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 
     try {
+      // Spot has no current-position support — a spot holding cannot be staged here.
+      if (category === 'spot') {
+        return {
+          success: false,
+          error: `Spot positions cannot be closed via close_position (Bitget current-position does not support SPOT).`,
+          requestedSymbol: symbol,
+          normalizedSymbol: sym,
+          actionableGuidance: 'For a spot holding, exit it via stage_trade_order with side="sell".',
+        };
+      }
+
       // 1. Inspect live position to determine existing direction and available size
       const positions = await getPositionsV3(category);
-      const targetPos = positions.find(
-        (p) => normalizeSymbol(p.symbol) === sym && (posSide === 'net' || p.posSide === posSide)
-      );
+      const candidates = positions.filter((p) => normalizeSymbol(p.symbol) === sym);
 
-      const totalSize = targetPos ? parseFloat(targetPos.total || targetPos.available || '0') : 0;
-      const currentSide = targetPos?.posSide || (targetPos?.holdSide as 'long' | 'short' | undefined) || 'long';
+      if (candidates.length === 0) {
+        return {
+          success: false,
+          error: `No open ${category.replace('-', ' ')} position found for ${sym}. Nothing to close.`,
+          requestedSymbol: symbol,
+          normalizedSymbol: sym,
+          actionableGuidance: 'Verify with get_account_overview or get_open_orders before staging a close.',
+        };
+      }
+
+      const bothSides = candidates.length > 1;
+      const targetPos = bothSides ? candidates.find((p) => p.posSide === posSide) : candidates[0];
+
+      if (!targetPos) {
+        return {
+          success: false,
+          error: `Unable to resolve a ${sym} position to close (${bothSides ? `specify posSide for: ${candidates.map((p) => p.posSide).join(', ')}` : 'no matching position'}).`,
+          requestedSymbol: symbol,
+          normalizedSymbol: sym,
+          actionableGuidance: 'Verify with get_account_overview then re-stage with an explicit posSide.',
+        };
+      }
+
+      const currentSide: 'long' | 'short' = targetPos.posSide === 'short' ? 'short' : 'long';
       // To close a long position: SELL. To close a short position: BUY.
       const closeSide: 'buy' | 'sell' = currentSide === 'short' ? 'buy' : 'sell';
+      const marginMode = targetPos.marginMode || 'crossed';
+      const totalSize = parseFloat(targetPos.total || targetPos.available || '0');
 
-      const closeQty = totalSize > 0
-        ? parseFloat(((totalSize * sizePercent) / 100).toFixed(4)).toString()
-        : undefined;
+      if (totalSize <= 0) {
+        return {
+          success: false,
+          error: `Position for ${sym} reports zero tradable size. Nothing to close.`,
+          requestedSymbol: symbol,
+          normalizedSymbol: sym,
+        };
+      }
+
+      // 2. Snap close qty to the instrument's step (floor) — partial close must stay a valid multiple
+      const instrument = await getInstrument(sym, category);
+      const rawQty = (totalSize * sizePercent) / 100;
+      const closeQty = snapQtyToStep(rawQty, instrument);
+      const minQty = parseFloat(instrument.minTradeNum || '0.001');
+
+      if (closeQty < minQty) {
+        return {
+          success: false,
+          error: `Requested close size ${closeQty} (${sizePercent}% of ${totalSize}) is below the ${minQty} minimum quantity for ${sym}.`,
+          requestedSymbol: symbol,
+          normalizedSymbol: sym,
+          actionableGuidance: 'Close the full position (sizePercent=100) or increase the percentage to the minimum step.',
+        };
+      }
 
       const actionToken = createActionTicketToken({
         actionId,
@@ -243,8 +299,9 @@ export const closePositionTool = tool({
         symbol: sym,
         category,
         side: closeSide,
-        size: closeQty,
-        posSide,
+        size: closeQty.toString(),
+        posSide: currentSide,
+        marginMode,
         timestamp: Date.now(),
       });
 
@@ -256,15 +313,17 @@ export const closePositionTool = tool({
         symbol: sym,
         category,
         closeSide,
-        closeSize: closeQty,
+        closeSize: closeQty.toString(),
         totalPositionSize: totalSize,
         sizePercent,
-        posSide,
-        unrealizedPnl: targetPos?.unrealisedPnl,
-        markPrice: targetPos?.markPrice,
+        posSide: currentSide,
+        holdMode: targetPos.holdMode,
+        marginMode,
+        unrealizedPnl: targetPos.unrealisedPnl,
+        markPrice: targetPos.markPrice,
         rationale: rationale || `Market close ${sizePercent}% of ${sym} ${currentSide.toUpperCase()} position`,
         status: 'staged_pending_user_confirmation',
-        actionableGuidance: `Stage market close for ${sizePercent}% of ${sym} position. Confirm to submit market exit.`,
+        actionableGuidance: `Stage market close for ${sizePercent}% of ${sym} ${currentSide.toUpperCase()} position. Confirm to submit market exit.`,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to stage position close';

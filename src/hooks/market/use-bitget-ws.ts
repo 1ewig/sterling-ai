@@ -7,6 +7,7 @@ import {
   L2Orderbook,
   seedCandlesSnapshot,
   seedOrderbookSnapshot,
+  seedTickerSnapshot,
   buildWsSubscriptions,
   isRTokenSymbol,
   normalizeWsTicker,
@@ -179,26 +180,50 @@ export function useBitgetWebSocket({
       }
     };
 
-    // Cold-start REST seeding
-    seedCandlesSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId).then((candles) => {
-      if (!isMounted || candles.length === 0) return;
-      if (spotCandlesRef.current.length === 0 && futuresCandlesRef.current.length === 0) {
-        spotCandlesRef.current = candles;
-        pendingUpdatesRef.current.spotCandles = { symbol: cleanSymbol, data: candles };
-        scheduleFlush();
-      }
-    });
+    // Cold-start REST seeding: ticker, candles, and orderbook concurrently for instant 0ms paint
+    Promise.allSettled([
+      seedTickerSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId),
+      seedCandlesSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId),
+      seedOrderbookSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId),
+    ]).then(([tickerRes, candlesRes, bookRes]) => {
+      if (!isMounted) return;
 
-    seedOrderbookSnapshot(cleanSymbol, targetSpotInstId, targetFuturesInstId).then((book) => {
-      if (!isMounted || !book) return;
-      if (!spotL2BookRef.current.hasData()) {
-        const topLevels = spotL2BookRef.current.applySnapshot(book, true);
-        pendingUpdatesRef.current.spotBook = {
-          symbol: cleanSymbol,
-          data: { ...topLevels, ts: book.ts },
-        };
-        scheduleFlush();
+      if (tickerRes.status === 'fulfilled' && tickerRes.value) {
+        const { spot, futures } = tickerRes.value;
+        if (spot) pendingUpdatesRef.current.spotTicker = spot;
+        if (futures) pendingUpdatesRef.current.futuresTicker = futures;
       }
+
+      if (candlesRes.status === 'fulfilled' && candlesRes.value && candlesRes.value.candles.length > 0) {
+        const { candles, isFutures } = candlesRes.value;
+        const record = { symbol: cleanSymbol, data: candles };
+        if (isFutures) {
+          futuresCandlesRef.current = candles;
+          pendingUpdatesRef.current.futuresCandles = record;
+        } else {
+          spotCandlesRef.current = candles;
+          pendingUpdatesRef.current.spotCandles = record;
+        }
+      }
+
+      if (bookRes.status === 'fulfilled' && bookRes.value && bookRes.value.book) {
+        const { book, isFutures } = bookRes.value;
+        const l2Book = isFutures ? futuresL2BookRef.current : spotL2BookRef.current;
+        if (!l2Book.hasData()) {
+          const topLevels = l2Book.applySnapshot(book, true);
+          const record = {
+            symbol: cleanSymbol,
+            data: { ...topLevels, ts: book.ts },
+          };
+          if (isFutures) {
+            pendingUpdatesRef.current.futuresBook = record;
+          } else {
+            pendingUpdatesRef.current.spotBook = record;
+          }
+        }
+      }
+
+      scheduleFlush();
     });
 
     try {

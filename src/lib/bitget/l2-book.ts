@@ -47,6 +47,7 @@ export class L2Orderbook {
       };
     }
 
+    this.pruneLevels();
     return this.getTop(8);
   }
 
@@ -71,7 +72,31 @@ export class L2Orderbook {
       else this.bids.set(p, sz);
     });
 
+    this.pruneLevels();
     return this.getTop(8);
+  }
+
+  /**
+   * Discards price levels far from the spread to prevent unbounded Map growth
+   * and ensure instant O(K log K) sorting during high-frequency ticks.
+   */
+  private pruneLevels(): void {
+    const MAX_LEVELS = 80;
+    const KEEP_LEVELS = 40;
+
+    if (this.asks.size > MAX_LEVELS) {
+      const sortedAsks = Array.from(this.asks.keys()).sort((a, b) => parseFloat(a) - parseFloat(b));
+      for (let i = KEEP_LEVELS; i < sortedAsks.length; i++) {
+        this.asks.delete(sortedAsks[i]);
+      }
+    }
+
+    if (this.bids.size > MAX_LEVELS) {
+      const sortedBids = Array.from(this.bids.keys()).sort((a, b) => parseFloat(b) - parseFloat(a));
+      for (let i = KEEP_LEVELS; i < sortedBids.length; i++) {
+        this.bids.delete(sortedBids[i]);
+      }
+    }
   }
 
   /**

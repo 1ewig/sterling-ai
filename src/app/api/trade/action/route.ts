@@ -21,6 +21,7 @@ export async function POST(req: Request) {
       side?: 'buy' | 'sell';
       size?: string;
       posSide?: 'long' | 'short' | 'net';
+      marginMode?: 'crossed' | 'isolated';
     };
 
     let action = body.action;
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
     let side = body.side;
     let size = body.size;
     let posSide = body.posSide;
+    let marginMode = body.marginMode;
 
     if (body.actionToken) {
       const verification = verifyActionTicketToken(body.actionToken);
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
       side = p.side;
       size = p.size;
       posSide = p.posSide;
+      marginMode = p.marginMode;
     }
 
     if (!action || !symbol) {
@@ -100,7 +103,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      const res = await closePositionsV3(symbol, category, side, size, posSide);
+      const res = await closePositionsV3(symbol, category, side, size, posSide, marginMode);
       return NextResponse.json({
         success: true,
         action: 'close_position',
