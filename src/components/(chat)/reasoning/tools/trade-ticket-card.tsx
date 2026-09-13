@@ -33,6 +33,7 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
   const data = resultObj as unknown as TradeTicketData;
   const stageTrade = useStagedTradesStore((s) => s.stageTrade);
   const openPopup = useStagedTradesStore((s) => s.openPopup);
+  const updateTradeStatus = useStagedTradesStore((s) => s.updateTradeStatus);
   const stagedTrades = useStagedTradesStore((s) => s.stagedTrades);
 
   // Synchronize with staged store status if executed via modal
@@ -40,6 +41,14 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
 
   const [localExecutionState, setLocalExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
   const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
+  const [prevTicketId, setPrevTicketId] = useState<string | undefined>(data.ticketId);
+
+  // Reset local state whenever the ticketId changes (render-time pattern)
+  if (data.ticketId !== prevTicketId) {
+    setPrevTicketId(data.ticketId);
+    setLocalExecutionState('idle');
+    setLocalResponseMessage(null);
+  }
 
   const executionState =
     storedTrade?.status === 'executed'
@@ -130,13 +139,24 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
       if (json.success) {
         setLocalExecutionState('success');
         setLocalResponseMessage(json.orderId ? `Order #${json.orderId.substring(0, 10)} Filled / Placed` : 'Order executed successfully');
+        if (data.ticketId) {
+          updateTradeStatus(data.ticketId, { status: 'executed', orderId: json.orderId });
+        }
       } else {
+        const errMsg = json.error || 'Order execution rejected';
         setLocalExecutionState('error');
-        setLocalResponseMessage(json.error || 'Order execution rejected');
+        setLocalResponseMessage(errMsg);
+        if (data.ticketId) {
+          updateTradeStatus(data.ticketId, { executionError: errMsg });
+        }
       }
     } catch (err) {
+      const errMsg = err instanceof Error ? err.message : 'Network error';
       setLocalExecutionState('error');
-      setLocalResponseMessage(err instanceof Error ? err.message : 'Network error');
+      setLocalResponseMessage(errMsg);
+      if (data.ticketId) {
+        updateTradeStatus(data.ticketId, { executionError: errMsg });
+      }
     }
   };
 
