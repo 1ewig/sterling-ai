@@ -66,8 +66,10 @@ export const stageTradeOrderTool = tool({
         {
           symbol: sym,
           orderType,
+          side: normalizedSide,
           size: executionSize,
           price: executionPrice,
+          livePrice,
           leverage,
           isSpotMarketBuy,
         },

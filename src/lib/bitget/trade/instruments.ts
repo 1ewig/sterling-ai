@@ -221,8 +221,10 @@ export function validateOrderConstraints(
   params: {
     symbol: string;
     orderType: 'limit' | 'market';
+    side?: 'buy' | 'sell';
     size: number;
     price?: number;
+    livePrice?: number;
     leverage?: number;
     isSpotMarketBuy?: boolean;
   },
@@ -266,6 +268,24 @@ export function validateOrderConstraints(
       valid: false,
       error: `Order notional value ($${notional.toFixed(2)}) is below the minimum required notional ($${minNotional.toFixed(2)}).`,
     };
+  }
+
+  // Limit price band validation (Bitget buyLimitPriceRatio / sellLimitPriceRatio)
+  if (params.orderType === 'limit' && params.price && params.livePrice && params.livePrice > 0) {
+    const limitRatio = parseFloat(
+      (params.side === 'sell' ? instrument.sellLimitPriceRatio : instrument.buyLimitPriceRatio) || '0.07'
+    );
+    if (limitRatio > 0) {
+      const maxAllowed = params.livePrice * (1 + limitRatio);
+      const minAllowed = params.livePrice * (1 - limitRatio);
+      if (params.price > maxAllowed || params.price < minAllowed) {
+        const pct = (limitRatio * 100).toFixed(0);
+        return {
+          valid: false,
+          error: `Limit price ($${params.price}) exceeds Bitget ±${pct}% price limit band relative to current market ($${params.livePrice.toFixed(2)}). Allowed range: $${minAllowed.toFixed(2)} - $${maxAllowed.toFixed(2)}.`,
+        };
+      }
+    }
   }
 
   return { valid: true };

@@ -113,6 +113,22 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
     };
   }
 
+  // Order Parameter, Price Bands, or Size Limits
+  if (
+    cleanCode === '25206' ||
+    lowerMsg.includes('trading price cannot exceed') ||
+    lowerMsg.includes('price limit')
+  ) {
+    return {
+      category: 'ORDER_INVALID',
+      code: cleanCode,
+      message: rawMsg || 'Limit order price exceeds exchange price limit band (max deviation ratio).',
+      actionableGuidance:
+        'The specified limit price deviates too far from the current mark price (typically max ±5% to ±7%). Adjust your limit price closer to current market price or stage the order with orderType="market".',
+      canRetry: false,
+    };
+  }
+
   // Order Parameter or Size Limits
   if (
     cleanCode === '43025' ||
