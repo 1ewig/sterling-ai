@@ -41,7 +41,14 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
   }
 
   // IP Whitelist restrictions
-  if (cleanCode === '40034' || cleanCode === '40035' || lowerMsg.includes('ip') || lowerMsg.includes('whitelist')) {
+  if (
+    cleanCode === '40034' ||
+    cleanCode === '40035' ||
+    lowerMsg.includes('whitelist') ||
+    lowerMsg.includes('ip address') ||
+    lowerMsg.includes('ip whitelist') ||
+    lowerMsg.includes('access ip')
+  ) {
     return {
       category: 'IP_BLOCKED',
       code: cleanCode,

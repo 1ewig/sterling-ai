@@ -184,6 +184,35 @@ export interface BitgetV3OrderInfo {
   feeDetail?: Array<{ feeCoin: string; fee: string }>;
   cTime?: string;
   uTime?: string;
+  // ---- Enriched UTA v3 order fields (from unfilled-orders / order-info responses)
+  /** Order amount, quote-coin units (v3 `amount`) */
+  amount?: string;
+  /** Cumulative executed value, quote-coin units (v3 `cumExecValue`) */
+  cumExecValue?: string;
+  /** Position side as reported by the exchange; empty string for spot */
+  posSide?: 'long' | 'short' | '';
+  /** Account holding mode at order time: one_way_mode vs hedge_mode */
+  holdMode?: 'one_way_mode' | 'hedge_mode';
+  /** Reduce-only identifier from exchange ('YES'/'NO') */
+  reduceOnly?: 'YES' | 'NO';
+  timeInForce?: 'gtc' | 'ioc' | 'fok' | 'post_only' | 'rpi';
+  /** Margin mode for futures: crossed | isolated */
+  marginMode?: 'crossed' | 'isolated';
+  /** Delegate type — reveals conditional/plan/stop/strategy vs normal; v3 `delegateType` */
+  delegateType?: string;
+  /** Trade side: open | close */
+  tradeSide?: 'open' | 'close';
+  stpMode?: string;
+  takeProfit?: string;
+  stopLoss?: string;
+  tpTriggerBy?: string;
+  slTriggerBy?: string;
+  tpOrderType?: string;
+  slOrderType?: string;
+  cancelReason?: string;
+  execType?: string;
+  /** Verbatim orderStatus string from the response (before normalization) */
+  rawStatus?: string;
 }
 
 export interface BitgetAccountAssets {

@@ -1,6 +1,5 @@
 import { BITGET_REST_BASE } from '../rest';
-import { normalizeSymbol } from '../symbols';
-import { getAuthHeaders, sortQueryString } from '../auth/signer';
+import { getAuthHeaders } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
 import {
   buildPlaceOrderPayload,
@@ -9,17 +8,18 @@ import {
   buildBatchCancelPayload,
   buildClosePositionsPayload,
 } from './payloads';
-import {
-  toV3Category,
-  type BitgetV3OrderParams,
-  type BitgetV3OrderResponse,
-  type BitgetV3ModifyParams,
-  type BitgetV3CancelParams,
-  type BitgetV3OrderInfo,
+import type {
+  BitgetV3OrderParams,
+  BitgetV3OrderResponse,
+  BitgetV3ModifyParams,
+  BitgetV3CancelParams,
 } from '../types';
 
+// Re-export query interfaces and functions for full backward compatibility
+export * from './queries';
+
 /**
- * Submit an order using Bitget UTA (v3) with Classic (v2) fallback
+ * Submit an order using Bitget UTA (v3)
  */
 export async function placeOrderV3(
   params: BitgetV3OrderParams
@@ -56,237 +56,6 @@ export async function placeOrderV3(
   } catch (err) {
     if (err instanceof Error) throw err;
     throw new Error('Bitget Place Order failed: Unknown error');
-  }
-}
-
-/**
- * Query detailed execution status of a specific order
- */
-export async function getOrderInfoV3(
-  symbol: string,
-  categoryInput?: string,
-  orderId?: string,
-  clientOid?: string
-): Promise<BitgetV3OrderInfo | null> {
-  const path = '/api/v3/trade/order-info';
-  const category = toV3Category(categoryInput);
-  const normSym = normalizeSymbol(symbol);
-
-  const queryParts = [`category=${category}`, `symbol=${normSym}`];
-  if (orderId) queryParts.push(`orderId=${orderId}`);
-  if (clientOid) queryParts.push(`clientOid=${clientOid}`);
-  // Bitget requires query params sorted alphabetically by key for GET signature verification
-  const queryString = sortQueryString(queryParts.join('&'));
-
-  try {
-    const headers = getAuthHeaders('GET', path, queryString);
-    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
-      method: 'GET',
-      headers,
-    });
-
-    const json = (await response.json()) as {
-      code: string;
-      data?:
-        | {
-            orderId: string;
-            clientOid?: string;
-            symbol: string;
-            side: 'buy' | 'sell';
-            orderType: 'limit' | 'market';
-            price?: string;
-            size?: string;
-            qty?: string;
-            baseVolume?: string;
-            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-            cumExecQty?: string;
-            avgPrice?: string;
-            feeDetail?: Array<{ feeCoin: string; fee: string }>;
-            cTime?: string;
-            uTime?: string;
-            list?: Array<{
-              orderId: string;
-              clientOid?: string;
-              symbol: string;
-              side: 'buy' | 'sell';
-              orderType: 'limit' | 'market';
-              price?: string;
-              size?: string;
-              qty?: string;
-              status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-              baseVolume?: string;
-              cumExecQty?: string;
-              avgPrice?: string;
-              feeDetail?: Array<{ feeCoin: string; fee: string }>;
-              cTime?: string;
-              uTime?: string;
-            }>;
-          }
-        | Array<{
-            orderId: string;
-            clientOid?: string;
-            symbol: string;
-            side: 'buy' | 'sell';
-            orderType: 'limit' | 'market';
-            price?: string;
-            size?: string;
-            qty?: string;
-            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-            baseVolume?: string;
-            cumExecQty?: string;
-            avgPrice?: string;
-            feeDetail?: Array<{ feeCoin: string; fee: string }>;
-            cTime?: string;
-            uTime?: string;
-          }>;
-    };
-
-    if ((json.code === '00000' || json.code === '0') && json.data) {
-      const order = Array.isArray(json.data)
-        ? json.data[0]
-        : Array.isArray(json.data.list)
-        ? json.data.list[0]
-        : json.data;
-
-      if (order && order.orderId) {
-        const raw = order as unknown as {
-          orderStatus?: string;
-          createdTime?: string;
-          updatedTime?: string;
-        };
-        return {
-          orderId: order.orderId,
-          clientOid: order.clientOid,
-          symbol: order.symbol || normSym,
-          category,
-          side: order.side,
-          orderType: order.orderType,
-          price: order.price,
-          size: order.size || order.qty || '0',
-          status: (raw.orderStatus || order.status || 'new') as BitgetV3OrderInfo['status'],
-          baseVolume: order.baseVolume,
-          cumExecQty: order.cumExecQty,
-          avgPrice: order.avgPrice,
-          feeDetail: order.feeDetail,
-          cTime: raw.createdTime || order.cTime,
-          uTime: raw.updatedTime || order.uTime,
-        };
-      }
-    }
-    return null;
-  } catch (err) {
-    console.warn('[Orders] getOrderInfoV3 query failed:', err);
-    return null;
-  }
-}
-
-/**
- * Fetch all unfilled (open/working) orders
- */
-export async function getUnfilledOrdersV3(
-  symbol?: string,
-  categoryInput = 'USDT-FUTURES'
-): Promise<BitgetV3OrderInfo[]> {
-  if (categoryInput === 'all') {
-    const categories = ['USDT-FUTURES', 'SPOT', 'COIN-FUTURES', 'USDC-FUTURES'];
-    const results = await Promise.allSettled(
-      categories.map((cat) => getUnfilledOrdersV3(symbol, cat))
-    );
-    const combined: BitgetV3OrderInfo[] = [];
-    for (const r of results) {
-      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-        combined.push(...r.value);
-      }
-    }
-    return combined;
-  }
-
-  const path = '/api/v3/trade/unfilled-orders';
-  const category = toV3Category(categoryInput);
-
-  const queryParts = [`category=${category}`];
-  if (symbol) queryParts.push(`symbol=${normalizeSymbol(symbol)}`);
-  // Bitget requires query params sorted alphabetically by key for GET signature verification
-  const queryString = sortQueryString(queryParts.join('&'));
-
-  try {
-    const headers = getAuthHeaders('GET', path, queryString);
-    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
-      method: 'GET',
-      headers,
-    });
-
-    const json = (await response.json()) as {
-      code: string;
-      data?:
-        | {
-            list?: Array<{
-              orderId: string;
-              clientOid?: string;
-              symbol: string;
-              side: 'buy' | 'sell';
-              orderType: 'limit' | 'market';
-              price?: string;
-              size?: string;
-              qty?: string;
-              status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-              baseVolume?: string;
-              cumExecQty?: string;
-              avgPrice?: string;
-              cTime?: string;
-              uTime?: string;
-            }>;
-          }
-        | Array<{
-            orderId: string;
-            clientOid?: string;
-            symbol: string;
-            side: 'buy' | 'sell';
-            orderType: 'limit' | 'market';
-            price?: string;
-            size?: string;
-            qty?: string;
-            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-            baseVolume?: string;
-            cumExecQty?: string;
-            avgPrice?: string;
-            cTime?: string;
-            uTime?: string;
-          }>;
-    };
-
-    if (json.code === '00000' || json.code === '0') {
-      const rawList = Array.isArray(json.data)
-        ? json.data
-        : (json.data && 'list' in json.data && Array.isArray(json.data.list))
-        ? json.data.list
-        : [];
-
-      return rawList.map((o) => {
-        const rawStatus = (o as unknown as { orderStatus?: string; createdTime?: string; updatedTime?: string });
-        return {
-          orderId: o.orderId,
-          clientOid: o.clientOid,
-          symbol: o.symbol,
-          category,
-          side: o.side,
-          orderType: o.orderType,
-          price: o.price,
-          size: o.size || o.qty || '0',
-          status: (rawStatus.orderStatus || o.status || 'new') as BitgetV3OrderInfo['status'],
-          baseVolume: o.baseVolume,
-          cumExecQty: o.cumExecQty,
-          avgPrice: o.avgPrice,
-          cTime: rawStatus.createdTime || o.cTime,
-          uTime: rawStatus.updatedTime || o.uTime,
-        };
-      });
-    }
-
-    return [];
-  } catch (err) {
-    console.warn('[Orders] getUnfilledOrdersV3 query failed:', err);
-    return [];
   }
 }
 
