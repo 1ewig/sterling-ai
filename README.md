@@ -155,22 +155,8 @@ src/
 │   ├── chat/                      # Client-side SSE transport parser & message formatting
 │   ├── db/                        # Dexie IndexedDB (conversations, messages, market_symbols)
 │   └── exa/                       # Exa AI semantic search client
-├── stores/                        # Zustand Persistent UI State
-│   └── app-store.ts               # Session ID, streamer visibility & active symbol
-└── __tests__/                     # Institutional Test Suite (68 Unit + 7 Live Wire Tests)
-    ├── unit/                      # Zero-latency deterministic unit tests (<120ms)
-    │   ├── derivatives.test.ts    # Notional OI, basis contango/discount, funding & countdown
-    │   ├── formatters.test.ts     # Adaptive price formats, volume ($B/$M/$K), size & asset parsing
-    │   ├── market-intel.test.ts   # Live DeFi TVL aggregation & news briefing schema validation
-    │   ├── orderbook.test.ts      # L2Orderbook delta engine, snapshots, sorting invariants
-    │   ├── search.test.ts         # Tiered fuzzy ranking algorithm (exact/prefix/contains)
-    │   ├── sparkline.test.ts      # Candlestick 30m sliding window, Bézier curve math & flat guards
-    │   ├── trade.test.ts          # V3 HMAC-SHA256 signing, order schema validation & rToken routing
-    │   ├── ws-mock.test.ts        # Offline mock WebSocket server, heartbeat & reconnect backoff
-    │   ├── ws-protocol.test.ts    # WS frame normalization, orderbook unwrapping & sliding window
-    │   └── ws-subscriptions.test.ts # V3 channel routing & phantom subscription prevention
-    └── integration/               # Live exchange wire contract tests
-        └── market-v3.test.ts      # Bitget V3 UTA public REST & WebSocket wire integration suite
+└── stores/                        # Zustand Persistent UI State
+    └── app-store.ts               # Session ID, streamer visibility & active symbol
 ```
 
 ---
@@ -240,7 +226,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Quality & Tooling Standards
 
-Sterling enforces strict typing, linting, and multi-tier testing standards with zero tolerances for warnings or errors:
+Sterling enforces strict typing and linting standards with zero tolerances for warnings or errors:
 
 ```bash
 # 1. Typecheck with TypeScript 7 (0 errors)
@@ -249,16 +235,7 @@ bun x tsc --noEmit
 # 2. Lint with Oxlint (0 warnings, 0 errors across 145+ files)
 bun run lint
 
-# 3. Execute deterministic offline unit test suite (68 tests in <120ms)
-bun run test:unit
-
-# 4. Execute live exchange WebSocket & REST wire tests (Bitget V3 UTA)
-bun test __tests__/integration/market-v3.test.ts
-
-# 5. Run all test suites combined
-bun run test:all
-
-# 6. Production build verification
+# 3. Production build verification
 bun run build
 ```
 
