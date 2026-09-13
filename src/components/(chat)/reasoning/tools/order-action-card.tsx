@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { useStagedTradesStore } from '@/stores/staged-trades-store';
+import { useStagedActions } from '@/hooks/chat';
 
 interface OrderActionData {
   actionId?: string;
@@ -31,21 +31,83 @@ export const OrderActionCard = React.memo(function OrderActionCard({
   resultObj: Record<string, unknown>;
 }) {
   const data = resultObj as unknown as OrderActionData;
-  const [executionState, setExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
-  const [responseMessage, setResponseMessage] = useState<string | null>(null);
+  const { allActions, updateActionStatus, stageAction } = useStagedActions();
 
-  const stagedItem = useStagedTradesStore((s) =>
-    data.actionId ? s.stagedTrades.find((t) => t.id === data.actionId) : null
-  );
+  const [localExecutionState, setLocalExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
+  const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
+
+  const stagedItem = data.actionId ? allActions.find((t) => t.id === data.actionId) : undefined;
   const isExecutedInStore = stagedItem?.status === 'executed';
-  const effectiveState = isExecutedInStore ? 'success' : executionState;
+  const effectiveState =
+    isExecutedInStore
+      ? 'success'
+      : stagedItem?.status === 'executing'
+      ? 'executing'
+      : localExecutionState;
+
+  const responseMessage =
+    isExecutedInStore
+      ? localResponseMessage || 'Action executed successfully.'
+      : localResponseMessage || stagedItem?.executionError || null;
 
   const isClose = data.action === 'close_position';
   const isCancel = data.action === 'cancel_order' || data.action === 'cancel_symbol';
 
+  // Auto-stage action ticket to Dexie without forcing popup if already closed
+  useEffect(() => {
+    if (data.actionId && data.actionToken && data.symbol) {
+      void stageAction(
+        {
+          id: data.actionId,
+          actionType: isClose ? 'close' : 'cancel',
+          actionToken: data.actionToken,
+          action: data.action || (isClose ? 'close_position' : 'cancel_order'),
+          symbol: data.symbol,
+          category: data.category || 'USDT-FUTURES',
+          orderId: data.orderId,
+          clientOid: data.clientOid,
+          cancelAll: data.cancelAll,
+          closeSide: data.closeSide,
+          closeSize: data.closeSize,
+          totalPositionSize: data.totalPositionSize,
+          sizePercent: data.sizePercent,
+          unrealizedPnl: data.unrealizedPnl,
+          markPrice: data.markPrice,
+          summary: data.summary,
+          rationale: data.rationale,
+          actionableGuidance: data.actionableGuidance,
+        },
+        false
+      );
+    }
+  }, [
+    data.actionId,
+    data.actionToken,
+    data.symbol,
+    data.action,
+    data.category,
+    data.orderId,
+    data.clientOid,
+    data.cancelAll,
+    data.closeSide,
+    data.closeSize,
+    data.totalPositionSize,
+    data.sizePercent,
+    data.unrealizedPnl,
+    data.markPrice,
+    data.summary,
+    data.rationale,
+    data.actionableGuidance,
+    isClose,
+    stageAction,
+  ]);
+
   const handleConfirmAction = async () => {
-    setExecutionState('executing');
-    setResponseMessage(null);
+    setLocalExecutionState('executing');
+    setLocalResponseMessage(null);
+    if (data.actionId) {
+      void updateActionStatus(data.actionId, { status: 'executing' });
+    }
 
     try {
       const res = await fetch('/api/trade/action', {
@@ -66,18 +128,25 @@ export const OrderActionCard = React.memo(function OrderActionCard({
       const json = (await res.json()) as { success?: boolean; message?: string; error?: string };
 
       if (json.success) {
-        setExecutionState('success');
-        setResponseMessage(json.message || 'Action executed successfully.');
+        setLocalExecutionState('success');
+        setLocalResponseMessage(json.message || 'Action executed successfully.');
         if (data.actionId) {
-          useStagedTradesStore.getState().updateTradeStatus(data.actionId, { status: 'executed' });
+          void updateActionStatus(data.actionId, { status: 'executed' });
         }
       } else {
-        setExecutionState('error');
-        setResponseMessage(json.error || 'Action execution rejected.');
+        setLocalExecutionState('error');
+        setLocalResponseMessage(json.error || 'Action execution rejected.');
+        if (data.actionId) {
+          void updateActionStatus(data.actionId, { status: 'staged', executionError: json.error });
+        }
       }
     } catch (err) {
-      setExecutionState('error');
-      setResponseMessage(err instanceof Error ? err.message : 'Network error');
+      const errMsg = err instanceof Error ? err.message : 'Network error';
+      setLocalExecutionState('error');
+      setLocalResponseMessage(errMsg);
+      if (data.actionId) {
+        void updateActionStatus(data.actionId, { status: 'staged', executionError: errMsg });
+      }
     }
   };
 
@@ -186,13 +255,6 @@ export const OrderActionCard = React.memo(function OrderActionCard({
           >
             Retry Execution
           </button>
-        </div>
-      )}
-
-      {executionState === 'error' && (
-        <div className="p-2 rounded bg-theme-status-danger/15 border border-theme-status-danger/30 flex items-center gap-1.5 text-theme-status-danger text-2xs">
-          <AlertCircle className="size-3.5 flex-shrink-0" />
-          <span>{responseMessage}</span>
         </div>
       )}
     </div>

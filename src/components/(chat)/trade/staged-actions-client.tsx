@@ -93,7 +93,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
   // Auto-expire when countdown reaches zero
   useEffect(() => {
     if (activeTrade && remainingSeconds <= 0 && activeTrade.status === 'staged') {
-      updateActionStatus(activeTrade.id, { status: 'expired' });
+      void updateActionStatus(activeTrade.id, { status: 'expired' });
     }
   }, [activeTrade, remainingSeconds, updateActionStatus]);
 
@@ -117,7 +117,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
 
     setLocalExecutionState('executing');
     setLocalResponseMessage(null);
-    updateActionStatus(activeTrade.id, { status: 'executing' });
+    await updateActionStatus(activeTrade.id, { status: 'executing' });
 
     abortControllerRef.current = new AbortController();
 
@@ -154,7 +154,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
           json.message ||
           (json.orderId ? `Order #${json.orderId.substring(0, 8)} filled` : 'Order executed');
         setLocalResponseMessage(successMsg);
-        updateActionStatus(activeTrade.id, { status: 'executed', orderIdResult: json.orderId });
+        await updateActionStatus(activeTrade.id, { status: 'executed', orderIdResult: json.orderId });
 
         if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
         autoCloseTimerRef.current = setTimeout(handleCloseModal, 2000);
@@ -162,14 +162,14 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
         const errMsg = json.error || 'Order execution rejected';
         setLocalExecutionState('error');
         setLocalResponseMessage(errMsg);
-        updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
+        await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       const errMsg = err instanceof Error ? err.message : 'Network error';
       setLocalExecutionState('error');
       setLocalResponseMessage(errMsg);
-      updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
+      await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
     }
   }, [activeTrade, executionState, remainingSeconds, updateActionStatus, handleCloseModal]);
 
@@ -179,7 +179,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
 
     setLocalExecutionState('executing');
     setLocalResponseMessage(null);
-    updateActionStatus(activeTrade.id, { status: 'executing' });
+    await updateActionStatus(activeTrade.id, { status: 'executing' });
 
     abortControllerRef.current = new AbortController();
 
@@ -210,7 +210,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
           json.message ||
           (activeTrade.cancelAll ? 'All working orders cancelled' : 'Order cancelled successfully');
         setLocalResponseMessage(successMsg);
-        updateActionStatus(activeTrade.id, { status: 'executed' });
+        await updateActionStatus(activeTrade.id, { status: 'executed' });
 
         if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
         autoCloseTimerRef.current = setTimeout(handleCloseModal, 2000);
@@ -218,14 +218,14 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
         const errMsg = json.error || 'Cancellation rejected';
         setLocalExecutionState('error');
         setLocalResponseMessage(errMsg);
-        updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
+        await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       const errMsg = err instanceof Error ? err.message : 'Network error';
       setLocalExecutionState('error');
       setLocalResponseMessage(errMsg);
-      updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
+      await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
     }
   }, [activeTrade, executionState, remainingSeconds, updateActionStatus, handleCloseModal]);
 
@@ -235,7 +235,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
 
     setLocalExecutionState('executing');
     setLocalResponseMessage(null);
-    updateActionStatus(activeTrade.id, { status: 'executing' });
+    await updateActionStatus(activeTrade.id, { status: 'executing' });
 
     abortControllerRef.current = new AbortController();
 
@@ -264,7 +264,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
         setLocalExecutionState('success');
         const successMsg = json.message || 'Position exit submitted successfully';
         setLocalResponseMessage(successMsg);
-        updateActionStatus(activeTrade.id, { status: 'executed' });
+        await updateActionStatus(activeTrade.id, { status: 'executed' });
 
         if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
         autoCloseTimerRef.current = setTimeout(handleCloseModal, 2000);
@@ -272,14 +272,14 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
         const errMsg = json.error || 'Position exit rejected';
         setLocalExecutionState('error');
         setLocalResponseMessage(errMsg);
-        updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
+        await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       const errMsg = err instanceof Error ? err.message : 'Network error';
       setLocalExecutionState('error');
       setLocalResponseMessage(errMsg);
-      updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
+      await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
     }
   }, [activeTrade, executionState, remainingSeconds, updateActionStatus, handleCloseModal]);
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownRight, ShieldCheck, CheckCircle2, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
-import { useStagedTradesStore } from '@/stores/staged-trades-store';
+import { useStagedActions } from '@/hooks/chat';
 
 interface TradeTicketData {
   ticketId?: string;
@@ -31,13 +31,10 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
   resultObj: Record<string, unknown>;
 }) {
   const data = resultObj as unknown as TradeTicketData;
-  const stageTrade = useStagedTradesStore((s) => s.stageTrade);
-  const openPopup = useStagedTradesStore((s) => s.openPopup);
-  const updateTradeStatus = useStagedTradesStore((s) => s.updateTradeStatus);
-  const stagedTrades = useStagedTradesStore((s) => s.stagedTrades);
+  const { allActions, openPopup, updateActionStatus, stageAction } = useStagedActions();
 
-  // Synchronize with staged store status if executed via modal
-  const storedTrade = stagedTrades.find((t) => t.id === data.ticketId);
+  // Synchronize with Dexie staged status
+  const storedTrade = data.ticketId ? allActions.find((t) => t.id === data.ticketId) : undefined;
 
   const [localExecutionState, setLocalExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
   const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
@@ -58,18 +55,19 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
       : localExecutionState;
 
   const responseMessage =
-    storedTrade?.status === 'executed' && storedTrade.orderId
-      ? `Order #${storedTrade.orderId.substring(0, 10)} Filled / Placed`
+    storedTrade?.status === 'executed' && (storedTrade.orderIdResult || storedTrade.orderId)
+      ? `Order #${(storedTrade.orderIdResult || storedTrade.orderId || '').substring(0, 10)} Filled / Placed`
       : localResponseMessage;
 
   const isBuy = data.side === 'buy';
 
-  // Auto-stage to store & trigger popup modal on mount
+  // Auto-stage to Dexie without forcing popup if already closed
   useEffect(() => {
     if (data.ticketId && data.ticketToken && data.symbol) {
-      stageTrade(
+      void stageAction(
         {
           id: data.ticketId,
+          actionType: 'order',
           ticketToken: data.ticketToken,
           symbol: data.symbol,
           category: data.category || 'USDT-FUTURES',
@@ -87,7 +85,7 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
           riskRewardRatio: data.riskRewardRatio,
           rationale: data.rationale,
         },
-        false // Synchronize into store without forcing popup if already closed
+        false
       );
     }
   }, [
@@ -108,12 +106,15 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
     data.takeProfitPrice,
     data.riskRewardRatio,
     data.rationale,
-    stageTrade,
+    stageAction,
   ]);
 
   const handleConfirmOrder = async () => {
     setLocalExecutionState('executing');
     setLocalResponseMessage(null);
+    if (data.ticketId) {
+      void updateActionStatus(data.ticketId, { status: 'executing' });
+    }
 
     try {
       const res = await fetch('/api/trade/execute', {
@@ -140,14 +141,14 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
         setLocalExecutionState('success');
         setLocalResponseMessage(json.orderId ? `Order #${json.orderId.substring(0, 10)} Filled / Placed` : 'Order executed successfully');
         if (data.ticketId) {
-          updateTradeStatus(data.ticketId, { status: 'executed', orderId: json.orderId });
+          void updateActionStatus(data.ticketId, { status: 'executed', orderIdResult: json.orderId });
         }
       } else {
         const errMsg = json.error || 'Order execution rejected';
         setLocalExecutionState('error');
         setLocalResponseMessage(errMsg);
         if (data.ticketId) {
-          updateTradeStatus(data.ticketId, { executionError: errMsg });
+          void updateActionStatus(data.ticketId, { status: 'staged', executionError: errMsg });
         }
       }
     } catch (err) {
@@ -155,7 +156,7 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
       setLocalExecutionState('error');
       setLocalResponseMessage(errMsg);
       if (data.ticketId) {
-        updateTradeStatus(data.ticketId, { executionError: errMsg });
+        void updateActionStatus(data.ticketId, { status: 'staged', executionError: errMsg });
       }
     }
   };
