@@ -1,6 +1,16 @@
 import crypto from 'node:crypto';
 
 /**
+ * Sorts query string keys alphabetically according to Bitget signing specifications
+ */
+export function sortQueryString(queryString: string): string {
+  if (!queryString || !queryString.includes('&')) return queryString;
+  const params = new URLSearchParams(queryString);
+  params.sort();
+  return params.toString();
+}
+
+/**
  * Generates an RFC-compliant Base64 HMAC-SHA256 signature for Bitget private endpoints.
  * preHash = timestamp + method + requestPath + queryString + bodyString
  */
@@ -12,7 +22,8 @@ export function generateBitgetV3Signature(
   queryString = '',
   bodyString = ''
 ): string {
-  const fullPath = queryString ? `${requestPath}?${queryString}` : requestPath;
+  const sortedQuery = sortQueryString(queryString);
+  const fullPath = sortedQuery ? `${requestPath}?${sortedQuery}` : requestPath;
   const preHash = `${timestamp}${method.toUpperCase()}${fullPath}${bodyString}`;
   return crypto.createHmac('sha256', secretKey).update(preHash).digest('base64');
 }
@@ -29,6 +40,7 @@ export function getAuthHeaders(
   const apiKey = process.env.BITGET_API_KEY;
   const apiSecret = process.env.BITGET_API_SECRET;
   const passphrase = process.env.BITGET_PASSPHRASE;
+  const isDemo = process.env.BITGET_DEMO_TRADING === 'true';
 
   if (!apiKey || !apiSecret || !passphrase) {
     throw new Error(
@@ -37,17 +49,18 @@ export function getAuthHeaders(
   }
 
   const timestamp = Date.now().toString();
+  const sortedQuery = sortQueryString(queryString);
   const bodyString = bodyObj ? JSON.stringify(bodyObj) : '';
   const signature = generateBitgetV3Signature(
     apiSecret,
     timestamp,
     method,
     requestPath,
-    queryString,
+    sortedQuery,
     bodyString
   );
 
-  return {
+  const headers: Record<string, string> = {
     'ACCESS-KEY': apiKey,
     'ACCESS-SIGN': signature,
     'ACCESS-TIMESTAMP': timestamp,
@@ -55,4 +68,10 @@ export function getAuthHeaders(
     'Content-Type': 'application/json',
     locale: 'en-US',
   };
+
+  if (isDemo) {
+    headers.paptrading = '1';
+  }
+
+  return headers;
 }

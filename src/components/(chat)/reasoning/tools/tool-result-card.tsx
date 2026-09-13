@@ -11,6 +11,8 @@ import { SentimentAnalystCard } from './sentiment-analyst-card';
 import { MarketIntelCard } from './market-intel-card';
 import { TradeTicketCard } from './trade-ticket-card';
 import { AccountOverviewCard } from './account-overview-card';
+import { OpenOrdersCard } from './open-orders-card';
+import { OrderActionCard } from './order-action-card';
 import type { ToolDisplayInfo, ToolResultCardProps } from './types';
 import { getToolDisplayInfo } from './display-info';
 
@@ -76,6 +78,13 @@ export const ToolResultCard = React.memo(function ToolResultCard({
 
       case 'get_account_overview':
         return <AccountOverviewCard resultObj={resultObj} />;
+
+      case 'get_open_orders':
+        return <OpenOrdersCard resultObj={resultObj} />;
+
+      case 'cancel_order':
+      case 'close_position':
+        return <OrderActionCard resultObj={resultObj} />;
 
 
       default: {

@@ -129,16 +129,92 @@ export interface OrderbookDepth {
   timestamp?: string;
 }
 
+export type BitgetV3Category = 'SPOT' | 'USDT-FUTURES' | 'COIN-FUTURES' | 'USDC-FUTURES';
+
+export function toV3Category(category?: string): BitgetV3Category {
+  if (!category) return 'USDT-FUTURES';
+  const upper = category.toUpperCase().trim();
+  if (upper === 'SPOT') return 'SPOT';
+  if (upper === 'USDT-FUTURES' || upper === 'FUTURES') return 'USDT-FUTURES';
+  if (upper === 'COIN-FUTURES') return 'COIN-FUTURES';
+  if (upper === 'USDC-FUTURES') return 'USDC-FUTURES';
+  return 'USDT-FUTURES';
+}
+
+export interface BitgetInstrument {
+  symbol: string;
+  category: BitgetV3Category;
+  baseCoin: string;
+  quoteCoin: string;
+  minTradeNum: string;
+  pricePlace: string;
+  volumePlace: string;
+  priceMultiplier?: string;
+  quantityMultiplier?: string;
+  minTradeUSDT?: string;
+  maxMarketOrderQty?: string;
+  maxLeverage?: string;
+  status: string; // 'online' | 'offline' | 'gray'
+  buyLimitPriceRatio?: string;
+  sellLimitPriceRatio?: string;
+}
+
+export interface BitgetPositionTier {
+  symbol: string;
+  level: number;
+  startUnit: string;
+  endUnit: string;
+  leverage: string;
+  maintenanceMarginRate: string; // e.g. '0.005'
+}
+
+export interface BitgetV3OrderInfo {
+  orderId: string;
+  clientOid?: string;
+  symbol: string;
+  category: BitgetV3Category;
+  side: 'buy' | 'sell';
+  orderType: 'limit' | 'market';
+  price?: string;
+  size: string;
+  status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+  baseVolume?: string;
+  cumExecQty?: string;
+  avgPrice?: string;
+  feeDetail?: Array<{ feeCoin: string; fee: string }>;
+  cTime?: string;
+  uTime?: string;
+}
+
+export interface BitgetAccountAssets {
+  accountEquity: string;
+  effEquity: string;
+  unrealisedPnl: string;
+  mmr: string;
+  imr?: string;
+  mgnRatio: string;
+  positionValue: string;
+  assets: Array<{
+    coin: string;
+    equity: string;
+    available: string;
+    frozen?: string;
+    unrealisedPnl?: string;
+  }>;
+}
+
 /**
  * Bitget v3 Unified Trading Account (UTA) Types
  */
 export interface BitgetV3OrderParams {
   symbol: string;
-  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures';
+  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures' | BitgetV3Category;
   side: 'buy' | 'sell';
   orderType: 'limit' | 'market';
   size: string;
   price?: string;
+  posSide?: 'long' | 'short' | 'net';
+  reduceOnly?: boolean;
   tradeSide?: 'open' | 'close';
   marginMode?: 'crossed' | 'isolated';
   marginCoin?: string;
@@ -146,22 +222,33 @@ export interface BitgetV3OrderParams {
   clientOid?: string;
   presetStopLossPrice?: string;
   presetTakeProfitPrice?: string;
+  stopLoss?: {
+    triggerPrice: string;
+    executePrice?: string;
+    triggerType?: 'mark_price' | 'fill_price';
+  };
+  takeProfit?: {
+    triggerPrice: string;
+    executePrice?: string;
+    triggerType?: 'mark_price' | 'fill_price';
+  };
   slOrderType?: 'market';
   tpOrderType?: 'market';
 }
 
 export interface BitgetV3ModifyParams {
   symbol: string;
-  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures';
+  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures' | BitgetV3Category;
   orderId?: string;
   clientOid?: string;
   newPrice?: string;
   newSize?: string;
+  autoCancel?: boolean;
 }
 
 export interface BitgetV3CancelParams {
   symbol: string;
-  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures';
+  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures' | BitgetV3Category;
   orderId?: string;
   clientOid?: string;
 }
@@ -172,24 +259,38 @@ export interface BitgetV3OrderResponse {
   symbol: string;
   category: string;
   status?: string;
+  avgPrice?: string;
+  cumExecQty?: string;
+  feeDetail?: Array<{ feeCoin: string; fee: string }>;
 }
 
 export interface BitgetV3Position {
   symbol: string;
-  marginCoin: string;
-  holdSide: 'long' | 'short' | 'net';
+  posSide: 'long' | 'short' | 'net';
   total: string;
   available: string;
-  locked: string;
-  margin: string;
-  leverage: number;
-  openPriceAvg: string;
+  frozen?: string;
+  avgPrice: string;
   markPrice: string;
   liquidationPrice: string;
-  unrealizedPL: string;
-  marginRate: string;
+  leverage: string | number;
+  unrealisedPnl: string;
+  profitRate?: string;
+  mmr: string;
+  breakEvenPrice?: string;
   marginMode: 'crossed' | 'isolated';
-  cTime: string;
+  holdMode?: 'single_hold' | 'double_hold';
+  positionStatus?: 'normal' | 'liquidation';
+  cTime?: string;
+  uTime?: string;
+  // Compatibility fields for legacy consumers
+  openPriceAvg?: string;
+  unrealizedPL?: string;
+  holdSide?: 'long' | 'short' | 'net';
+  marginCoin?: string;
+  margin?: string;
+  marginRate?: string;
+  locked?: string;
 }
 
 export interface BitgetAccountOverview {
@@ -198,6 +299,9 @@ export interface BitgetAccountOverview {
   unrealizedPnlUsdt: number;
   marginRatioPercent: number;
   accountMode: 'basic' | 'advanced' | 'isolated';
+  accountLevel?: string;
+  effEquityUsdt?: number;
+  positionValueUsdt?: number;
   positions: BitgetV3Position[];
 }
 
@@ -208,6 +312,9 @@ export type BitgetErrorCategory =
   | 'INSUFFICIENT_FUNDS'
   | 'ORDER_INVALID'
   | 'RATE_LIMITED'
+  | 'ORDER_NOT_FOUND'
+  | 'PERMISSION_DENIED'
+  | 'LEVERAGE_EXCEEDED'
   | 'NETWORK_ERROR'
   | 'EXCHANGE_ERROR';
 

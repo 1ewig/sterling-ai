@@ -7,9 +7,10 @@ import { sentimentAnalystTool } from './sentiment-analyst';
 import { marketIntelTool } from './market-intel';
 import { stageTradeOrderTool } from './trade-order';
 import { accountOverviewTool } from './account-positions';
+import { getOpenOrdersTool, cancelOrderTool, closePositionTool } from './order-management';
 
 /**
- * Registry of all agent tools.
+ * Registry of all agent tools (12 tools total: 7 market/macro intel + 5 trading execution tools).
  */
 export const agentTools = {
   web_search: webSearchTool,
@@ -19,8 +20,12 @@ export const agentTools = {
   macro_analyst: macroAnalystTool,
   sentiment_analyst: sentimentAnalystTool,
   market_intel: marketIntelTool,
-  stage_trade_order: stageTradeOrderTool,
+  // 5 Dedicated Trading Tools
   get_account_overview: accountOverviewTool,
+  stage_trade_order: stageTradeOrderTool,
+  get_open_orders: getOpenOrdersTool,
+  cancel_order: cancelOrderTool,
+  close_position: closePositionTool,
 };
 
 export type AgentTools = typeof agentTools;
@@ -42,6 +47,9 @@ export {
   marketIntelTool,
   stageTradeOrderTool,
   accountOverviewTool,
+  getOpenOrdersTool,
+  cancelOrderTool,
+  closePositionTool,
 };
 
 

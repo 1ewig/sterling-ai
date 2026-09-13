@@ -88,6 +88,27 @@ export function getToolDisplayInfo(
         icon: Wallet,
       };
 
+    case 'get_open_orders':
+      return {
+        title: symbol ? `Querying Open Orders for ${symbol}` : 'Querying Bitget Working Orders',
+        icon: Layers,
+        symbol,
+      };
+
+    case 'cancel_order':
+      return {
+        title: symbol ? `Staging Cancel Order for ${symbol}` : 'Staging Order Cancellation',
+        icon: ShieldCheck,
+        symbol,
+      };
+
+    case 'close_position':
+      return {
+        title: symbol ? `Staging Market Exit for ${symbol}` : 'Staging Position Close',
+        icon: ShieldCheck,
+        symbol,
+      };
+
     default:
       return {
         title: normalizedName ? normalizedName.replace(/_/g, ' ') : 'tool',

@@ -2,11 +2,20 @@ import { BITGET_REST_BASE } from '../rest';
 import { normalizeSymbol } from '../symbols';
 import { getAuthHeaders } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
-import type {
-  BitgetV3OrderParams,
-  BitgetV3OrderResponse,
-  BitgetV3ModifyParams,
-  BitgetV3CancelParams,
+import {
+  buildPlaceOrderPayload,
+  buildModifyPayload,
+  buildCancelPayload,
+  buildBatchCancelPayload,
+  buildClosePositionsPayload,
+} from './payloads';
+import {
+  toV3Category,
+  type BitgetV3OrderParams,
+  type BitgetV3OrderResponse,
+  type BitgetV3ModifyParams,
+  type BitgetV3CancelParams,
+  type BitgetV3OrderInfo,
 } from '../types';
 
 /**
@@ -16,34 +25,10 @@ export async function placeOrderV3(
   params: BitgetV3OrderParams
 ): Promise<BitgetV3OrderResponse> {
   const path = '/api/v3/trade/place-order';
-  const sym = normalizeSymbol(params.symbol);
-
-  const payload: Record<string, unknown> = {
-    symbol: sym,
-    category: params.category || 'usdt-futures',
-    side: params.side,
-    orderType: params.orderType,
-    size: params.size,
-    price: params.price,
-    tradeSide: params.tradeSide || 'open',
-    marginMode: params.marginMode || 'crossed',
-    marginCoin: params.marginCoin || 'USDT',
-    timeInForce: params.timeInForce || 'gtc',
-    clientOid: params.clientOid || `argus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-  };
-
-  if (params.presetStopLossPrice) {
-    payload.presetStopLossPrice = params.presetStopLossPrice;
-    payload.slOrderType = 'market';
-  }
-
-  if (params.presetTakeProfitPrice) {
-    payload.presetTakeProfitPrice = params.presetTakeProfitPrice;
-    payload.tpOrderType = 'market';
-  }
+  const payload = buildPlaceOrderPayload(params);
 
   try {
-    const headers = getAuthHeaders('POST', path, '', payload);
+    const headers = getAuthHeaders('POST', path, '', payload as unknown as Record<string, unknown>);
     const response = await fetch(`${BITGET_REST_BASE}${path}`, {
       method: 'POST',
       headers,
@@ -59,21 +44,21 @@ export async function placeOrderV3(
     if (json.code === '00000' || json.code === '0') {
       return {
         orderId: json.data?.orderId || '',
-        clientOid: json.data?.clientOid || (payload.clientOid as string),
-        symbol: sym,
-        category: payload.category as string,
+        clientOid: json.data?.clientOid || payload.clientOid,
+        symbol: payload.symbol,
+        category: payload.category,
         status: 'submitted',
       };
     }
 
     // Classic Account Fallback (Code 40084 or 40404)
     if (json.code === '40084' || json.code === '40404') {
-      const isFutures = (payload.category as string) !== 'spot';
+      const isFutures = payload.category !== 'SPOT';
       const v2Path = isFutures ? '/api/v2/mix/order/place-order' : '/api/v2/spot/trade/place-order';
       const v2Payload: Record<string, unknown> = isFutures
         ? {
-            symbol: sym,
-            productType: 'USDT-FUTURES',
+            symbol: payload.symbol,
+            productType: payload.category,
             marginCoin: 'USDT',
             marginMode: params.marginMode || 'crossed',
             side: params.side,
@@ -82,11 +67,11 @@ export async function placeOrderV3(
             size: params.size,
             price: params.price,
             clientOid: payload.clientOid,
-            presetStopLossPrice: params.presetStopLossPrice,
-            presetTakeProfitPrice: params.presetTakeProfitPrice,
+            presetStopLossPrice: params.stopLoss?.triggerPrice || params.presetStopLossPrice,
+            presetTakeProfitPrice: params.takeProfit?.triggerPrice || params.presetTakeProfitPrice,
           }
         : {
-            symbol: sym,
+            symbol: payload.symbol,
             side: params.side,
             orderType: params.orderType,
             size: params.size,
@@ -109,9 +94,9 @@ export async function placeOrderV3(
       if (v2Json.code === '00000' || v2Json.code === '0') {
         return {
           orderId: v2Json.data?.orderId || '',
-          clientOid: v2Json.data?.clientOid || (payload.clientOid as string),
-          symbol: sym,
-          category: payload.category as string,
+          clientOid: v2Json.data?.clientOid || payload.clientOid,
+          symbol: payload.symbol,
+          category: payload.category,
           status: 'submitted',
         };
       }
@@ -129,24 +114,126 @@ export async function placeOrderV3(
 }
 
 /**
+ * Query detailed execution status of a specific order
+ */
+export async function getOrderInfoV3(
+  symbol: string,
+  categoryInput?: string,
+  orderId?: string,
+  clientOid?: string
+): Promise<BitgetV3OrderInfo | null> {
+  const path = '/api/v3/trade/order-info';
+  const category = toV3Category(categoryInput);
+  const normSym = normalizeSymbol(symbol);
+
+  const queryParts = [`category=${category}`, `symbol=${normSym}`];
+  if (orderId) queryParts.push(`orderId=${orderId}`);
+  if (clientOid) queryParts.push(`clientOid=${clientOid}`);
+  const queryString = queryParts.join('&');
+
+  try {
+    const headers = getAuthHeaders('GET', path, queryString);
+    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
+      method: 'GET',
+      headers,
+    });
+
+    const json = (await response.json()) as {
+      code: string;
+      data?: {
+        orderId: string;
+        clientOid?: string;
+        symbol: string;
+        side: 'buy' | 'sell';
+        orderType: 'limit' | 'market';
+        price?: string;
+        size: string;
+        status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+        baseVolume?: string;
+        cumExecQty?: string;
+        avgPrice?: string;
+        feeDetail?: Array<{ feeCoin: string; fee: string }>;
+        cTime?: string;
+        uTime?: string;
+      };
+    };
+
+    if ((json.code === '00000' || json.code === '0') && json.data) {
+      return {
+        ...json.data,
+        category,
+      };
+    }
+    return null;
+  } catch (err) {
+    console.warn('[Orders] getOrderInfoV3 query failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Fetch all unfilled (open/working) orders
+ */
+export async function getUnfilledOrdersV3(
+  symbol?: string,
+  categoryInput?: string
+): Promise<BitgetV3OrderInfo[]> {
+  const path = '/api/v3/trade/unfilled-orders';
+  const category = toV3Category(categoryInput);
+
+  const queryParts = [`category=${category}`];
+  if (symbol) queryParts.push(`symbol=${normalizeSymbol(symbol)}`);
+  const queryString = queryParts.join('&');
+
+  try {
+    const headers = getAuthHeaders('GET', path, queryString);
+    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
+      method: 'GET',
+      headers,
+    });
+
+    const json = (await response.json()) as {
+      code: string;
+      data?: Array<{
+        orderId: string;
+        clientOid?: string;
+        symbol: string;
+        side: 'buy' | 'sell';
+        orderType: 'limit' | 'market';
+        price?: string;
+        size: string;
+        status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+        baseVolume?: string;
+        cumExecQty?: string;
+        avgPrice?: string;
+        cTime?: string;
+        uTime?: string;
+      }>;
+    };
+
+    if ((json.code === '00000' || json.code === '0') && Array.isArray(json.data)) {
+      return json.data.map((o) => ({
+        ...o,
+        category,
+      }));
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Orders] getUnfilledOrdersV3 query failed:', err);
+    return [];
+  }
+}
+
+/**
  * Modify an active in-flight order on Bitget
  */
 export async function modifyOrderV3(
   params: BitgetV3ModifyParams
 ): Promise<{ success: boolean; orderId?: string }> {
   const path = '/api/v3/trade/modify-order';
-  const sym = normalizeSymbol(params.symbol);
+  const payload = buildModifyPayload(params);
 
-  const payload: Record<string, unknown> = {
-    symbol: sym,
-    category: params.category || 'usdt-futures',
-    orderId: params.orderId,
-    clientOid: params.clientOid,
-    newPrice: params.newPrice,
-    newSize: params.newSize,
-  };
-
-  const headers = getAuthHeaders('POST', path, '', payload);
+  const headers = getAuthHeaders('POST', path, '', payload as unknown as Record<string, unknown>);
   const response = await fetch(`${BITGET_REST_BASE}${path}`, {
     method: 'POST',
     headers,
@@ -173,16 +260,9 @@ export async function cancelOrderV3(
   params: BitgetV3CancelParams
 ): Promise<{ success: boolean; orderId?: string }> {
   const path = '/api/v3/trade/cancel-order';
-  const sym = normalizeSymbol(params.symbol);
+  const payload = buildCancelPayload(params);
 
-  const payload: Record<string, unknown> = {
-    symbol: sym,
-    category: params.category || 'usdt-futures',
-    orderId: params.orderId,
-    clientOid: params.clientOid,
-  };
-
-  const headers = getAuthHeaders('POST', path, '', payload);
+  const headers = getAuthHeaders('POST', path, '', payload as unknown as Record<string, unknown>);
   const response = await fetch(`${BITGET_REST_BASE}${path}`, {
     method: 'POST',
     headers,
@@ -200,4 +280,47 @@ export async function cancelOrderV3(
     success: true,
     orderId: json.data?.orderId || params.orderId,
   };
+}
+
+/**
+ * Batch cancel all open orders for a specific trading pair
+ */
+export async function cancelSymbolOrdersV3(
+  symbol: string,
+  categoryInput?: string
+): Promise<{ success: boolean; count?: number }> {
+  const path = '/api/v3/trade/cancel-symbol-order';
+  const payload = buildBatchCancelPayload(symbol, categoryInput);
+
+  const headers = getAuthHeaders('POST', path, '', payload as unknown as Record<string, unknown>);
+  const response = await fetch(`${BITGET_REST_BASE}${path}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const json = (await response.json()) as { code: string; msg: string; data?: unknown };
+
+  if (json.code !== '00000' && json.code !== '0') {
+    const err = classifyBitgetError(json.code, json.msg);
+    throw new Error(`Bitget Cancel Symbol Orders failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
+  }
+
+  return {
+    success: true,
+  };
+}
+
+/**
+ * Market close a position via reduce-only order
+ */
+export async function closePositionsV3(
+  symbol: string,
+  categoryInput: string,
+  side: 'buy' | 'sell',
+  size?: string,
+  posSide: 'long' | 'short' | 'net' = 'net'
+): Promise<BitgetV3OrderResponse> {
+  const payload = buildClosePositionsPayload(symbol, categoryInput, side, size, posSide);
+  return placeOrderV3(payload as unknown as BitgetV3OrderParams);
 }

@@ -1,37 +1,45 @@
 import { BITGET_REST_BASE } from '../rest';
 import { getAuthHeaders } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
-import type { BitgetV3Position } from '../types';
+import { toV3Category, type BitgetV3Position } from '../types';
 
-interface RawClassicPosition {
+interface RawV3PositionData {
   symbol?: string;
-  marginCoin?: string;
-  holdSide?: string;
+  posSide?: 'long' | 'short' | 'net';
+  holdSide?: 'long' | 'short' | 'net';
   total?: string;
   available?: string;
-  locked?: string;
-  margin?: string;
-  marginSize?: string;
-  leverage?: string | number;
+  frozen?: string;
+  avgPrice?: string;
   openPriceAvg?: string;
-  averageOpenPrice?: string;
   markPrice?: string;
   liquidationPrice?: string;
+  leverage?: string | number;
+  unrealisedPnl?: string;
   unrealizedPL?: string;
+  profitRate?: string;
+  mmr?: string;
   marginRate?: string;
-  marginMode?: string;
+  breakEvenPrice?: string;
+  marginMode?: 'crossed' | 'isolated';
+  holdMode?: 'single_hold' | 'double_hold';
+  positionStatus?: 'normal' | 'liquidation';
   cTime?: string;
   uTime?: string;
+  marginCoin?: string;
+  margin?: string;
+  locked?: string;
 }
 
 /**
  * Fetch current open positions on Bitget with Unified (v3) and Classic (v2) support
  */
 export async function getPositionsV3(
-  productType = 'USDT-FUTURES'
+  categoryInput = 'USDT-FUTURES'
 ): Promise<BitgetV3Position[]> {
-  const path = '/api/v3/trade/current-positions';
-  const queryString = `productType=${productType}`;
+  const category = toV3Category(categoryInput);
+  const path = '/api/v3/position/current-position';
+  const queryString = `category=${category}`;
 
   try {
     const headers = getAuthHeaders('GET', path, queryString);
@@ -43,17 +51,56 @@ export async function getPositionsV3(
     const json = (await response.json()) as {
       code: string;
       msg: string;
-      data?: BitgetV3Position[];
+      data?: { list?: RawV3PositionData[] } | RawV3PositionData[];
     };
 
     if (json.code === '00000' || json.code === '0') {
-      return json.data || [];
+      const rawList: RawV3PositionData[] = Array.isArray(json.data)
+        ? json.data
+        : json.data?.list || [];
+
+      return rawList.map((p) => {
+        const avgPrice = p.avgPrice || p.openPriceAvg || '0';
+        const unrealisedPnl = p.unrealisedPnl || p.unrealizedPL || '0';
+        const posSide = (p.posSide || p.holdSide || 'net') as 'long' | 'short' | 'net';
+        const mmr = p.mmr || p.marginRate || '0.005';
+        const leverage = p.leverage !== undefined ? String(p.leverage) : '1';
+
+        return {
+          symbol: p.symbol || '',
+          posSide,
+          total: p.total || '0',
+          available: p.available || '0',
+          frozen: p.frozen || p.locked || '0',
+          avgPrice,
+          markPrice: p.markPrice || '0',
+          liquidationPrice: p.liquidationPrice || '0',
+          leverage,
+          unrealisedPnl,
+          profitRate: p.profitRate,
+          mmr,
+          breakEvenPrice: p.breakEvenPrice,
+          marginMode: (p.marginMode as 'crossed' | 'isolated') || 'crossed',
+          holdMode: p.holdMode || 'single_hold',
+          positionStatus: p.positionStatus || 'normal',
+          cTime: p.cTime || p.uTime || '',
+          uTime: p.uTime,
+          // Compatibility fields
+          openPriceAvg: avgPrice,
+          unrealizedPL: unrealisedPnl,
+          holdSide: posSide,
+          marginCoin: p.marginCoin || 'USDT',
+          margin: p.margin || '0',
+          marginRate: mmr,
+          locked: p.frozen || p.locked || '0',
+        };
+      });
     }
 
     // Classic Account Fallback (Code 40084 or 40404)
     if (json.code === '40084' || json.code === '40404') {
       const v2Path = '/api/v2/mix/position/all-position';
-      const v2Query = `productType=${productType}`;
+      const v2Query = `productType=${category}`;
       const v2Headers = getAuthHeaders('GET', v2Path, v2Query);
       const v2Res = await fetch(`${BITGET_REST_BASE}${v2Path}?${v2Query}`, {
         method: 'GET',
@@ -62,27 +109,41 @@ export async function getPositionsV3(
       const v2Json = (await v2Res.json()) as {
         code: string;
         msg: string;
-        data?: RawClassicPosition[];
+        data?: RawV3PositionData[];
       };
 
       if (v2Json.code === '00000' || v2Json.code === '0') {
-        return (v2Json.data || []).map((p) => ({
-          symbol: p.symbol || '',
-          marginCoin: p.marginCoin || 'USDT',
-          holdSide: (p.holdSide as 'long' | 'short' | 'net') || 'net',
-          total: p.total || '0',
-          available: p.available || '0',
-          locked: p.locked || '0',
-          margin: p.marginSize || p.margin || '0',
-          leverage: typeof p.leverage === 'number' ? p.leverage : parseInt(p.leverage || '1', 10),
-          openPriceAvg: p.openPriceAvg || p.averageOpenPrice || '0',
-          markPrice: p.markPrice || '0',
-          liquidationPrice: p.liquidationPrice || '0',
-          unrealizedPL: p.unrealizedPL || '0',
-          marginRate: p.marginRate || '0',
-          marginMode: (p.marginMode as 'crossed' | 'isolated') || 'crossed',
-          cTime: p.cTime || p.uTime || '',
-        }));
+        return (v2Json.data || []).map((p) => {
+          const avgPrice = p.avgPrice || p.openPriceAvg || '0';
+          const unrealisedPnl = p.unrealisedPnl || p.unrealizedPL || '0';
+          const posSide = (p.posSide || p.holdSide || 'net') as 'long' | 'short' | 'net';
+          const mmr = p.marginRate || '0.005';
+          const leverage = p.leverage !== undefined ? String(p.leverage) : '1';
+
+          return {
+            symbol: p.symbol || '',
+            posSide,
+            total: p.total || '0',
+            available: p.available || '0',
+            frozen: p.locked || '0',
+            avgPrice,
+            markPrice: p.markPrice || '0',
+            liquidationPrice: p.liquidationPrice || '0',
+            leverage,
+            unrealisedPnl,
+            mmr,
+            marginMode: (p.marginMode as 'crossed' | 'isolated') || 'crossed',
+            cTime: p.cTime || p.uTime || '',
+            // Compatibility fields
+            openPriceAvg: avgPrice,
+            unrealizedPL: unrealisedPnl,
+            holdSide: posSide,
+            marginCoin: p.marginCoin || 'USDT',
+            margin: p.margin || '0',
+            marginRate: mmr,
+            locked: p.locked || '0',
+          };
+        });
       }
 
       const v2Err = classifyBitgetError(v2Json.code, v2Json.msg);

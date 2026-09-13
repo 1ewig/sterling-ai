@@ -5,6 +5,7 @@ import { ArrowUpRight, ArrowDownRight, ShieldCheck, CheckCircle2, AlertCircle, L
 
 interface TradeTicketData {
   ticketId?: string;
+  ticketToken?: string;
   symbol?: string;
   category?: string;
   side?: 'buy' | 'sell';
@@ -43,6 +44,7 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ticketToken: data.ticketToken,
           symbol: data.symbol,
           category: data.category,
           side: data.side,

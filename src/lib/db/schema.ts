@@ -36,6 +36,25 @@ export interface MarketSymbolRecord {
   updatedAt: number;
 }
 
+export interface InstrumentRecord {
+  symbol: string;
+  category: string;
+  baseCoin: string;
+  quoteCoin: string;
+  minTradeNum: string;
+  pricePlace: string;
+  volumePlace: string;
+  priceMultiplier?: string;
+  quantityMultiplier?: string;
+  minTradeUSDT?: string;
+  maxMarketOrderQty?: string;
+  maxLeverage?: string;
+  status: string;
+  buyLimitPriceRatio?: string;
+  sellLimitPriceRatio?: string;
+  updatedAt: number;
+}
+
 export const MAX_MESSAGES_PER_CONVERSATION = 100;
 export const DEFAULT_CONVERSATION_ID = 'default';
 
@@ -48,6 +67,7 @@ export class SterlingDatabase extends Dexie {
   conversations!: EntityTable<ConversationRecord, 'id'>;
   messages!: EntityTable<ChatMessageRecord, 'id'>;
   market_symbols!: EntityTable<MarketSymbolRecord, 'symbol'>;
+  instruments!: EntityTable<InstrumentRecord, 'symbol'>;
 
   constructor() {
     super('SterlingDatabase');
@@ -84,6 +104,14 @@ export class SterlingDatabase extends Dexie {
       conversations: 'id, createdAt, updatedAt',
       messages: 'id, conversationId, timestamp, role, status',
       market_symbols: 'symbol, baseAsset, volume24h, updatedAt',
+    });
+
+    // Schema v5: Cached trading instruments & precision rules
+    this.version(5).stores({
+      conversations: 'id, createdAt, updatedAt',
+      messages: 'id, conversationId, timestamp, role, status',
+      market_symbols: 'symbol, baseAsset, volume24h, updatedAt',
+      instruments: 'symbol, category, status, updatedAt',
     });
   }
 }

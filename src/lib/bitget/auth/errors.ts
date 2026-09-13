@@ -70,22 +70,57 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
     };
   }
 
+  // Order Not Found
+  if (cleanCode === '40725' || cleanCode === '24056' || lowerMsg.includes('order not exist') || lowerMsg.includes('order not found')) {
+    return {
+      category: 'ORDER_NOT_FOUND',
+      code: cleanCode,
+      message: rawMsg || 'Order does not exist or has already completed/cancelled.',
+      actionableGuidance: 'Check open orders or verify execution state using clientOid.',
+      canRetry: false,
+    };
+  }
+
+  // Permission Denied / Scope Mismatch
+  if (cleanCode === '40015' || lowerMsg.includes('permission denied') || lowerMsg.includes('authority')) {
+    return {
+      category: 'PERMISSION_DENIED',
+      code: cleanCode,
+      message: rawMsg || 'Bitget API key lacks the required Trade permissions.',
+      actionableGuidance: 'Edit your API key in the Bitget API management console to enable "Trade" permissions.',
+      canRetry: false,
+    };
+  }
+
+  // Leverage Exceeded
+  if (cleanCode === '40812' || lowerMsg.includes('leverage exceeds') || lowerMsg.includes('max leverage')) {
+    return {
+      category: 'LEVERAGE_EXCEEDED',
+      code: cleanCode,
+      message: rawMsg || 'Leverage multiple exceeds maximum allowable limit for this instrument/tier.',
+      actionableGuidance: 'Reduce the leverage multiple to match the instrument tier rules.',
+      canRetry: false,
+    };
+  }
+
   // Order Parameter or Size Limits
   if (
     cleanCode === '43025' ||
     cleanCode === '43026' ||
     cleanCode === '43004' ||
     cleanCode === '43009' ||
+    cleanCode === '40808' ||
     lowerMsg.includes('size') ||
     lowerMsg.includes('quantity') ||
-    lowerMsg.includes('leverage')
+    lowerMsg.includes('leverage') ||
+    lowerMsg.includes('min notional')
   ) {
     return {
       category: 'ORDER_INVALID',
       code: cleanCode,
-      message: rawMsg || 'Order size or leverage exceeds Bitget market constraints.',
+      message: rawMsg || 'Order size or parameters exceed Bitget market constraints.',
       actionableGuidance:
-        'Adjust the trade size to meet minimum contract step requirements or lower the leverage multiple.',
+        'Adjust the trade size or price to meet minimum notional/tick size constraints.',
       canRetry: false,
     };
   }

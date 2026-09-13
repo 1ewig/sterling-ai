@@ -8,32 +8,37 @@ export const accountOverviewTool = tool({
   inputSchema: accountOverviewParamsSchema,
   execute: async ({ category = 'all' }) => {
     try {
-      const overview = await getAccountOverviewV3();
+      const overview = await getAccountOverviewV3(category);
 
       return {
         success: true,
         category,
         accountMode: overview.accountMode,
+        accountLevel: overview.accountLevel || overview.accountMode,
         totalEquityUsdt: overview.totalEquityUsdt,
+        effEquityUsdt: overview.effEquityUsdt,
         availableEquityUsdt: overview.availableEquityUsdt,
         unrealizedPnlUsdt: overview.unrealizedPnlUsdt,
+        positionValueUsdt: overview.positionValueUsdt,
         marginRatioPercent: overview.marginRatioPercent,
         positionCount: overview.positions.length,
         positions: overview.positions.map((p) => ({
           symbol: p.symbol,
-          holdSide: p.holdSide,
+          posSide: p.posSide || p.holdSide || 'net',
+          holdSide: p.posSide || p.holdSide || 'net',
           size: p.total,
           leverage: `${p.leverage}x`,
-          entryPrice: parseFloat(p.openPriceAvg || '0'),
+          entryPrice: parseFloat(p.avgPrice || p.openPriceAvg || '0'),
           markPrice: parseFloat(p.markPrice || '0'),
           liquidationPrice: parseFloat(p.liquidationPrice || '0'),
-          unrealizedPnl: parseFloat(p.unrealizedPL || '0'),
+          unrealizedPnl: parseFloat(p.unrealisedPnl || p.unrealizedPL || '0'),
+          profitRate: p.profitRate ? `${(parseFloat(p.profitRate) * 100).toFixed(2)}%` : undefined,
           marginMode: p.marginMode,
         })),
         summary:
           overview.positions.length > 0
-            ? `Active Positions: ${overview.positions.length} contracts open with total unrealized PnL of ${overview.unrealizedPnlUsdt >= 0 ? '+' : ''}$${overview.unrealizedPnlUsdt.toFixed(2)}.`
-            : 'No open positions on Bitget v3. Account is 100% in cash/collateral.',
+            ? `Active Positions (${category.toUpperCase()}): ${overview.positions.length} contracts open with total unrealized PnL of ${overview.unrealizedPnlUsdt >= 0 ? '+' : ''}$${overview.unrealizedPnlUsdt.toFixed(2)} (Margin Ratio: ${overview.marginRatioPercent}%).`
+            : `No open positions in ${category.toUpperCase()}. Account is in collateral.`,
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to query account balance.';
