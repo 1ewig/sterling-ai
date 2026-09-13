@@ -185,7 +185,11 @@ export async function getInstrument(
  * Snaps a price value to the instrument's allowed tick size / precision places
  */
 export function snapPriceToTick(price: number, instrument: BitgetInstrument): number {
-  const decimals = Math.max(0, parseInt(instrument.pricePlace || '2', 10));
+  const multiplierDecimals = instrument.priceMultiplier?.includes('.')
+    ? (instrument.priceMultiplier.split('.')[1] || '').length
+    : 0;
+  const pricePlaceDecimals = parseInt(instrument.pricePlace || '2', 10);
+  const decimals = Math.max(multiplierDecimals, pricePlaceDecimals, 2);
   const factor = Math.pow(10, decimals);
   return Math.round(price * factor) / factor;
 }
@@ -200,10 +204,19 @@ export function snapQtyToStep(
   instrument: BitgetInstrument,
   isSpotMarketBuy = false
 ): number {
-  const decimals = isSpotMarketBuy
-    ? 2 // USDT quote currency on spot is standard 2 decimal places
-    : Math.max(0, parseInt(instrument.volumePlace || '2', 10));
+  if (isSpotMarketBuy) {
+    return Math.max(0, Math.floor(qty * 100) / 100);
+  }
 
+  const minTradeDec = instrument.minTradeNum?.includes('.')
+    ? (instrument.minTradeNum.split('.')[1] || '').length
+    : 0;
+  const multDec = instrument.quantityMultiplier?.includes('.')
+    ? (instrument.quantityMultiplier.split('.')[1] || '').length
+    : 0;
+  const volPlaceDec = parseInt(instrument.volumePlace || '0', 10);
+
+  const decimals = Math.max(minTradeDec, multDec, volPlaceDec);
   const factor = Math.pow(10, decimals);
   const snapped = Math.floor(qty * factor) / factor;
   return Math.max(0, snapped);

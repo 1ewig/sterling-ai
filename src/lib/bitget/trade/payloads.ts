@@ -50,7 +50,7 @@ export interface V3ClosePositionPayload {
   orderType: 'market';
   qty?: string;
   posSide?: 'long' | 'short' | 'net';
-  reduceOnly: 'YES';
+  reduceOnly?: 'YES';
   clientOid?: string;
 }
 
@@ -95,7 +95,9 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
 
   if (!isSpot) {
     payload.posSide = posSide;
-    if (isReduceOnly) {
+    // In Hedge Mode (posSide = 'long' | 'short'), Bitget UTA v3 strictly forbids reduceOnly alongside posSide (Error 25238).
+    // Only pass reduceOnly in One-Way mode (posSide = 'net')
+    if (posSide === 'net' && isReduceOnly) {
       payload.reduceOnly = 'YES';
     }
     payload.marginMode = params.marginMode || 'crossed';
@@ -188,14 +190,20 @@ export function buildClosePositionsPayload(
   const normCategory = toV3Category(category);
   const normSymbol = normalizeSymbol(symbol);
 
-  return {
+  const payload: V3ClosePositionPayload = {
     category: normCategory,
     symbol: normSymbol,
     side,
     orderType: 'market',
     qty: size,
     posSide: normCategory === 'SPOT' ? 'net' : posSide,
-    reduceOnly: 'YES',
     clientOid: `close_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
   };
+
+  // Only pass reduceOnly when posSide is 'net' (One-Way mode) to avoid Bitget error 25238
+  if (payload.posSide === 'net' && normCategory !== 'SPOT') {
+    payload.reduceOnly = 'YES';
+  }
+
+  return payload;
 }
