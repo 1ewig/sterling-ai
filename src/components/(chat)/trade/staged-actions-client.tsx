@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useStagedActions } from '@/hooks/chat';
-import { StagedTradesHeaderPill } from './staged-trades-header-pill';
+import { StagedActionsDropdown } from './staged-actions-dropdown';
 import { OrderConfirmationModal } from './order-confirmation-modal';
 import { CancelOrderModal } from './cancel-order-modal';
 import { ClosePositionModal } from './close-position-modal';
@@ -290,9 +290,9 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
 
   return (
     <>
-      {/* 1. Header Pill UI block */}
+      {/* 1. Dropdown UI block */}
       {renderPill && (
-        <StagedTradesHeaderPill
+        <StagedActionsDropdown
           counts={counts}
           activeActions={activeActions}
           orders={orders}

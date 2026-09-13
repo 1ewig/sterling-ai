@@ -5,3 +5,4 @@ export * from './markdown-view';
 export * from './input';
 export * from './messages';
 export * from './reasoning';
+export * from './trade';
