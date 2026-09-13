@@ -8,6 +8,7 @@ import { tapScalePill, dropdownMenuVariants } from '@/constants/animation';
 
 export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill() {
   const stagedTrades = useStagedTradesStore((s) => s.stagedTrades);
+  const hasHydrated = useStagedTradesStore((s) => s._hasHydrated);
   const openPopup = useStagedTradesStore((s) => s.openPopup);
   const discardTrade = useStagedTradesStore((s) => s.discardTrade);
 
@@ -17,7 +18,7 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
 
   // Active trades are those still pending confirmation or executing
   const activeTrades = stagedTrades.filter(
-    (t) => t.status === 'staged' || t.status === 'executing'
+    (t) => (t.status === 'staged' || t.status === 'executing') && (t.expiresAt ? t.expiresAt > now : true)
   );
 
   // Update clock every second while dropdown is open
@@ -61,7 +62,7 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
     [discardTrade, activeTrades.length]
   );
 
-  if (activeTrades.length === 0) {
+  if (!hasHydrated || activeTrades.length === 0) {
     return null;
   }
 
