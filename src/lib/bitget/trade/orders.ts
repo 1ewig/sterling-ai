@@ -1,6 +1,6 @@
 import { BITGET_REST_BASE } from '../rest';
 import { normalizeSymbol } from '../symbols';
-import { getAuthHeaders } from '../auth/signer';
+import { getAuthHeaders, sortQueryString } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
 import {
   buildPlaceOrderPayload,
@@ -75,7 +75,8 @@ export async function getOrderInfoV3(
   const queryParts = [`category=${category}`, `symbol=${normSym}`];
   if (orderId) queryParts.push(`orderId=${orderId}`);
   if (clientOid) queryParts.push(`clientOid=${clientOid}`);
-  const queryString = queryParts.join('&');
+  // Bitget requires query params sorted alphabetically by key for GET signature verification
+  const queryString = sortQueryString(queryParts.join('&'));
 
   try {
     const headers = getAuthHeaders('GET', path, queryString);
@@ -148,6 +149,11 @@ export async function getOrderInfoV3(
         : json.data;
 
       if (order && order.orderId) {
+        const raw = order as unknown as {
+          orderStatus?: string;
+          createdTime?: string;
+          updatedTime?: string;
+        };
         return {
           orderId: order.orderId,
           clientOid: order.clientOid,
@@ -157,13 +163,13 @@ export async function getOrderInfoV3(
           orderType: order.orderType,
           price: order.price,
           size: order.size || order.qty || '0',
-          status: order.status,
+          status: (raw.orderStatus || order.status || 'new') as BitgetV3OrderInfo['status'],
           baseVolume: order.baseVolume,
           cumExecQty: order.cumExecQty,
           avgPrice: order.avgPrice,
           feeDetail: order.feeDetail,
-          cTime: order.cTime,
-          uTime: order.uTime,
+          cTime: raw.createdTime || order.cTime,
+          uTime: raw.updatedTime || order.uTime,
         };
       }
     }
@@ -186,7 +192,8 @@ export async function getUnfilledOrdersV3(
 
   const queryParts = [`category=${category}`];
   if (symbol) queryParts.push(`symbol=${normalizeSymbol(symbol)}`);
-  const queryString = queryParts.join('&');
+  // Bitget requires query params sorted alphabetically by key for GET signature verification
+  const queryString = sortQueryString(queryParts.join('&'));
 
   try {
     const headers = getAuthHeaders('GET', path, queryString);
@@ -241,22 +248,25 @@ export async function getUnfilledOrdersV3(
         ? json.data.list
         : [];
 
-      return rawList.map((o) => ({
-        orderId: o.orderId,
-        clientOid: o.clientOid,
-        symbol: o.symbol,
-        category,
-        side: o.side,
-        orderType: o.orderType,
-        price: o.price,
-        size: o.size || o.qty || '0',
-        status: o.status,
-        baseVolume: o.baseVolume,
-        cumExecQty: o.cumExecQty,
-        avgPrice: o.avgPrice,
-        cTime: o.cTime,
-        uTime: o.uTime,
-      }));
+      return rawList.map((o) => {
+        const rawStatus = (o as unknown as { orderStatus?: string; createdTime?: string; updatedTime?: string });
+        return {
+          orderId: o.orderId,
+          clientOid: o.clientOid,
+          symbol: o.symbol,
+          category,
+          side: o.side,
+          orderType: o.orderType,
+          price: o.price,
+          size: o.size || o.qty || '0',
+          status: (rawStatus.orderStatus || o.status || 'new') as BitgetV3OrderInfo['status'],
+          baseVolume: o.baseVolume,
+          cumExecQty: o.cumExecQty,
+          avgPrice: o.avgPrice,
+          cTime: rawStatus.createdTime || o.cTime,
+          uTime: rawStatus.updatedTime || o.uTime,
+        };
+      });
     }
 
     return [];

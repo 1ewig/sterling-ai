@@ -13,8 +13,12 @@ export interface V3PlaceOrderPayload {
   marginMode?: 'crossed' | 'isolated';
   timeInForce?: 'gtc' | 'ioc' | 'fok' | 'post_only';
   clientOid?: string;
-  presetStopLossPrice?: string;
-  presetTakeProfitPrice?: string;
+  stopLoss?: string;
+  takeProfit?: string;
+  tpTriggerBy?: 'market' | 'mark';
+  slTriggerBy?: 'market' | 'mark';
+  tpOrderType?: 'limit' | 'market';
+  slOrderType?: 'limit' | 'market';
 }
 
 export interface V3ModifyOrderPayload {
@@ -24,7 +28,7 @@ export interface V3ModifyOrderPayload {
   clientOid?: string;
   price?: string;
   qty?: string;
-  autoCancel?: boolean;
+  autoCancel?: 'yes' | 'no';
 }
 
 export interface V3CancelOrderPayload {
@@ -45,7 +49,6 @@ export interface V3ClosePositionPayload {
   side: 'buy' | 'sell';
   orderType: 'market';
   qty?: string;
-  size?: string;
   posSide?: 'long' | 'short' | 'net';
   reduceOnly: 'YES';
   clientOid?: string;
@@ -71,14 +74,18 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
     }
   }
 
-  const isReduceOnly = params.reduceOnly === true || params.tradeSide === 'close';
+  const rawReduceOnly = (params as { reduceOnly?: boolean | string }).reduceOnly;
+  const isReduceOnly =
+    params.tradeSide === 'close' ||
+    rawReduceOnly === true ||
+    (typeof rawReduceOnly === 'string' && rawReduceOnly.toUpperCase() === 'YES');
 
   const payload: V3PlaceOrderPayload = {
     category,
     symbol,
     side: params.side,
     orderType: params.orderType,
-    qty: params.size,
+    qty: params.size ?? (params as { qty?: string }).qty,
     clientOid: params.clientOid || `argus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
   };
 
@@ -97,14 +104,23 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
   payload.timeInForce = params.timeInForce || 'gtc';
 
   // Bitget V3 Preset Stop-Loss and Take-Profit
-  const slPrice = params.presetStopLossPrice || params.stopLoss?.triggerPrice;
+  // UTA v3 root fields are `stopLoss` / `takeProfit` (Classic v2 names: presetStopLossPrice / presetTakeProfitPrice).
+  const slPrice = params.stopLossPrice || params.presetStopLossPrice || params.stopLoss?.triggerPrice;
   if (slPrice && parseFloat(slPrice) > 0) {
-    payload.presetStopLossPrice = slPrice;
+    payload.stopLoss = slPrice;
+    payload.slOrderType = params.slOrderType || 'market';
+    if (params.stopLoss?.triggerType === 'mark_price') {
+      payload.slTriggerBy = 'mark';
+    }
   }
 
-  const tpPrice = params.presetTakeProfitPrice || params.takeProfit?.triggerPrice;
+  const tpPrice = params.takeProfitPrice || params.presetTakeProfitPrice || params.takeProfit?.triggerPrice;
   if (tpPrice && parseFloat(tpPrice) > 0) {
-    payload.presetTakeProfitPrice = tpPrice;
+    payload.takeProfit = tpPrice;
+    payload.tpOrderType = params.tpOrderType || 'market';
+    if (params.takeProfit?.triggerType === 'mark_price') {
+      payload.tpTriggerBy = 'mark';
+    }
   }
 
   return payload;
@@ -131,7 +147,7 @@ export function buildModifyPayload(params: BitgetV3ModifyParams): V3ModifyOrderP
     payload.qty = params.newSize;
   }
   if (params.autoCancel !== undefined) {
-    payload.autoCancel = params.autoCancel;
+    payload.autoCancel = params.autoCancel === true || params.autoCancel === 'yes' ? 'yes' : 'no';
   }
 
   return payload;
@@ -178,7 +194,6 @@ export function buildClosePositionsPayload(
     side,
     orderType: 'market',
     qty: size,
-    size,
     posSide: normCategory === 'SPOT' ? 'net' : posSide,
     reduceOnly: 'YES',
     clientOid: `close_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,

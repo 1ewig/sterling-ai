@@ -42,8 +42,8 @@ export async function POST(req: Request) {
         size: p.size.toString(),
         price: p.price ? p.price.toString() : undefined,
         tradeSide: p.tradeSide || 'open',
-        presetStopLossPrice: p.stopLossPrice ? p.stopLossPrice.toString() : undefined,
-        presetTakeProfitPrice: p.takeProfitPrice ? p.takeProfitPrice.toString() : undefined,
+        stopLossPrice: p.stopLossPrice ? p.stopLossPrice.toString() : undefined,
+        takeProfitPrice: p.takeProfitPrice ? p.takeProfitPrice.toString() : undefined,
         clientOid: p.clientOid,
       };
     } else {
@@ -63,8 +63,8 @@ export async function POST(req: Request) {
         size: body.size.toString(),
         price: body.price ? body.price.toString() : undefined,
         tradeSide: body.tradeSide || 'open',
-        presetStopLossPrice: body.stopLossPrice ? body.stopLossPrice.toString() : undefined,
-        presetTakeProfitPrice: body.takeProfitPrice ? body.takeProfitPrice.toString() : undefined,
+        stopLossPrice: body.stopLossPrice ? body.stopLossPrice.toString() : undefined,
+        takeProfitPrice: body.takeProfitPrice ? body.takeProfitPrice.toString() : undefined,
         clientOid: body.clientOid,
       };
     }

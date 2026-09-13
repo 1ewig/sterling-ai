@@ -177,7 +177,7 @@ export interface BitgetV3OrderInfo {
   orderType: 'limit' | 'market';
   price?: string;
   size: string;
-  status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+  status: 'init' | 'live' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
   baseVolume?: string;
   cumExecQty?: string;
   avgPrice?: string;
@@ -220,7 +220,13 @@ export interface BitgetV3OrderParams {
   marginCoin?: string;
   timeInForce?: 'gtc' | 'ioc' | 'fok' | 'post_only';
   clientOid?: string;
+  /** Preset Stop-Loss price (UTA v3 root field `stopLoss`) */
+  stopLossPrice?: string;
+  /** Preset Take-Profit price (UTA v3 root field `takeProfit`) */
+  takeProfitPrice?: string;
+  /** @deprecated Legacy Classic v2 alias; use `stopLossPrice` for UTA v3 */
   presetStopLossPrice?: string;
+  /** @deprecated Legacy Classic v2 alias; use `takeProfitPrice` for UTA v3 */
   presetTakeProfitPrice?: string;
   stopLoss?: {
     triggerPrice: string;
@@ -243,7 +249,7 @@ export interface BitgetV3ModifyParams {
   clientOid?: string;
   newPrice?: string;
   newSize?: string;
-  autoCancel?: boolean;
+  autoCancel?: boolean | 'yes' | 'no';
 }
 
 export interface BitgetV3CancelParams {
