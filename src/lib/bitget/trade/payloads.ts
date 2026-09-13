@@ -78,7 +78,7 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
     side: params.side,
     orderType: params.orderType,
     qty: params.size ?? (params as { qty?: string }).qty,
-    clientOid: params.clientOid || `argus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    clientOid: params.clientOid || `sterling_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
   };
 
   if (params.price && params.orderType === 'limit') {

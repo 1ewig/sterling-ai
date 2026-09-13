@@ -80,11 +80,15 @@ export async function fetchInstrumentsV3(
         symbol: string;
         baseCoin?: string;
         quoteCoin?: string;
+        minOrderQty?: string;
         minTradeNum?: string;
+        pricePrecision?: string;
         pricePlace?: string;
+        quantityPrecision?: string;
         volumePlace?: string;
         priceMultiplier?: string;
         quantityMultiplier?: string;
+        minOrderAmount?: string;
         minTradeUSDT?: string;
         maxMarketOrderQty?: string;
         maxLeverage?: string;
@@ -100,12 +104,12 @@ export async function fetchInstrumentsV3(
         category,
         baseCoin: item.baseCoin || '',
         quoteCoin: item.quoteCoin || 'USDT',
-        minTradeNum: item.minTradeNum || '0.001',
-        pricePlace: item.pricePlace || '2',
-        volumePlace: item.volumePlace || '2',
+        minTradeNum: item.minOrderQty || item.minTradeNum || '0.001',
+        pricePlace: item.pricePrecision || item.pricePlace || '2',
+        volumePlace: item.quantityPrecision || item.volumePlace || '2',
         priceMultiplier: item.priceMultiplier,
         quantityMultiplier: item.quantityMultiplier,
-        minTradeUSDT: item.minTradeUSDT || '5',
+        minTradeUSDT: item.minOrderAmount || item.minTradeUSDT || '5',
         maxMarketOrderQty: item.maxMarketOrderQty || '100000',
         maxLeverage: item.maxLeverage || '50',
         status: (item.status || 'online').toLowerCase(),
@@ -182,14 +186,24 @@ export async function getInstrument(
 }
 
 /**
- * Snaps a price value to the instrument's allowed tick size / precision places
+ * Snaps a price value to the instrument's allowed tick size / precision places.
+ * Accurately aligns to priceMultiplier step and decimals without forcing arbitrary min decimals.
  */
 export function snapPriceToTick(price: number, instrument: BitgetInstrument): number {
-  const multiplierDecimals = instrument.priceMultiplier?.includes('.')
-    ? (instrument.priceMultiplier.split('.')[1] || '').length
+  const priceMultiplier = instrument.priceMultiplier;
+  const tick = priceMultiplier && parseFloat(priceMultiplier) > 0 ? parseFloat(priceMultiplier) : 0;
+
+  const multDecimals = priceMultiplier?.includes('.')
+    ? (priceMultiplier.split('.')[1] || '').length
     : 0;
   const pricePlaceDecimals = parseInt(instrument.pricePlace || '2', 10);
-  const decimals = Math.max(multiplierDecimals, pricePlaceDecimals, 2);
+  const decimals = Math.max(multDecimals, Number.isFinite(pricePlaceDecimals) ? pricePlaceDecimals : 0);
+
+  if (tick > 0) {
+    const snapped = Math.round(price / tick) * tick;
+    return parseFloat(snapped.toFixed(decimals));
+  }
+
   const factor = Math.pow(10, decimals);
   return Math.round(price * factor) / factor;
 }
@@ -208,6 +222,10 @@ export function snapQtyToStep(
     return Math.max(0, Math.floor(qty * 100) / 100);
   }
 
+  const step = instrument.quantityMultiplier && parseFloat(instrument.quantityMultiplier) > 0
+    ? parseFloat(instrument.quantityMultiplier)
+    : 0;
+
   const minTradeDec = instrument.minTradeNum?.includes('.')
     ? (instrument.minTradeNum.split('.')[1] || '').length
     : 0;
@@ -216,7 +234,13 @@ export function snapQtyToStep(
     : 0;
   const volPlaceDec = parseInt(instrument.volumePlace || '0', 10);
 
-  const decimals = Math.max(minTradeDec, multDec, volPlaceDec);
+  const decimals = Math.max(minTradeDec, multDec, Number.isFinite(volPlaceDec) ? volPlaceDec : 0);
+
+  if (step > 0) {
+    const snapped = Math.floor(qty / step) * step;
+    return Math.max(0, parseFloat(snapped.toFixed(decimals)));
+  }
+
   const factor = Math.pow(10, decimals);
   const snapped = Math.floor(qty * factor) / factor;
   return Math.max(0, snapped);

@@ -1,6 +1,5 @@
-import { BITGET_REST_BASE } from '../rest';
 import { normalizeSymbol } from '../symbols';
-import { getAuthHeaders, sortQueryString } from '../auth/signer';
+import { sortQueryString } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
 import { safeGetJson } from './fetch';
 import {
@@ -33,26 +32,26 @@ export interface RawUnfilledOrder {
   timeInForce?: string;
   orderStatus?: string;
   status?: string;
+  tradeSide?: string;
+  cancelReason?: string;
+  execType?: string;
   posSide?: string;
   holdMode?: string;
   reduceOnly?: string;
   marginMode?: string;
   delegateType?: string;
-  tradeSide?: string;
   stpMode?: string;
-  takeProfit?: string;
-  stopLoss?: string;
-  tpTriggerBy?: string;
-  slTriggerBy?: string;
-  tpOrderType?: string;
-  slOrderType?: string;
-  feeDetail?: Array<{ feeCoin?: string | null; fee?: string | null }>;
-  cancelReason?: string;
-  execType?: string;
-  createdTime?: string;
-  updatedTime?: string;
+  takeProfit?: string | null;
+  stopLoss?: string | null;
+  tpTriggerBy?: string | null;
+  slTriggerBy?: string | null;
+  tpOrderType?: string | null;
+  slOrderType?: string | null;
   cTime?: string;
   uTime?: string;
+  createdTime?: string;
+  updatedTime?: string;
+  feeDetail?: Array<{ feeCoin: string; fee: string }>;
 }
 
 /** Map a raw unfilled-orders item to the enriched BitgetV3OrderInfo (v3 uses `qty`, not `size`) */
@@ -93,12 +92,12 @@ export function mapOpenOrder(o: RawUnfilledOrder, category: BitgetV3Category): B
     delegateType: o.delegateType,
     tradeSide: o.tradeSide === 'open' || o.tradeSide === 'close' ? o.tradeSide : undefined,
     stpMode: o.stpMode,
-    takeProfit: o.takeProfit,
-    stopLoss: o.stopLoss,
-    tpTriggerBy: o.tpTriggerBy,
-    slTriggerBy: o.slTriggerBy,
-    tpOrderType: o.tpOrderType,
-    slOrderType: o.slOrderType,
+    takeProfit: o.takeProfit ?? undefined,
+    stopLoss: o.stopLoss ?? undefined,
+    tpTriggerBy: o.tpTriggerBy ?? undefined,
+    slTriggerBy: o.slTriggerBy ?? undefined,
+    tpOrderType: o.tpOrderType ?? undefined,
+    slOrderType: o.slOrderType ?? undefined,
     cancelReason: o.cancelReason,
     execType: o.execType,
     rawStatus,
@@ -106,7 +105,7 @@ export function mapOpenOrder(o: RawUnfilledOrder, category: BitgetV3Category): B
 }
 
 /**
- * Query detailed execution status of a specific order
+ * Fetch detailed state of a single order via GET /api/v3/trade/order-info
  */
 export async function getOrderInfoV3(
   symbol: string,
@@ -121,103 +120,25 @@ export async function getOrderInfoV3(
   const queryParts = [`category=${category}`, `symbol=${normSym}`];
   if (orderId) queryParts.push(`orderId=${orderId}`);
   if (clientOid) queryParts.push(`clientOid=${clientOid}`);
-  // Bitget requires query params sorted alphabetically by key for GET signature verification
   const queryString = sortQueryString(queryParts.join('&'));
 
   try {
-    const headers = getAuthHeaders('GET', path, queryString);
-    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
-      method: 'GET',
-      headers,
-    });
+    const result = await safeGetJson('GET', path, queryString);
+    if (!result.ok || !result.json?.data) {
+      return null;
+    }
 
-    const json = (await response.json()) as {
-      code: string;
-      data?:
-        | {
-            orderId: string;
-            clientOid?: string;
-            symbol: string;
-            side: 'buy' | 'sell';
-            orderType: 'limit' | 'market';
-            price?: string;
-            size?: string;
-            qty?: string;
-            baseVolume?: string;
-            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-            cumExecQty?: string;
-            avgPrice?: string;
-            feeDetail?: Array<{ feeCoin: string; fee: string }>;
-            cTime?: string;
-            uTime?: string;
-            list?: Array<{
-              orderId: string;
-              clientOid?: string;
-              symbol: string;
-              side: 'buy' | 'sell';
-              orderType: 'limit' | 'market';
-              price?: string;
-              size?: string;
-              qty?: string;
-              status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-              baseVolume?: string;
-              cumExecQty?: string;
-              avgPrice?: string;
-              feeDetail?: Array<{ feeCoin: string; fee: string }>;
-              cTime?: string;
-              uTime?: string;
-            }>;
-          }
-        | Array<{
-            orderId: string;
-            clientOid?: string;
-            symbol: string;
-            side: 'buy' | 'sell';
-            orderType: 'limit' | 'market';
-            price?: string;
-            size?: string;
-            qty?: string;
-            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-            baseVolume?: string;
-            cumExecQty?: string;
-            avgPrice?: string;
-            feeDetail?: Array<{ feeCoin: string; fee: string }>;
-            cTime?: string;
-            uTime?: string;
-          }>;
-    };
+    const data = result.json.data;
+    const orderRaw = (
+      Array.isArray(data)
+        ? data[0]
+        : (data as { list?: RawUnfilledOrder[] }).list
+        ? (data as { list: RawUnfilledOrder[] }).list[0]
+        : data
+    ) as RawUnfilledOrder | undefined;
 
-    if ((json.code === '00000' || json.code === '0') && json.data) {
-      const order = Array.isArray(json.data)
-        ? json.data[0]
-        : Array.isArray(json.data.list)
-        ? json.data.list[0]
-        : json.data;
-
-      if (order && order.orderId) {
-        const raw = order as unknown as {
-          orderStatus?: string;
-          createdTime?: string;
-          updatedTime?: string;
-        };
-        return {
-          orderId: order.orderId,
-          clientOid: order.clientOid,
-          symbol: order.symbol || normSym,
-          category,
-          side: order.side,
-          orderType: order.orderType,
-          price: order.price,
-          size: order.size || order.qty || '0',
-          status: (raw.orderStatus || order.status || 'new') as BitgetV3OrderInfo['status'],
-          baseVolume: order.baseVolume,
-          cumExecQty: order.cumExecQty,
-          avgPrice: order.avgPrice,
-          feeDetail: order.feeDetail,
-          cTime: raw.createdTime || order.cTime,
-          uTime: raw.updatedTime || order.uTime,
-        };
-      }
+    if (orderRaw && orderRaw.orderId) {
+      return mapOpenOrder(orderRaw, category);
     }
     return null;
   } catch (err) {

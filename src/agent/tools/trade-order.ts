@@ -130,7 +130,7 @@ export const stageTradeOrderTool = tool({
       }
 
       const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      const clientOid = `argus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const clientOid = `sterling_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
       // 7. Cryptographically seal ticket parameters into an HMAC token
       const ticketToken = createTradeTicketToken({
