@@ -13,10 +13,14 @@ import {
   ShieldAlert,
   TrendingUp,
 } from 'lucide-react';
-import { useStagedActions, type StagedTradeItem } from '@/hooks/chat';
+import type { StagedTradeItem, StagedActionCounts } from '@/hooks/chat';
 import { tapScalePill, dropdownMenuVariants } from '@/constants/animation';
 
 type StagedTab = 'all' | 'orders' | 'cancels' | 'closes';
+
+/* -------------------------------------------------------------------------- */
+/*                                Action Row                                  */
+/* -------------------------------------------------------------------------- */
 
 interface StagedActionRowProps {
   item: StagedTradeItem;
@@ -136,19 +140,33 @@ const StagedActionRow = React.memo(function StagedActionRow({
   );
 });
 
-export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill() {
-  const {
-    activeActions,
-    orders,
-    cancels,
-    closes,
-    counts,
-    hasHydrated,
-    now,
-    openPopup,
-    discardAction,
-  } = useStagedActions();
+/* -------------------------------------------------------------------------- */
+/*                       Reusable Pure UI Header Pill                         */
+/* -------------------------------------------------------------------------- */
 
+export interface StagedTradesHeaderPillProps {
+  counts: StagedActionCounts;
+  activeActions: StagedTradeItem[];
+  orders: StagedTradeItem[];
+  cancels: StagedTradeItem[];
+  closes: StagedTradeItem[];
+  now: number;
+  onSelectAction: (id: string) => void;
+  onDiscardAction: (id: string) => void;
+  hasHydrated?: boolean;
+}
+
+export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill({
+  counts,
+  activeActions,
+  orders,
+  cancels,
+  closes,
+  now,
+  onSelectAction,
+  onDiscardAction,
+  hasHydrated = true,
+}: StagedTradesHeaderPillProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<StagedTab>('all');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -166,23 +184,23 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  const handleSelectAction = useCallback(
+  const handleSelect = useCallback(
     (id: string) => {
-      openPopup(id);
+      onSelectAction(id);
       setIsOpen(false);
     },
-    [openPopup]
+    [onSelectAction]
   );
 
   const handleDiscard = useCallback(
     (e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      discardAction(id);
+      onDiscardAction(id);
       if (counts.total <= 1) {
         setIsOpen(false);
       }
     },
-    [discardAction, counts.total]
+    [onDiscardAction, counts.total]
   );
 
   if (!hasHydrated || counts.total === 0) {
@@ -319,7 +337,7 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
                             key={item.id}
                             item={item}
                             now={now}
-                            onSelect={handleSelectAction}
+                            onSelect={handleSelect}
                             onDiscard={handleDiscard}
                           />
                         ))}
@@ -338,7 +356,7 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
                             key={item.id}
                             item={item}
                             now={now}
-                            onSelect={handleSelectAction}
+                            onSelect={handleSelect}
                             onDiscard={handleDiscard}
                           />
                         ))}
@@ -357,7 +375,7 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
                             key={item.id}
                             item={item}
                             now={now}
-                            onSelect={handleSelectAction}
+                            onSelect={handleSelect}
                             onDiscard={handleDiscard}
                           />
                         ))}
@@ -375,7 +393,7 @@ export const StagedTradesHeaderPill = React.memo(function StagedTradesHeaderPill
                     key={item.id}
                     item={item}
                     now={now}
-                    onSelect={handleSelectAction}
+                    onSelect={handleSelect}
                     onDiscard={handleDiscard}
                   />
                 ))
