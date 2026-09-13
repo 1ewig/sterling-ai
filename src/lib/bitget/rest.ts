@@ -5,39 +5,36 @@ import type {
   OpenInterestInfo,
   OrderbookDepth,
 } from './types';
-import { normalizeSymbol } from './symbols';
+import { normalizeSymbol, normalizeGranularity } from './symbols';
 
 export const BITGET_REST_BASE = 'https://api.bitget.com';
 
-function normalizeV3Interval(granularity: string): string {
-  const g = granularity.toUpperCase().trim();
-  switch (g) {
-    case '1MIN':
-    case '1M':
-      return '1m';
-    case '5MIN':
-    case '5M':
-      return '5m';
-    case '15MIN':
-    case '15M':
-      return '15m';
-    case '30MIN':
-    case '30M':
-      return '30m';
-    case '1H':
-    case '60MIN':
-      return '1H';
-    case '4H':
-      return '4H';
-    case '1D':
-    case 'D':
-      return '1D';
-    case '1W':
-    case 'W':
-      return '1W';
-    default:
-      return '4H';
-  }
+function mapTickerItem(item: Record<string, string>, sym: string): BitgetTicker {
+  return {
+    symbol: item.symbol || sym,
+    lastPr: item.lastPrice,
+    high24h: item.highPrice24h || '0',
+    low24h: item.lowPrice24h || '0',
+    change24h: item.price24hPcnt || '0',
+    usdtVolume: item.turnover24h || item.volume24h,
+    quoteVolume: item.turnover24h,
+    baseVolume: item.volume24h,
+    ts: item.ts,
+  };
+}
+
+function mapCandleRows(rows: string[][]): KlineCandle[] {
+  return rows
+    .map((row) => ({
+      timestamp: parseInt(row[0], 10),
+      open: parseFloat(row[1]),
+      high: parseFloat(row[2]),
+      low: parseFloat(row[3]),
+      close: parseFloat(row[4]),
+      volume: parseFloat(row[5] || '0'),
+      quoteVolume: parseFloat(row[6] || '0'),
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
 }
 
 /**
@@ -58,17 +55,7 @@ export async function fetchBitgetTicker(symbol: string, isFutures = true): Promi
         const json = (await res.json()) as { code: string; data?: Array<Record<string, string>> };
         const item = json.data?.find((t) => t.symbol === sym) || json.data?.[0];
         if (item && item.lastPrice) {
-          return {
-            symbol: item.symbol || sym,
-            lastPr: item.lastPrice,
-            high24h: item.highPrice24h || '0',
-            low24h: item.lowPrice24h || '0',
-            change24h: item.price24hPcnt || '0',
-            usdtVolume: item.turnover24h || item.volume24h,
-            quoteVolume: item.turnover24h,
-            baseVolume: item.volume24h,
-            ts: item.ts,
-          };
+          return mapTickerItem(item, sym);
         }
       }
     } catch {
@@ -87,17 +74,7 @@ export async function fetchBitgetTicker(symbol: string, isFutures = true): Promi
       const json = (await spotRes.json()) as { code: string; data?: Array<Record<string, string>> };
       const item = json.data?.find((t) => t.symbol === sym) || json.data?.[0];
       if (item && item.lastPrice) {
-        return {
-          symbol: item.symbol || sym,
-          lastPr: item.lastPrice,
-          high24h: item.highPrice24h || '0',
-          low24h: item.lowPrice24h || '0',
-          change24h: item.price24hPcnt || '0',
-          usdtVolume: item.turnover24h || item.volume24h,
-          quoteVolume: item.turnover24h,
-          baseVolume: item.volume24h,
-          ts: item.ts,
-        };
+        return mapTickerItem(item, sym);
       }
     }
   } catch {
@@ -119,7 +96,7 @@ export async function fetchBitgetCandles(
   isFutures = true
 ): Promise<KlineCandle[]> {
   const sym = normalizeSymbol(symbol);
-  const interval = normalizeV3Interval(granularity);
+  const interval = normalizeGranularity(granularity);
   const safeLimit = Math.min(Math.max(limit, 10), 200);
 
   // 1. Try V3 Futures Candlesticks
@@ -133,17 +110,7 @@ export async function fetchBitgetCandles(
       if (res.ok) {
         const json = (await res.json()) as { code: string; data?: string[][] };
         if (json.data && json.data.length >= 10) {
-          return json.data
-            .map((row) => ({
-              timestamp: parseInt(row[0], 10),
-              open: parseFloat(row[1]),
-              high: parseFloat(row[2]),
-              low: parseFloat(row[3]),
-              close: parseFloat(row[4]),
-              volume: parseFloat(row[5] || '0'),
-              quoteVolume: parseFloat(row[6] || '0'),
-            }))
-            .sort((a, b) => a.timestamp - b.timestamp);
+          return mapCandleRows(json.data);
         }
       }
     } catch {
@@ -161,17 +128,7 @@ export async function fetchBitgetCandles(
     if (spotRes.ok) {
       const json = (await spotRes.json()) as { code: string; data?: string[][] };
       if (json.data && json.data.length >= 10) {
-        return json.data
-          .map((row) => ({
-            timestamp: parseInt(row[0], 10),
-            open: parseFloat(row[1]),
-            high: parseFloat(row[2]),
-            low: parseFloat(row[3]),
-            close: parseFloat(row[4]),
-            volume: parseFloat(row[5] || '0'),
-            quoteVolume: parseFloat(row[6] || '0'),
-          }))
-          .sort((a, b) => a.timestamp - b.timestamp);
+        return mapCandleRows(json.data);
       }
     }
   } catch {
