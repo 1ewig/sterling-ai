@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, ShieldCheck, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowUpRight, ArrowDownRight, ShieldCheck, CheckCircle2, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
+import { useStagedTradesStore } from '@/stores/staged-trades-store';
 
 interface TradeTicketData {
   ticketId?: string;
@@ -30,14 +31,80 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
   resultObj: Record<string, unknown>;
 }) {
   const data = resultObj as unknown as TradeTicketData;
-  const [executionState, setExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
-  const [responseMessage, setResponseMessage] = useState<string | null>(null);
+  const stageTrade = useStagedTradesStore((s) => s.stageTrade);
+  const openPopup = useStagedTradesStore((s) => s.openPopup);
+  const stagedTrades = useStagedTradesStore((s) => s.stagedTrades);
+
+  // Synchronize with staged store status if executed via modal
+  const storedTrade = stagedTrades.find((t) => t.id === data.ticketId);
+
+  const [localExecutionState, setLocalExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
+  const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
+
+  const executionState =
+    storedTrade?.status === 'executed'
+      ? 'success'
+      : storedTrade?.status === 'executing'
+      ? 'executing'
+      : localExecutionState;
+
+  const responseMessage =
+    storedTrade?.status === 'executed' && storedTrade.orderId
+      ? `Order #${storedTrade.orderId.substring(0, 10)} Filled / Placed`
+      : localResponseMessage;
 
   const isBuy = data.side === 'buy';
 
+  // Auto-stage to store & trigger popup modal on mount
+  useEffect(() => {
+    if (data.ticketId && data.ticketToken && data.symbol) {
+      stageTrade(
+        {
+          id: data.ticketId,
+          ticketToken: data.ticketToken,
+          symbol: data.symbol,
+          category: data.category || 'USDT-FUTURES',
+          side: data.side || 'buy',
+          orderType: data.orderType || 'limit',
+          size: data.size || 0,
+          price: data.price,
+          tradeSide: data.tradeSide,
+          leverage: data.leverage,
+          notionalUsdt: data.notionalUsdt,
+          initialMarginUsdt: data.initialMarginUsdt,
+          estimatedLiquidation: data.estimatedLiquidation,
+          stopLossPrice: data.stopLossPrice,
+          takeProfitPrice: data.takeProfitPrice,
+          riskRewardRatio: data.riskRewardRatio,
+          rationale: data.rationale,
+        },
+        true // Auto open popup
+      );
+    }
+  }, [
+    data.ticketId,
+    data.ticketToken,
+    data.symbol,
+    data.category,
+    data.side,
+    data.orderType,
+    data.size,
+    data.price,
+    data.tradeSide,
+    data.leverage,
+    data.notionalUsdt,
+    data.initialMarginUsdt,
+    data.estimatedLiquidation,
+    data.stopLossPrice,
+    data.takeProfitPrice,
+    data.riskRewardRatio,
+    data.rationale,
+    stageTrade,
+  ]);
+
   const handleConfirmOrder = async () => {
-    setExecutionState('executing');
-    setResponseMessage(null);
+    setLocalExecutionState('executing');
+    setLocalResponseMessage(null);
 
     try {
       const res = await fetch('/api/trade/execute', {
@@ -61,15 +128,15 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
       const json = (await res.json()) as { success?: boolean; orderId?: string; error?: string; message?: string };
 
       if (json.success) {
-        setExecutionState('success');
-        setResponseMessage(json.orderId ? `Order #${json.orderId.substring(0, 10)} Filled / Placed` : 'Order executed successfully');
+        setLocalExecutionState('success');
+        setLocalResponseMessage(json.orderId ? `Order #${json.orderId.substring(0, 10)} Filled / Placed` : 'Order executed successfully');
       } else {
-        setExecutionState('error');
-        setResponseMessage(json.error || 'Order execution rejected');
+        setLocalExecutionState('error');
+        setLocalResponseMessage(json.error || 'Order execution rejected');
       }
     } catch (err) {
-      setExecutionState('error');
-      setResponseMessage(err instanceof Error ? err.message : 'Network error');
+      setLocalExecutionState('error');
+      setLocalResponseMessage(err instanceof Error ? err.message : 'Network error');
     }
   };
 
@@ -168,20 +235,31 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
       )}
 
       {/* Action CTA / Confirmation State */}
-      <div className="pt-1">
+      <div className="pt-1 flex flex-col gap-1.5">
         {executionState === 'idle' && (
-          <button
-            type="button"
-            onClick={handleConfirmOrder}
-            className={`w-full py-2 px-3 rounded font-medium text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm ${
-              isBuy
-                ? 'bg-theme-status-success hover:bg-theme-status-success/90 text-white'
-                : 'bg-theme-status-danger hover:bg-theme-status-danger/90 text-white'
-            }`}
-          >
-            <ShieldCheck className="size-3.5" />
-            <span>Confirm & Place {isBuy ? 'BUY' : 'SELL'} Order</span>
-          </button>
+          <div className="flex flex-col sm:flex-row items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => data.ticketId && openPopup(data.ticketId)}
+              className="w-full sm:flex-1 py-2 px-3 rounded font-bold text-xs flex items-center justify-center gap-1.5 transition-all bg-theme-brand-primary text-theme-bg-overlay hover:brightness-105 shadow-sm cursor-pointer"
+            >
+              <ExternalLink className="size-3.5" />
+              <span>Review in Confirmation Popup</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConfirmOrder}
+              className={`w-full sm:w-auto py-2 px-3 rounded font-medium text-xs flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                isBuy
+                  ? 'bg-theme-status-success/15 hover:bg-theme-status-success/25 text-theme-status-success border-theme-status-success/30'
+                  : 'bg-theme-status-danger/15 hover:bg-theme-status-danger/25 text-theme-status-danger border-theme-status-danger/30'
+              }`}
+            >
+              <ShieldCheck className="size-3.5" />
+              <span>Quick {isBuy ? 'Buy' : 'Sell'}</span>
+            </button>
+          </div>
         )}
 
         {executionState === 'executing' && (

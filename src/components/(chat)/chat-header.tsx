@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Menu, Activity } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
+import { StagedTradesHeaderPill } from '@/components/(chat)/trade/staged-trades-header-pill';
 
 export interface ChatHeaderProps {
   title?: string;
@@ -105,6 +106,8 @@ export const ChatHeader = memo(function ChatHeader({
             </motion.div>
           )}
         </AnimatePresence>
+
+        <StagedTradesHeaderPill />
 
         <motion.button
           type="button"
