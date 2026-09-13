@@ -136,6 +136,30 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
     };
   }
 
+  // Classic Account Mode Error
+  if (cleanCode === '40084' || lowerMsg.includes('classic account')) {
+    return {
+      category: 'AUTH_FAILED',
+      code: cleanCode,
+      message: 'Account is in Classic mode. Unified Trading Account (UTA) API is required.',
+      actionableGuidance:
+        'Please upgrade your Bitget account to Unified Trading Account (UTA) in your Bitget web/app account settings.',
+      canRetry: false,
+    };
+  }
+
+  // Demo vs Live Environment Mismatch
+  if (cleanCode === '40099' || lowerMsg.includes('exchange environment is incorrect')) {
+    return {
+      category: 'AUTH_FAILED',
+      code: cleanCode,
+      message: 'Bitget API environment mismatch (Live vs Demo/Simulation).',
+      actionableGuidance:
+        'If using Live API credentials, set BITGET_DEMO_TRADING=false in .env.local. If using Paper Trading keys, set BITGET_DEMO_TRADING=true.',
+      canRetry: false,
+    };
+  }
+
   // Default Exchange Error
   return {
     category: 'EXCHANGE_ERROR',

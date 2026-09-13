@@ -51,60 +51,6 @@ export async function placeOrderV3(
       };
     }
 
-    // Classic Account Fallback (Code 40084 or 40404)
-    if (json.code === '40084' || json.code === '40404') {
-      const isFutures = payload.category !== 'SPOT';
-      const v2Path = isFutures ? '/api/v2/mix/order/place-order' : '/api/v2/spot/trade/place-order';
-      const v2Payload: Record<string, unknown> = isFutures
-        ? {
-            symbol: payload.symbol,
-            productType: payload.category,
-            marginCoin: 'USDT',
-            marginMode: params.marginMode || 'crossed',
-            side: params.side,
-            tradeSide: params.tradeSide || 'open',
-            orderType: params.orderType,
-            size: params.size,
-            price: params.price,
-            clientOid: payload.clientOid,
-            presetStopLossPrice: params.stopLoss?.triggerPrice || params.presetStopLossPrice,
-            presetTakeProfitPrice: params.takeProfit?.triggerPrice || params.presetTakeProfitPrice,
-          }
-        : {
-            symbol: payload.symbol,
-            side: params.side,
-            orderType: params.orderType,
-            size: params.size,
-            price: params.price,
-            clientOid: payload.clientOid,
-          };
-
-      const v2Headers = getAuthHeaders('POST', v2Path, '', v2Payload);
-      const v2Res = await fetch(`${BITGET_REST_BASE}${v2Path}`, {
-        method: 'POST',
-        headers: v2Headers,
-        body: JSON.stringify(v2Payload),
-      });
-      const v2Json = (await v2Res.json()) as {
-        code: string;
-        msg: string;
-        data?: { orderId?: string; clientOid?: string };
-      };
-
-      if (v2Json.code === '00000' || v2Json.code === '0') {
-        return {
-          orderId: v2Json.data?.orderId || '',
-          clientOid: v2Json.data?.clientOid || payload.clientOid,
-          symbol: payload.symbol,
-          category: payload.category,
-          status: 'submitted',
-        };
-      }
-
-      const v2Err = classifyBitgetError(v2Json.code, v2Json.msg);
-      throw new Error(`Bitget Place Order failed [${v2Json.code}]: ${v2Err.message}. ${v2Err.actionableGuidance}`);
-    }
-
     const err = classifyBitgetError(json.code, json.msg);
     throw new Error(`Bitget Place Order failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
   } catch (err) {
@@ -218,56 +164,6 @@ export async function getUnfilledOrdersV3(
       }));
     }
 
-    // Classic Account Fallback (Code 40084 or 40404)
-    if (json.code === '40084' || json.code === '40404') {
-      const isFutures = category !== 'SPOT';
-      const v2Path = isFutures ? '/api/v2/mix/order/orders-pending' : '/api/v2/spot/trade/unfilled-orders';
-      const v2QueryParts = isFutures ? [`productType=${category}`] : [];
-      if (symbol) v2QueryParts.push(`symbol=${normalizeSymbol(symbol)}`);
-      const v2Query = v2QueryParts.join('&');
-
-      const v2Headers = getAuthHeaders('GET', v2Path, v2Query);
-      const v2Res = await fetch(`${BITGET_REST_BASE}${v2Path}${v2Query ? `?${v2Query}` : ''}`, {
-        method: 'GET',
-        headers: v2Headers,
-      });
-      const v2Json = (await v2Res.json()) as {
-        code: string;
-        data?: Array<{
-          orderId: string;
-          clientOid?: string;
-          symbol: string;
-          side: 'buy' | 'sell';
-          orderType: 'limit' | 'market';
-          price?: string;
-          size: string;
-          status?: string;
-          baseVolume?: string;
-          cumExecQty?: string;
-          cTime?: string;
-          uTime?: string;
-        }>;
-      };
-
-      if ((v2Json.code === '00000' || v2Json.code === '0') && Array.isArray(v2Json.data)) {
-        return v2Json.data.map((o) => ({
-          orderId: o.orderId,
-          clientOid: o.clientOid,
-          symbol: o.symbol,
-          side: o.side,
-          orderType: o.orderType,
-          price: o.price,
-          size: o.size,
-          status: (o.status as BitgetV3OrderInfo['status']) || 'new',
-          baseVolume: o.baseVolume,
-          cumExecQty: o.cumExecQty,
-          cTime: o.cTime,
-          uTime: o.uTime,
-          category,
-        }));
-      }
-    }
-
     return [];
   } catch (err) {
     console.warn('[Orders] getUnfilledOrdersV3 query failed:', err);
@@ -329,42 +225,6 @@ export async function cancelOrderV3(
     };
   }
 
-  // Classic Fallback
-  if (json.code === '40084' || json.code === '40404') {
-    const isFutures = payload.category !== 'SPOT';
-    const v2Path = isFutures ? '/api/v2/mix/order/cancel-order' : '/api/v2/spot/trade/cancel-order';
-    const v2Payload: Record<string, unknown> = isFutures
-      ? {
-          symbol: payload.symbol,
-          productType: payload.category,
-          orderId: payload.orderId,
-          clientOid: payload.clientOid,
-        }
-      : {
-          symbol: payload.symbol,
-          orderId: payload.orderId,
-          clientOid: payload.clientOid,
-        };
-
-    const v2Headers = getAuthHeaders('POST', v2Path, '', v2Payload);
-    const v2Res = await fetch(`${BITGET_REST_BASE}${v2Path}`, {
-      method: 'POST',
-      headers: v2Headers,
-      body: JSON.stringify(v2Payload),
-    });
-    const v2Json = (await v2Res.json()) as { code: string; msg: string; data?: { orderId?: string } };
-
-    if (v2Json.code === '00000' || v2Json.code === '0') {
-      return {
-        success: true,
-        orderId: v2Json.data?.orderId || params.orderId,
-      };
-    }
-
-    const v2Err = classifyBitgetError(v2Json.code, v2Json.msg);
-    throw new Error(`Bitget Cancel Order failed [${v2Json.code}]: ${v2Err.message}. ${v2Err.actionableGuidance}`);
-  }
-
   const err = classifyBitgetError(json.code, json.msg);
   throw new Error(`Bitget Cancel Order failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
 }
@@ -392,37 +252,6 @@ export async function cancelSymbolOrdersV3(
     return {
       success: true,
     };
-  }
-
-  // Classic Fallback
-  if (json.code === '40084' || json.code === '40404') {
-    const isFutures = payload.category !== 'SPOT';
-    const v2Path = isFutures ? '/api/v2/mix/order/cancel-symbol-order' : '/api/v2/spot/trade/cancel-symbol-order';
-    const v2Payload: Record<string, unknown> = isFutures
-      ? {
-          symbol: payload.symbol,
-          productType: payload.category,
-        }
-      : {
-          symbol: payload.symbol,
-        };
-
-    const v2Headers = getAuthHeaders('POST', v2Path, '', v2Payload);
-    const v2Res = await fetch(`${BITGET_REST_BASE}${v2Path}`, {
-      method: 'POST',
-      headers: v2Headers,
-      body: JSON.stringify(v2Payload),
-    });
-    const v2Json = (await v2Res.json()) as { code: string; msg: string };
-
-    if (v2Json.code === '00000' || v2Json.code === '0') {
-      return {
-        success: true,
-      };
-    }
-
-    const v2Err = classifyBitgetError(v2Json.code, v2Json.msg);
-    throw new Error(`Bitget Cancel Symbol Orders failed [${v2Json.code}]: ${v2Err.message}. ${v2Err.actionableGuidance}`);
   }
 
   const err = classifyBitgetError(json.code, json.msg);

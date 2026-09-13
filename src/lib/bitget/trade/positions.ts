@@ -97,59 +97,6 @@ export async function getPositionsV3(
       });
     }
 
-    // Classic Account Fallback (Code 40084 or 40404)
-    if (json.code === '40084' || json.code === '40404') {
-      const v2Path = '/api/v2/mix/position/all-position';
-      const v2Query = `productType=${category}`;
-      const v2Headers = getAuthHeaders('GET', v2Path, v2Query);
-      const v2Res = await fetch(`${BITGET_REST_BASE}${v2Path}?${v2Query}`, {
-        method: 'GET',
-        headers: v2Headers,
-      });
-      const v2Json = (await v2Res.json()) as {
-        code: string;
-        msg: string;
-        data?: RawV3PositionData[];
-      };
-
-      if (v2Json.code === '00000' || v2Json.code === '0') {
-        return (v2Json.data || []).map((p) => {
-          const avgPrice = p.avgPrice || p.openPriceAvg || '0';
-          const unrealisedPnl = p.unrealisedPnl || p.unrealizedPL || '0';
-          const posSide = (p.posSide || p.holdSide || 'net') as 'long' | 'short' | 'net';
-          const mmr = p.marginRate || '0.005';
-          const leverage = p.leverage !== undefined ? String(p.leverage) : '1';
-
-          return {
-            symbol: p.symbol || '',
-            posSide,
-            total: p.total || '0',
-            available: p.available || '0',
-            frozen: p.locked || '0',
-            avgPrice,
-            markPrice: p.markPrice || '0',
-            liquidationPrice: p.liquidationPrice || '0',
-            leverage,
-            unrealisedPnl,
-            mmr,
-            marginMode: (p.marginMode as 'crossed' | 'isolated') || 'crossed',
-            cTime: p.cTime || p.uTime || '',
-            // Compatibility fields
-            openPriceAvg: avgPrice,
-            unrealizedPL: unrealisedPnl,
-            holdSide: posSide,
-            marginCoin: p.marginCoin || 'USDT',
-            margin: p.margin || '0',
-            marginRate: mmr,
-            locked: p.locked || '0',
-          };
-        });
-      }
-
-      const v2Err = classifyBitgetError(v2Json.code, v2Json.msg);
-      throw new Error(`Bitget Positions failed [${v2Json.code}]: ${v2Err.message}. ${v2Err.actionableGuidance}`);
-    }
-
     const err = classifyBitgetError(json.code, json.msg);
     throw new Error(`Bitget Positions failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
   } catch (err) {
