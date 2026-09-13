@@ -14,7 +14,8 @@
 import { BITGET_REST_BASE } from '../src/lib/bitget/rest';
 import { getAuthHeaders } from '../src/lib/bitget/auth/signer';
 import { getInstrument, snapQtyToStep } from '../src/lib/bitget/trade/instruments';
-import { placeOrderV3, closePositionsV3, getOrderInfoV3 } from '../src/lib/bitget/trade/orders';
+import { placeOrderV3, closePositionsV3 } from '../src/lib/bitget/trade/orders';
+import { getOrderInfoV3 } from '../src/lib/bitget/trade/queries';
 import { getPositionsV3 } from '../src/lib/bitget/trade/positions';
 import type { BitgetV3Position } from '../src/lib/bitget/types';
 

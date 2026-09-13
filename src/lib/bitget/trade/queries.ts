@@ -352,31 +352,3 @@ export async function fetchOpenOrdersV3(opts: FetchOpenOrdersOptions = {}): Prom
   };
 }
 
-/**
- * Fetch all unfilled (open/working) orders.
- *
- * Compatibility shim (do not use for agent-facing diagnostics — prefer @see fetchOpenOrdersV3):
- * preserves the historical contract of returning a flat array and never throwing; `all` aggregates
- * USDT-FUTURES + SPOT + COIN-FUTURES + USDC-FUTURES. Failures collapse to empty per category.
- */
-export async function getUnfilledOrdersV3(
-  symbol?: string,
-  categoryInput = 'USDT-FUTURES'
-): Promise<BitgetV3OrderInfo[]> {
-  if (categoryInput === 'all') {
-    const results = await Promise.allSettled(
-      ALL_ORDER_CATEGORIES.map((cat) => getUnfilledOrdersV3(symbol, cat))
-    );
-    const combined: BitgetV3OrderInfo[] = [];
-    for (const r of results) {
-      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-        combined.push(...r.value);
-      }
-    }
-    return combined;
-  }
-
-  const category = toV3Category(categoryInput);
-  const result = await fetchOpenOrderCategory(category, symbol);
-  return result.orders;
-}

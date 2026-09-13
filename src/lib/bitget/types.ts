@@ -245,15 +245,6 @@ export interface BitgetV3OrderParams {
   tpOrderType?: 'market';
 }
 
-export interface BitgetV3ModifyParams {
-  symbol: string;
-  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures' | BitgetV3Category;
-  orderId?: string;
-  clientOid?: string;
-  newPrice?: string;
-  newSize?: string;
-  autoCancel?: boolean | 'yes' | 'no';
-}
 
 export interface BitgetV3CancelParams {
   symbol: string;

@@ -1,5 +1,5 @@
 import { normalizeSymbol } from '../symbols';
-import { toV3Category, type BitgetV3Category, type BitgetV3OrderParams, type BitgetV3ModifyParams, type BitgetV3CancelParams } from '../types';
+import { toV3Category, type BitgetV3Category, type BitgetV3OrderParams, type BitgetV3CancelParams } from '../types';
 
 export interface V3PlaceOrderPayload {
   category: BitgetV3Category;
@@ -21,15 +21,6 @@ export interface V3PlaceOrderPayload {
   slOrderType?: 'limit' | 'market';
 }
 
-export interface V3ModifyOrderPayload {
-  category: BitgetV3Category;
-  symbol: string;
-  orderId?: string;
-  clientOid?: string;
-  price?: string;
-  qty?: string;
-  autoCancel?: 'yes' | 'no';
-}
 
 export interface V3CancelOrderPayload {
   category: BitgetV3Category;
@@ -129,32 +120,6 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
   return payload;
 }
 
-/**
- * Pure builder for Bitget v3 UTA Modify Order request payload
- */
-export function buildModifyPayload(params: BitgetV3ModifyParams): V3ModifyOrderPayload {
-  const symbol = normalizeSymbol(params.symbol);
-  const category = toV3Category(params.category);
-
-  const payload: V3ModifyOrderPayload = {
-    category,
-    symbol,
-    orderId: params.orderId,
-    clientOid: params.clientOid,
-  };
-
-  if (params.newPrice) {
-    payload.price = params.newPrice;
-  }
-  if (params.newSize) {
-    payload.qty = params.newSize;
-  }
-  if (params.autoCancel !== undefined) {
-    payload.autoCancel = params.autoCancel === true || params.autoCancel === 'yes' ? 'yes' : 'no';
-  }
-
-  return payload;
-}
 
 /**
  * Pure builder for Bitget v3 UTA Cancel Order request payload

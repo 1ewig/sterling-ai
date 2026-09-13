@@ -15,8 +15,8 @@ import { getAuthHeaders } from '../src/lib/bitget/auth/signer';
 import { getInstrument } from '../src/lib/bitget/trade/instruments';
 import { fetchBitgetTicker } from '../src/lib/bitget/rest';
 import { placeOrderV3, cancelOrderV3 } from '../src/lib/bitget/trade/orders';
-import { fetchOpenOrdersV3 } from '../src/lib/bitget/trade/orders';
-import type { BitgetV3OrderParams } from '../src/lib/bitget/types';
+import { fetchOpenOrdersV3 } from '../src/lib/bitget/trade/queries';
+import type { BitgetV3OrderParams, BitgetV3OrderInfo } from '../src/lib/bitget/types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -160,7 +160,7 @@ async function main() {
       // 3c. Verify via fetchOpenOrdersV3
       const openResult = await fetchOpenOrdersV3({ symbol: 'BTCUSDT', categoryInput: 'usdt-futures' });
       const found = openResult.orders.find(
-        (o) => o.orderId === placeResult.orderId || (placeResult.clientOid && o.clientOid === placeResult.clientOid)
+        (o: BitgetV3OrderInfo) => o.orderId === placeResult.orderId || (placeResult.clientOid && o.clientOid === placeResult.clientOid)
       );
       console.log('\n--- fetchOpenOrdersV3 order found? ' + (found ? 'YES' : 'NO') + ' ---');
       if (found) {
@@ -193,7 +193,7 @@ async function main() {
       // 3e. Confirm it's gone
       const postCancel = await fetchOpenOrdersV3({ symbol: 'BTCUSDT', categoryInput: 'usdt-futures' });
       const stillThere = postCancel.orders.find(
-        (o) => o.orderId === placeResult.orderId || o.clientOid === clientOid
+        (o: BitgetV3OrderInfo) => o.orderId === placeResult.orderId || o.clientOid === clientOid
       );
       console.log(`\nPost-cancel check: order ${stillThere ? 'STILL PRESENT (problem)' : 'removed (OK)'}`);
 
