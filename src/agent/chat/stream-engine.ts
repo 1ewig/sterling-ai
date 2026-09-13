@@ -178,8 +178,8 @@ export async function executeAgentStream(
   const steps = stateMachine.finalizeSteps();
   const executedToolCalls = stateMachine.getExecutedToolCalls();
 
-  // If totalUsage was not emitted in 'finish' event, sum all step usages
-  const finalUsage: TokenUsage =
+  // Cumulative billed usage summed across all multi-step round-trips
+  const billedUsage: TokenUsage =
     totalUsage.totalTokens > 0
       ? totalUsage
       : stepUsages.reduce(
@@ -191,6 +191,20 @@ export async function executeAgentStream(
           }),
           { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
         );
+
+  // Active context window tokens used at the conclusion of the generation
+  // (the final step's prompt context + generated output, matching the real-world context window used)
+  const lastStepUsage = stepUsages[stepUsages.length - 1];
+  const finalContextUsage: TokenUsage = lastStepUsage
+    ? {
+        inputTokens: lastStepUsage.inputTokens,
+        outputTokens: lastStepUsage.outputTokens,
+        totalTokens: lastStepUsage.totalTokens,
+        ...(lastStepUsage.reasoningTokens !== undefined
+          ? { reasoningTokens: lastStepUsage.reasoningTokens }
+          : {}),
+      }
+    : billedUsage;
 
   const effectiveIsFirstTurn =
     options.isFirstTurn ?? (!options.history || options.history.length === 0);
@@ -219,16 +233,22 @@ export async function executeAgentStream(
     stepCount: steps.length,
     workedDurationMs,
     timestamp: Date.now(),
-    usage: finalUsage,
+    usage: finalContextUsage,
+    billedUsage,
   };
 
   if (process.env.NODE_ENV !== 'production') {
-    const totalReasoningStr = finalUsage.reasoningTokens ? `, reasoning: ${finalUsage.reasoningTokens}` : '';
+    const contextReasoningStr = finalContextUsage.reasoningTokens
+      ? `, reasoning: ${finalContextUsage.reasoningTokens}`
+      : '';
+    const billedReasoningStr = billedUsage.reasoningTokens
+      ? `, reasoning: ${billedUsage.reasoningTokens}`
+      : '';
     console.log(
       `🏁 [Sterling:ChatAgent] Finished in ${workedDurationMs}ms (${steps.length} steps, ${executedToolCalls.length} tools)`
     );
     console.log(
-      `   📊 [Total Tokens]: ${finalUsage.totalTokens} (input: ${finalUsage.inputTokens}, output: ${finalUsage.outputTokens}${totalReasoningStr})`
+      `   📊 [Context Used]: ${finalContextUsage.totalTokens} (input: ${finalContextUsage.inputTokens}, output: ${finalContextUsage.outputTokens}${contextReasoningStr}) | [Billed]: ${billedUsage.totalTokens} (input: ${billedUsage.inputTokens}, output: ${billedUsage.outputTokens}${billedReasoningStr})`
     );
     if (sessionTitle) {
       console.log(`   🏷️ [Session Title]: "${sessionTitle}"`);

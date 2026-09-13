@@ -107,7 +107,10 @@ export interface AgentResult {
   stepCount: number;
   workedDurationMs?: number;
   timestamp: number;
+  /** Active real-world context window usage at the end of generation (final step input + output) */
   usage?: TokenUsage;
+  /** Cumulative billable token usage across all multi-step round-trips */
+  billedUsage?: TokenUsage;
 }
 
 /**
