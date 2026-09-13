@@ -15,16 +15,6 @@ export interface V3PlaceOrderPayload {
   clientOid?: string;
   presetStopLossPrice?: string;
   presetTakeProfitPrice?: string;
-  stopLoss?: {
-    triggerPrice: string;
-    executePrice?: string;
-    triggerType?: 'mark_price' | 'fill_price';
-  };
-  takeProfit?: {
-    triggerPrice: string;
-    executePrice?: string;
-    triggerType?: 'mark_price' | 'fill_price';
-  };
 }
 
 export interface V3ModifyOrderPayload {
@@ -106,33 +96,15 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
 
   payload.timeInForce = params.timeInForce || 'gtc';
 
-  // V3 TP/SL triggers
-  if (params.stopLoss) {
-    payload.stopLoss = {
-      triggerPrice: params.stopLoss.triggerPrice,
-      executePrice: params.stopLoss.executePrice || params.stopLoss.triggerPrice,
-      triggerType: params.stopLoss.triggerType || 'mark_price',
-    };
-  } else if (params.presetStopLossPrice) {
-    payload.stopLoss = {
-      triggerPrice: params.presetStopLossPrice,
-      executePrice: params.presetStopLossPrice,
-      triggerType: 'mark_price',
-    };
+  // Bitget V3 Preset Stop-Loss and Take-Profit
+  const slPrice = params.presetStopLossPrice || params.stopLoss?.triggerPrice;
+  if (slPrice && parseFloat(slPrice) > 0) {
+    payload.presetStopLossPrice = slPrice;
   }
 
-  if (params.takeProfit) {
-    payload.takeProfit = {
-      triggerPrice: params.takeProfit.triggerPrice,
-      executePrice: params.takeProfit.executePrice || params.takeProfit.triggerPrice,
-      triggerType: params.takeProfit.triggerType || 'mark_price',
-    };
-  } else if (params.presetTakeProfitPrice) {
-    payload.takeProfit = {
-      triggerPrice: params.presetTakeProfitPrice,
-      executePrice: params.presetTakeProfitPrice,
-      triggerType: 'mark_price',
-    };
+  const tpPrice = params.presetTakeProfitPrice || params.takeProfit?.triggerPrice;
+  if (tpPrice && parseFloat(tpPrice) > 0) {
+    payload.presetTakeProfitPrice = tpPrice;
   }
 
   return payload;
