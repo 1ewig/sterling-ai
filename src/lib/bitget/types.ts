@@ -299,16 +299,39 @@ export interface BitgetV3Position {
   locked?: string;
 }
 
+export interface BitgetAccountSource {
+  ok: boolean;
+  error?: BitgetErrorDetails;
+}
+
 export interface BitgetAccountOverview {
   totalEquityUsdt: number;
+  /** USDT-denominated equity (assets.usdtEquity) */
+  usdtEquityUsdt?: number;
   availableEquityUsdt: number;
   unrealizedPnlUsdt: number;
   marginRatioPercent: number;
-  accountMode: 'basic' | 'advanced' | 'isolated';
+  /** assets.positionMgnRatio as percent */
+  positionMgnRatioPercent?: number;
+  /** Raw UTA account mode: unified | hybrid | upgrading | switching */
+  accountMode: string;
+  /** Account level: basic | advanced | isolated | delta */
   accountLevel?: string;
+  /** Holding mode: one_way_mode | hedge_mode — determines posSide/reduceOnly placement rules */
+  holdMode?: 'one_way_mode' | 'hedge_mode';
+  assetMode?: string;
+  stpMode?: string;
   effEquityUsdt?: number;
   positionValueUsdt?: number;
   positions: BitgetV3Position[];
+  positionsByCategory?: Record<string, BitgetV3Position[]>;
+  /** Per-source diagnostics so partial failures degrade gracefully instead of throwing */
+  sources?: {
+    settings: BitgetAccountSource;
+    assets: BitgetAccountSource;
+    positions: BitgetAccountSource;
+  };
+  warnings?: string[];
 }
 
 export type BitgetErrorCategory =
@@ -356,5 +379,8 @@ export const stageTradeOrderParamsSchema = z.object({
 });
 
 export const accountOverviewParamsSchema = z.object({
-  category: z.enum(['all', 'spot', 'usdt-futures']).default('all').describe('Scope of account overview to query'),
+  category: z
+    .enum(['all', 'spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
+    .default('all')
+    .describe('Scope of account overview to query. "all" aggregates USDT/COIN/USDC futures positions; spot holdings are reported via account assets.'),
 });

@@ -1,7 +1,6 @@
-import { BITGET_REST_BASE } from '../rest';
-import { getAuthHeaders } from '../auth/signer';
+import { safeGetJson } from './fetch';
 import { classifyBitgetError } from '../auth/errors';
-import { toV3Category, type BitgetV3Position } from '../types';
+import { toV3Category, type BitgetErrorDetails, type BitgetV3Position } from '../types';
 
 interface RawV3PositionData {
   symbol?: string;
@@ -31,76 +30,78 @@ interface RawV3PositionData {
   locked?: string;
 }
 
+function mapRawPosition(p: RawV3PositionData): BitgetV3Position {
+  const avgPrice = p.avgPrice || p.openPriceAvg || '0';
+  const unrealisedPnl = p.unrealisedPnl || p.unrealizedPL || '0';
+  const posSide = (p.posSide || p.holdSide || 'net') as 'long' | 'short' | 'net';
+  const mmr = p.mmr || p.marginRate || '0.005';
+  const leverage = p.leverage !== undefined ? String(p.leverage) : '1';
+
+  return {
+    symbol: p.symbol || '',
+    posSide,
+    total: p.total || '0',
+    available: p.available || '0',
+    frozen: p.frozen || p.locked || '0',
+    avgPrice,
+    markPrice: p.markPrice || '0',
+    liquidationPrice: p.liquidationPrice || '0',
+    leverage,
+    unrealisedPnl,
+    profitRate: p.profitRate,
+    mmr,
+    breakEvenPrice: p.breakEvenPrice,
+    marginMode: (p.marginMode as 'crossed' | 'isolated') || 'crossed',
+    holdMode: p.holdMode || 'single_hold',
+    positionStatus: p.positionStatus || 'normal',
+    cTime: p.cTime || p.uTime || '',
+    uTime: p.uTime,
+    // Compatibility fields
+    openPriceAvg: avgPrice,
+    unrealizedPL: unrealisedPnl,
+    holdSide: posSide,
+    marginCoin: p.marginCoin || 'USDT',
+    margin: p.margin || '0',
+    marginRate: mmr,
+    locked: p.frozen || p.locked || '0',
+  };
+}
+
+export type PositionsFetchResult =
+  | { ok: true; positions: BitgetV3Position[] }
+  | { ok: false; positions: []; error: BitgetErrorDetails };
+
 /**
- * Fetch current open positions on Bitget with Unified (v3) and Classic (v2) support
+ * Non-throwing positions query used for resilient aggregation.
+ * NOTE: UTA current-position rejects SPOT/MARGIN ("Parameter SPOT does not exist"), so only
+ * futures categories should be requested.
  */
-export async function getPositionsV3(
-  categoryInput = 'USDT-FUTURES'
-): Promise<BitgetV3Position[]> {
+export async function fetchPositionsV3(categoryInput = 'USDT-FUTURES'): Promise<PositionsFetchResult> {
   const category = toV3Category(categoryInput);
   const path = '/api/v3/position/current-position';
   const queryString = `category=${category}`;
 
-  try {
-    const headers = getAuthHeaders('GET', path, queryString);
-    const response = await fetch(`${BITGET_REST_BASE}${path}?${queryString}`, {
-      method: 'GET',
-      headers,
-    });
-
-    const json = (await response.json()) as {
-      code: string;
-      msg: string;
-      data?: { list?: RawV3PositionData[] } | RawV3PositionData[];
-    };
-
-    if (json.code === '00000' || json.code === '0') {
-      const rawList: RawV3PositionData[] = Array.isArray(json.data)
-        ? json.data
-        : json.data?.list || [];
-
-      return rawList.map((p) => {
-        const avgPrice = p.avgPrice || p.openPriceAvg || '0';
-        const unrealisedPnl = p.unrealisedPnl || p.unrealizedPL || '0';
-        const posSide = (p.posSide || p.holdSide || 'net') as 'long' | 'short' | 'net';
-        const mmr = p.mmr || p.marginRate || '0.005';
-        const leverage = p.leverage !== undefined ? String(p.leverage) : '1';
-
-        return {
-          symbol: p.symbol || '',
-          posSide,
-          total: p.total || '0',
-          available: p.available || '0',
-          frozen: p.frozen || p.locked || '0',
-          avgPrice,
-          markPrice: p.markPrice || '0',
-          liquidationPrice: p.liquidationPrice || '0',
-          leverage,
-          unrealisedPnl,
-          profitRate: p.profitRate,
-          mmr,
-          breakEvenPrice: p.breakEvenPrice,
-          marginMode: (p.marginMode as 'crossed' | 'isolated') || 'crossed',
-          holdMode: p.holdMode || 'single_hold',
-          positionStatus: p.positionStatus || 'normal',
-          cTime: p.cTime || p.uTime || '',
-          uTime: p.uTime,
-          // Compatibility fields
-          openPriceAvg: avgPrice,
-          unrealizedPL: unrealisedPnl,
-          holdSide: posSide,
-          marginCoin: p.marginCoin || 'USDT',
-          margin: p.margin || '0',
-          marginRate: mmr,
-          locked: p.frozen || p.locked || '0',
-        };
-      });
-    }
-
-    const err = classifyBitgetError(json.code, json.msg);
-    throw new Error(`Bitget Positions failed [${json.code}]: ${err.message}. ${err.actionableGuidance}`);
-  } catch (err) {
-    if (err instanceof Error) throw err;
-    throw new Error('Bitget Positions query failed: Unknown error');
+  const result = await safeGetJson('GET', path, queryString);
+  if (!result.ok || !result.json) {
+    return { ok: false, positions: [], error: result.error ?? classifyBitgetError('0', 'Unknown positions error') };
   }
+
+  const data = result.json.data as { list?: RawV3PositionData[] } | RawV3PositionData[] | null | undefined;
+  const rawList: RawV3PositionData[] = Array.isArray(data) ? data : data?.list || [];
+
+  return { ok: true, positions: rawList.map(mapRawPosition) };
+}
+
+/**
+ * Throwing positions query (used by order-management tools). Throws a descriptive
+ * Bitget error string on failure, matching the pre-refactor contract.
+ */
+export async function getPositionsV3(categoryInput = 'USDT-FUTURES'): Promise<BitgetV3Position[]> {
+  const result = await fetchPositionsV3(categoryInput);
+  if (!result.ok) {
+    throw new Error(
+      `Bitget Positions failed [${result.error.code || 'unknown'}]: ${result.error.message}. ${result.error.actionableGuidance}`
+    );
+  }
+  return result.positions;
 }

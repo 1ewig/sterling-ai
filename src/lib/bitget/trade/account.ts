@@ -1,116 +1,224 @@
-import { BITGET_REST_BASE } from '../rest';
-import { getAuthHeaders } from '../auth/signer';
-import { classifyBitgetError } from '../auth/errors';
-import { getPositionsV3 } from './positions';
-import { toV3Category, type BitgetAccountOverview } from '../types';
+import { safeGetJson } from './fetch';
+import { fetchPositionsV3 } from './positions';
+import {
+  toV3Category,
+  type BitgetAccountOverview,
+  type BitgetErrorDetails,
+  type BitgetV3Category,
+  type BitgetV3Position,
+} from '../types';
+
+const round2 = (n: number): number => parseFloat(n.toFixed(2));
+
+interface ParsedAssets {
+  totalEquityUsd: number;
+  usdtEquity: number;
+  effEquity: number;
+  availableEquity: number;
+  mgnRatio: number;
+  positionMgnRatio: number;
+  positionValue: number;
+  unrealisedPnl: number;
+  leverage: number;
+}
+
+function toNumber(v: unknown): number {
+  if (v === undefined || v === null || v === '') return 0;
+  const n = typeof v === 'number' ? v : Number.parseFloat(String(v));
+  return Number.isFinite(n) ? n : 0;
+}
 
 /**
- * Fetch Trading Account Overview (Equity, Margin, Positions) across Unified & Classic Modes
+ * Parse GET /account/assets `data`. Per official UTA docs the shape is a single object
+ * (accountEquity, usdtEquity, effEquity, mgnRatio, positionValue, leverage, assets[]).
+ * A per-coin array is still tolerated as a legacy fallback.
+ */
+function parseAssetsData(data: unknown): ParsedAssets | null {
+  if (Array.isArray(data)) {
+    // Legacy per-coin array fallback
+    let total = 0;
+    let available = 0;
+    for (const a of data as Array<{ equity?: string; usdtEquity?: string; available?: string }>) {
+      total += toNumber(a.equity || a.usdtEquity);
+      available += toNumber(a.available);
+    }
+    return {
+      totalEquityUsd: total,
+      usdtEquity: 0,
+      effEquity: 0,
+      availableEquity: available,
+      mgnRatio: 0,
+      positionMgnRatio: 0,
+      positionValue: 0,
+      unrealisedPnl: 0,
+      leverage: 0,
+    };
+  }
+
+  if (typeof data !== 'object' || data === null) return null;
+
+  const o = data as Record<string, unknown>;
+  const perCoinAvailable = Array.isArray(o.assets)
+    ? (o.assets as Array<{ available?: string | number }>).reduce((sum, a) => sum + toNumber(a.available), 0)
+    : 0;
+  const effEquity = toNumber(o.effEquity);
+
+  // effEquity is the USD-converted collateral usable for margin (matches "available equity").
+  const availableEquity = effEquity > 0 ? effEquity : perCoinAvailable;
+
+  return {
+    totalEquityUsd: toNumber(o.accountEquity),
+    usdtEquity: toNumber(o.usdtEquity),
+    effEquity,
+    availableEquity,
+    mgnRatio: toNumber(o.mgnRatio),
+    positionMgnRatio: toNumber(o.positionMgnRatio),
+    positionValue: toNumber(o.positionValue),
+    unrealisedPnl: toNumber(o.unrealisedPnl),
+    leverage: toNumber(o.leverage),
+  };
+}
+
+const FUTURES_CATEGORIES: BitgetV3Category[] = ['USDT-FUTURES', 'COIN-FUTURES', 'USDC-FUTURES'];
+
+/**
+ * Fetch Trading Account Overview (Equity, Margin, Positions) for Bitget UTA v3.
+ *
+ * Resilience model:
+ *  - settings / assets / positions are fetched independently (never throws on partial failure)
+ *  - per-source structured diagnostics are returned in `sources` + human-readable `warnings`
+ *  - only throws when BOTH settings and assets fail (no usable balance data at all)
+ *  - for the `all` category, each futures category is queried and aggregated; SPOT is never
+ *    queried because /position/current-position rejects it (verified via live probe)
  */
 export async function getAccountOverviewV3(
   categoryInput = 'USDT-FUTURES'
 ): Promise<BitgetAccountOverview> {
-  const category = categoryInput === 'all' ? 'USDT-FUTURES' : toV3Category(categoryInput);
   const settingsPath = '/api/v3/account/settings';
-  const assetsPath = '/api/v3/account/assets';
-  const assetsQuery = `category=${category}`;
+  const assetsPath = '/api/v3/account/assets'; // per docs: no query params
 
-  try {
-    const [settingsHeaders, assetsHeaders] = [
-      getAuthHeaders('GET', settingsPath),
-      getAuthHeaders('GET', assetsPath, assetsQuery),
-    ];
+  const [settingsRes, assetsRes] = await Promise.all([
+    safeGetJson('GET', settingsPath),
+    safeGetJson('GET', assetsPath),
+  ]);
 
-    const [settingsRes, assetsRes, positions] = await Promise.all([
-      fetch(`${BITGET_REST_BASE}${settingsPath}`, { method: 'GET', headers: settingsHeaders }),
-      fetch(`${BITGET_REST_BASE}${assetsPath}?${assetsQuery}`, { method: 'GET', headers: assetsHeaders }),
-      getPositionsV3(category),
-    ]);
+  const sources: BitgetAccountOverview['sources'] = {
+    settings: { ok: settingsRes.ok, error: settingsRes.error },
+    assets: { ok: assetsRes.ok, error: assetsRes.error },
+    positions: { ok: true },
+  };
 
-    const settingsJson = (await settingsRes.json()) as {
-      code: string;
-      msg?: string;
-      data?: { accountMode?: string; accountLevel?: string };
-    };
-
-    // If Unified Account (UTA) is supported:
-    if (settingsJson.code === '00000' || settingsJson.code === '0') {
-      let totalEquity = 0;
-      let availableEquity = 0;
-      let unrealizedPnl = 0;
-      let mgnRatio = 0;
-      let effEquity = 0;
-      let posValue = 0;
-
-      if (assetsRes.ok) {
-        try {
-          const assetsJson = (await assetsRes.json()) as {
-            code: string;
-            data?: Record<string, unknown> | Array<{
-              coin?: string;
-              equity?: string;
-              available?: string;
-              unrealizedPL?: string;
-              usdtEquity?: string;
-            }>;
-          };
-
-          if ((assetsJson.code === '00000' || assetsJson.code === '0') && assetsJson.data) {
-            if (Array.isArray(assetsJson.data)) {
-              for (const asset of assetsJson.data) {
-                totalEquity += parseFloat(asset.equity || asset.usdtEquity || '0');
-                availableEquity += parseFloat(asset.available || '0');
-              }
-            } else if (typeof assetsJson.data === 'object') {
-              const d = assetsJson.data;
-              totalEquity = parseFloat(String(d.accountEquity || d.effEquity || '0'));
-              effEquity = parseFloat(String(d.effEquity || '0'));
-              availableEquity = parseFloat(String(d.availableEquity || d.available || d.effEquity || '0'));
-              unrealizedPnl = parseFloat(String(d.unrealisedPnl || d.unrealizedPL || '0'));
-              mgnRatio = parseFloat(String(d.mgnRatio || d.mmr || '0'));
-              posValue = parseFloat(String(d.positionValue || '0'));
-
-              if (Array.isArray(d.assets) && totalEquity === 0) {
-                for (const a of d.assets as Array<{ equity?: string; available?: string }>) {
-                  totalEquity += parseFloat(a.equity || '0');
-                  availableEquity += parseFloat(a.available || '0');
-                }
-              }
-            }
-          }
-        } catch {
-          // Fall through to positions rollup
-        }
-      }
-
-      if (unrealizedPnl === 0) {
-        for (const pos of positions) {
-          unrealizedPnl += parseFloat(pos.unrealisedPnl || pos.unrealizedPL || '0');
-        }
-      }
-
-      const accountLevel = settingsJson.data?.accountLevel || settingsJson.data?.accountMode || 'advanced';
-      const accountMode = (['basic', 'advanced', 'isolated'].includes(accountLevel)
-        ? accountLevel
-        : 'advanced') as 'basic' | 'advanced' | 'isolated';
-
-      return {
-        totalEquityUsdt: parseFloat(totalEquity.toFixed(2)),
-        availableEquityUsdt: parseFloat(availableEquity.toFixed(2)),
-        unrealizedPnlUsdt: parseFloat(unrealizedPnl.toFixed(2)),
-        marginRatioPercent: parseFloat((mgnRatio * 100).toFixed(2)),
-        accountMode,
-        accountLevel,
-        effEquityUsdt: effEquity > 0 ? parseFloat(effEquity.toFixed(2)) : undefined,
-        positionValueUsdt: posValue > 0 ? parseFloat(posValue.toFixed(2)) : undefined,
-        positions,
-      };
-    }
-
-    const err = classifyBitgetError(settingsJson.code, settingsJson.msg);
-    throw new Error(`Bitget Account Settings failed [${settingsJson.code}]: ${err.message}. ${err.actionableGuidance}`);
-  } catch (err) {
-    if (err instanceof Error) throw err;
-    throw new Error('Failed to retrieve Bitget Account Overview: Unknown error');
+  if (!settingsRes.ok && !assetsRes.ok) {
+    const primary = settingsRes.error ?? assetsRes.error;
+    const code = primary?.code ? `[${primary.code}] ` : '';
+    throw new Error(
+      `Bitget Account Overview failed (${code}${primary?.message ?? 'unknown error'}). ${primary?.actionableGuidance ?? ''}`
+    );
   }
+
+  const warnings: string[] = [];
+  if (!settingsRes.ok) {
+    const e = settingsRes.error;
+    warnings.push(`Account settings unavailable: ${e?.message} — ${e?.actionableGuidance}`);
+  }
+  if (!assetsRes.ok) {
+    const e = assetsRes.error;
+    warnings.push(`Balance data unavailable: ${e?.message} — ${e?.actionableGuidance}`);
+  }
+
+  // ---- Settings: raw account identity / mode / holding mode
+  const settingsData =
+    settingsRes.ok && settingsRes.json?.data
+      ? (settingsRes.json.data as {
+          accountMode?: string;
+          accountLevel?: string;
+          holdMode?: string;
+          assetMode?: string;
+          stpMode?: string;
+        })
+      : undefined;
+
+  const accountLevel = ['basic', 'advanced', 'isolated', 'delta'].includes(
+    settingsData?.accountLevel ?? ''
+  )
+    ? (settingsData?.accountLevel as 'basic' | 'advanced' | 'isolated' | 'delta' | undefined)
+    : undefined;
+  const holdMode: 'one_way_mode' | 'hedge_mode' | undefined =
+    settingsData?.holdMode === 'hedge_mode' || settingsData?.holdMode === 'one_way_mode'
+      ? settingsData.holdMode
+      : undefined;
+
+  // ---- Assets: single-object UTA shape
+  const assetsData = assetsRes.ok && assetsRes.json ? parseAssetsData(assetsRes.json.data) : null;
+
+  // ---- Positions: aggregate all futures categories for 'all'; never query SPOT
+  const rawCategory = categoryInput === 'all' ? 'all' : toV3Category(categoryInput);
+  const positionCategories: BitgetV3Category[] =
+    rawCategory === 'all'
+      ? FUTURES_CATEGORIES
+      : rawCategory === 'SPOT'
+        ? []
+        : [rawCategory];
+
+  if (rawCategory === 'SPOT') {
+    warnings.push(
+      'Spot holdings are reported via account/assets; /position/current-position does not support the SPOT category.'
+    );
+  }
+
+  const settled = await Promise.allSettled(positionCategories.map((cat) => fetchPositionsV3(cat)));
+  const positionsByCategory: Record<string, BitgetV3Position[]> = {};
+  const positions: BitgetV3Position[] = [];
+
+  settled.forEach((s, i) => {
+    const cat = positionCategories[i];
+    const outcome = s.status === 'fulfilled' ? s.value : undefined;
+    if (outcome?.ok) {
+      positionsByCategory[cat] = outcome.positions;
+      positions.push(...outcome.positions);
+      return;
+    }
+    positionsByCategory[cat] = [];
+    const err: BitgetErrorDetails =
+      outcome && !outcome.ok
+        ? outcome.error
+        : {
+            category: 'EXCHANGE_ERROR',
+            message: 'Positions request was rejected.',
+            actionableGuidance: 'Retry the request.',
+            canRetry: true,
+          };
+    if (sources?.positions) sources.positions = { ok: false, error: err };
+    warnings.push(`Positions query failed for ${cat}: ${err.message} — ${err.actionableGuidance}`);
+  });
+
+  // ---- Rollup
+  const unrealizedFromPositions = positions.reduce(
+    (sum, p) => sum + toNumber(p.unrealisedPnl),
+    0
+  );
+  const unrealizedPnl =
+    assetsData && assetsData.unrealisedPnl !== 0
+      ? assetsData.unrealisedPnl
+      : unrealizedFromPositions;
+
+  return {
+    totalEquityUsdt: round2(assetsData?.totalEquityUsd ?? 0),
+    usdtEquityUsdt: round2(assetsData?.usdtEquity ?? 0),
+    availableEquityUsdt: round2(assetsData?.availableEquity ?? 0),
+    unrealizedPnlUsdt: round2(unrealizedPnl),
+    marginRatioPercent: round2((assetsData?.mgnRatio ?? 0) * 100),
+    positionMgnRatioPercent: round2((assetsData?.positionMgnRatio ?? 0) * 100),
+    positionValueUsdt: round2(assetsData?.positionValue ?? 0),
+    accountMode: settingsData?.accountMode ?? 'unified',
+    accountLevel,
+    holdMode,
+    assetMode: settingsData?.assetMode,
+    stpMode: settingsData?.stpMode,
+    effEquityUsdt: assetsData && assetsData.effEquity > 0 ? round2(assetsData.effEquity) : undefined,
+    positions,
+    positionsByCategory: positionCategories.length > 0 ? positionsByCategory : undefined,
+    sources,
+    warnings: warnings.length > 0 ? warnings : undefined,
+  };
 }
