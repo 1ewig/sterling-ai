@@ -29,13 +29,13 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
   }
 
   // Timestamp drift / clock sync
-  if (cleanCode === '40017' || lowerMsg.includes('timestamp')) {
+  if (cleanCode === '40017' || cleanCode === '40008' || lowerMsg.includes('timestamp')) {
     return {
       category: 'AUTH_FAILED',
       code: cleanCode,
       message: rawMsg || 'Request timestamp expired or out of sync.',
       actionableGuidance:
-        'System clock is out of sync with Bitget server time. Synchronize your system clock with NTP.',
+        'System clock is out of sync with Bitget server time. Auto-synchronizing server clock.',
       canRetry: true,
     };
   }

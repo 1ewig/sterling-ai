@@ -1,5 +1,5 @@
 import { BITGET_REST_BASE } from '../rest';
-import { getAuthHeaders } from '../auth/signer';
+import { getAuthHeaders, syncBitgetServerTime } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
 import type { BitgetErrorDetails } from '../types';
 
@@ -26,8 +26,16 @@ export const MISSING_CREDENTIALS_ERROR: BitgetErrorDetails = {
   canRetry: false,
 };
 
+function isTimestampError(code?: string, msg?: string): boolean {
+  if (code === '40008' || code === '40017') return true;
+  const lower = (msg || '').toLowerCase();
+  return lower.includes('timestamp') || lower.includes('expired');
+}
+
 /**
  * Authenticated GET/POST against Bitget REST with:
+ *  - Automated server clock drift synchronization
+ *  - Auto-retry with fresh sync on 40008/40017 timestamp errors
  *  - 8s timeout (never hangs a tool call)
  *  - HTTP status + business-code validation
  *  - non-JSON body guard
@@ -37,8 +45,12 @@ export async function safeGetJson(
   method: string,
   requestPath: string,
   queryString = '',
-  bodyObj?: Record<string, unknown>
+  bodyObj?: Record<string, unknown>,
+  isRetry = false
 ): Promise<ApiFetchResult> {
+  // Ensure server time is synchronized
+  await syncBitgetServerTime(isRetry);
+
   let headers: Record<string, string>;
   try {
     headers = getAuthHeaders(method, requestPath, queryString, bodyObj);
@@ -68,6 +80,12 @@ export async function safeGetJson(
       envelope = JSON.parse(text) as ApiEnvelope;
     } catch {
       // non-JSON body (proxy/LB HTML error page, etc.)
+    }
+
+    // If timestamp expired and we haven't retried yet, force resync and retry
+    if (!isRetry && isTimestampError(envelope.code, envelope.msg)) {
+      await syncBitgetServerTime(true);
+      return safeGetJson(method, requestPath, queryString, bodyObj, true);
     }
 
     const bizOk = envelope.code === '00000' || envelope.code === '0';
