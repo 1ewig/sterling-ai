@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { parseAssetPair, isRTokenSymbol } from '@/lib/bitget';
+import { parseAssetPair, isRTokenSymbol, BITGET_REST_BASE } from '@/lib/bitget';
 
 export const revalidate = 3600; // Cache for 1 hour via ISR
 
@@ -31,8 +31,8 @@ export interface MarketSymbolItem {
   hasFutures: boolean;
 }
 
-const BITGET_SPOT_TICKERS_URL = 'https://api.bitget.com/api/v3/market/tickers?category=SPOT';
-const BITGET_FUTURES_TICKERS_URL = 'https://api.bitget.com/api/v3/market/tickers?category=USDT-FUTURES';
+const BITGET_SPOT_TICKERS_URL = `${BITGET_REST_BASE}/api/v3/market/tickers?category=SPOT`;
+const BITGET_FUTURES_TICKERS_URL = `${BITGET_REST_BASE}/api/v3/market/tickers?category=USDT-FUTURES`;
 
 export async function GET() {
   try {
