@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { AlertTriangle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { useStagedTradesStore } from '@/stores/staged-trades-store';
 
 interface OrderActionData {
   actionId?: string;
@@ -33,6 +34,12 @@ export const OrderActionCard = React.memo(function OrderActionCard({
   const [executionState, setExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
   const [responseMessage, setResponseMessage] = useState<string | null>(null);
 
+  const stagedItem = useStagedTradesStore((s) =>
+    data.actionId ? s.stagedTrades.find((t) => t.id === data.actionId) : null
+  );
+  const isExecutedInStore = stagedItem?.status === 'executed';
+  const effectiveState = isExecutedInStore ? 'success' : executionState;
+
   const isClose = data.action === 'close_position';
   const isCancel = data.action === 'cancel_order' || data.action === 'cancel_symbol';
 
@@ -61,6 +68,9 @@ export const OrderActionCard = React.memo(function OrderActionCard({
       if (json.success) {
         setExecutionState('success');
         setResponseMessage(json.message || 'Action executed successfully.');
+        if (data.actionId) {
+          useStagedTradesStore.getState().updateTradeStatus(data.actionId, { status: 'executed' });
+        }
       } else {
         setExecutionState('error');
         setResponseMessage(json.error || 'Action execution rejected.');
@@ -135,7 +145,7 @@ export const OrderActionCard = React.memo(function OrderActionCard({
       </div>
 
       {/* Action Execution Button */}
-      {executionState === 'idle' && (
+      {effectiveState === 'idle' && (
         <button
           type="button"
           onClick={handleConfirmAction}
@@ -149,17 +159,33 @@ export const OrderActionCard = React.memo(function OrderActionCard({
         </button>
       )}
 
-      {executionState === 'executing' && (
+      {effectiveState === 'executing' && (
         <div className="py-2 flex items-center justify-center gap-1.5 text-theme-brand-primary font-mono text-2xs">
           <Loader2 className="size-3.5 animate-spin" />
           Transmitting to Bitget v3 UTA...
         </div>
       )}
 
-      {executionState === 'success' && (
+      {effectiveState === 'success' && (
         <div className="p-2 rounded bg-theme-status-success/15 border border-theme-status-success/30 flex items-center gap-1.5 text-theme-status-success text-2xs">
           <CheckCircle2 className="size-3.5 flex-shrink-0" />
-          <span>{responseMessage}</span>
+          <span>{responseMessage || 'Action executed successfully.'}</span>
+        </div>
+      )}
+
+      {effectiveState === 'error' && (
+        <div className="flex flex-col gap-2">
+          <div className="p-2 rounded bg-theme-status-danger/15 border border-theme-status-danger/30 flex items-center gap-1.5 text-theme-status-danger text-2xs">
+            <AlertCircle className="size-3.5 flex-shrink-0" />
+            <span>{responseMessage || 'Action failed.'}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleConfirmAction}
+            className="w-full py-1.5 px-3 rounded font-medium text-xs bg-theme-bg-elevated hover:bg-theme-bg-elevated/80 text-theme-text-primary transition-colors cursor-pointer"
+          >
+            Retry Execution
+          </button>
         </div>
       )}
 

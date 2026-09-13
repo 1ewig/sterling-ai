@@ -1,14 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type StagedActionType = 'order' | 'cancel' | 'close';
+
 export interface StagedTradeItem {
   id: string;
-  ticketToken: string;
+  actionType?: StagedActionType;
+  ticketToken?: string;
+  actionToken?: string;
+  action?: 'cancel_order' | 'cancel_symbol' | 'close_position';
   symbol: string;
   category: string;
-  side: 'buy' | 'sell';
-  orderType: 'limit' | 'market';
-  size: number;
+  // Order-specific fields
+  side?: 'buy' | 'sell';
+  orderType?: 'limit' | 'market';
+  size?: number;
   price?: number;
   tradeSide?: string;
   leverage?: number;
@@ -18,13 +24,28 @@ export interface StagedTradeItem {
   stopLossPrice?: number;
   takeProfitPrice?: number;
   riskRewardRatio?: string;
+  // Cancel & Close fields
+  orderId?: string;
+  clientOid?: string;
+  cancelAll?: boolean;
+  closeSide?: 'buy' | 'sell';
+  closeSize?: string;
+  totalPositionSize?: number;
+  sizePercent?: number;
+  unrealizedPnl?: string;
+  markPrice?: string;
+  // Common metadata
+  summary?: string;
   rationale?: string;
+  actionableGuidance?: string;
   createdAt: number;
   expiresAt: number;
   status: 'staged' | 'executing' | 'executed' | 'cancelled' | 'expired';
-  orderId?: string;
+  orderIdResult?: string;
   executionError?: string;
 }
+
+export type StagedActionItem = StagedTradeItem;
 
 export interface StagedTradesState {
   stagedTrades: StagedTradeItem[];
@@ -66,6 +87,7 @@ export const useStagedTradesStore = create<StagedTradesState>()(
 
           const newTrade: StagedTradeItem = {
             ...tradeData,
+            actionType: tradeData.actionType || 'order',
             createdAt: tradeData.createdAt ?? now,
             // Default 5-minute TTL matching HMAC ticket token
             expiresAt: tradeData.expiresAt ?? now + 5 * 60 * 1000,

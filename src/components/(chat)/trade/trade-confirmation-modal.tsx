@@ -115,6 +115,11 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleClose, isExecuting]);
 
+  const actionType = activeTrade.actionType || 'order';
+  const isClose = actionType === 'close';
+  const isCancel = actionType === 'cancel';
+  const isOrder = actionType === 'order';
+
   const handleConfirmOrder = useCallback(async () => {
     if (isExecuting || isExpired) return;
 
@@ -125,35 +130,68 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
     abortControllerRef.current = new AbortController();
 
     try {
-      const res = await fetch('/api/trade/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: abortControllerRef.current.signal,
-        body: JSON.stringify({
-          ticketToken: activeTrade.ticketToken,
-          symbol: activeTrade.symbol,
-          category: activeTrade.category,
-          side: activeTrade.side,
-          orderType: activeTrade.orderType,
-          size: activeTrade.size,
-          price: activeTrade.price,
-          tradeSide: activeTrade.tradeSide,
-          leverage: activeTrade.leverage,
-          stopLossPrice: activeTrade.stopLossPrice,
-          takeProfitPrice: activeTrade.takeProfitPrice,
-        }),
-      });
+      let res: Response;
+      if (isCancel || isClose) {
+        res = await fetch('/api/trade/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: abortControllerRef.current.signal,
+          body: JSON.stringify({
+            actionToken: activeTrade.actionToken,
+            action:
+              activeTrade.action ||
+              (isCancel
+                ? activeTrade.cancelAll
+                  ? 'cancel_symbol'
+                  : 'cancel_order'
+                : 'close_position'),
+            symbol: activeTrade.symbol,
+            category: activeTrade.category,
+            orderId: activeTrade.orderId,
+            clientOid: activeTrade.clientOid,
+            side: activeTrade.closeSide || activeTrade.side,
+            size: activeTrade.closeSize,
+          }),
+        });
+      } else {
+        res = await fetch('/api/trade/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: abortControllerRef.current.signal,
+          body: JSON.stringify({
+            ticketToken: activeTrade.ticketToken,
+            symbol: activeTrade.symbol,
+            category: activeTrade.category,
+            side: activeTrade.side,
+            orderType: activeTrade.orderType,
+            size: activeTrade.size,
+            price: activeTrade.price,
+            tradeSide: activeTrade.tradeSide,
+            leverage: activeTrade.leverage,
+            stopLossPrice: activeTrade.stopLossPrice,
+            takeProfitPrice: activeTrade.takeProfitPrice,
+          }),
+        });
+      }
 
       const json = (await res.json()) as {
         success?: boolean;
         orderId?: string;
+        message?: string;
         error?: string;
       };
 
       if (json.success) {
         setLocalExecutionState('success');
-        setLocalResponseMessage(json.orderId ? `Order #${json.orderId.substring(0, 8)} filled` : 'Executed');
-        updateTradeStatus(activeTrade.id, { status: 'executed', orderId: json.orderId });
+        const successMsg =
+          json.message ||
+          (json.orderId
+            ? `Order #${json.orderId.substring(0, 8)} filled`
+            : isCancel
+              ? 'Order cancelled'
+              : 'Position exit submitted');
+        setLocalResponseMessage(successMsg);
+        updateTradeStatus(activeTrade.id, { status: 'executed', orderIdResult: json.orderId });
 
         if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
         autoCloseTimerRef.current = setTimeout(handleClose, 2000);
@@ -170,7 +208,7 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
       setLocalResponseMessage(errMsg);
       updateTradeStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
     }
-  }, [activeTrade, isExecuting, isExpired, updateTradeStatus, handleClose]);
+  }, [activeTrade, isExecuting, isExpired, isCancel, isClose, updateTradeStatus, handleClose]);
 
   const minutes = Math.floor(remainingSeconds / 60);
   const seconds = remainingSeconds % 60;
@@ -202,11 +240,21 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
         {/* Header: Title + Countdown + Minimal Close */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <div className="flex items-center gap-2">
-            <span
-              className={`size-2 rounded-full ${isBuy ? 'bg-emerald-500' : 'bg-rose-500'}`}
-            />
+            {isOrder ? (
+              <span
+                className={`size-2 rounded-full ${isBuy ? 'bg-emerald-500' : 'bg-rose-500'}`}
+              />
+            ) : isCancel ? (
+              <span className="size-2 rounded-full bg-amber-500" />
+            ) : (
+              <span className="size-2 rounded-full bg-rose-500" />
+            )}
             <span className="font-semibold text-xs text-theme-text-primary tracking-tight">
-              Confirm {isBuy ? 'Long' : 'Short'}
+              {isOrder
+                ? `Confirm ${isBuy ? 'Long' : 'Short'}`
+                : isCancel
+                  ? 'Confirm Cancellation'
+                  : `Confirm Position Exit (${activeTrade.sizePercent || 100}%)`}
             </span>
             <span className="font-mono text-2xs text-theme-text-muted">
               #{activeTrade.id.substring(0, 6)}
@@ -247,57 +295,117 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
                 {activeTrade.symbol}
               </span>
               <span className="text-2xs font-mono px-1.5 py-0.5 rounded bg-theme-bg-elevated text-theme-text-secondary border border-theme-border-subtle">
-                {activeTrade.leverage ? `${activeTrade.leverage}x` : '1x'}
+                {isOrder
+                  ? (activeTrade.leverage ? `${activeTrade.leverage}x` : '1x')
+                  : activeTrade.category.toUpperCase()}
               </span>
             </div>
             <span className="text-2xs text-theme-text-muted uppercase font-mono">
-              {activeTrade.category} · {activeTrade.orderType}
+              {isOrder
+                ? `${activeTrade.category} · ${activeTrade.orderType}`
+                : isCancel
+                  ? (activeTrade.cancelAll ? 'ALL OPEN ORDERS' : 'SINGLE ORDER')
+                  : `${activeTrade.closeSide === 'buy' ? 'CLOSE SHORT' : 'CLOSE LONG'}`}
             </span>
           </div>
 
           <div className="text-right">
-            <div className="font-mono font-semibold text-sm text-theme-text-primary">
-              {formatUSD(activeTrade.price, 'MARKET')}
-            </div>
-            <span className="text-2xs font-mono text-theme-text-muted">
-              {activeTrade.size} Units
-            </span>
-          </div>
-        </div>
-
-        {/* Financial Details Ladder */}
-        <div className="px-5 py-3 space-y-2 text-xs font-mono">
-          <div className="flex justify-between items-center text-theme-text-secondary">
-            <span className="text-2xs text-theme-text-muted">Notional Value</span>
-            <span>{formatUSD(activeTrade.notionalUsdt)}</span>
-          </div>
-
-          <div className="flex justify-between items-center text-theme-text-secondary">
-            <span className="text-2xs text-theme-text-muted">Required Margin</span>
-            <span className="font-medium text-theme-text-primary">
-              {formatUSD(activeTrade.initialMarginUsdt)}
-            </span>
-          </div>
-
-          {activeTrade.estimatedLiquidation && activeTrade.estimatedLiquidation > 0 && (
-            <div className="flex justify-between items-center text-theme-text-secondary">
-              <span className="text-2xs text-theme-text-muted">Est. Liquidation</span>
-              <span className="text-amber-400">
-                {formatUSD(activeTrade.estimatedLiquidation)}
+            {isOrder ? (
+              <>
+                <div className="font-mono font-semibold text-sm text-theme-text-primary">
+                  {formatUSD(activeTrade.price, 'MARKET')}
+                </div>
+                <span className="text-2xs font-mono text-theme-text-muted">
+                  {activeTrade.size} Units
+                </span>
+              </>
+            ) : isCancel ? (
+              <span className="text-2xs font-mono text-theme-status-warning font-semibold">
+                {activeTrade.cancelAll ? 'Symbol-wide' : `Order #${(activeTrade.orderId || activeTrade.clientOid || '').substring(0, 8)}`}
               </span>
-            </div>
-          )}
+            ) : (
+              <>
+                <div className="font-mono font-semibold text-sm text-theme-text-primary">
+                  {activeTrade.closeSize ? `${activeTrade.closeSize} Units` : `${activeTrade.sizePercent || 100}% Exit`}
+                </div>
+                <span className="text-2xs font-mono text-theme-text-muted">
+                  Mark: {activeTrade.markPrice ? `$${activeTrade.markPrice}` : 'Market'}
+                </span>
+              </>
+            )}
+          </div>
+        </div>
 
-          {activeTrade.riskRewardRatio && (
-            <div className="flex justify-between items-center text-theme-text-secondary">
-              <span className="text-2xs text-theme-text-muted">Risk / Reward</span>
-              <span className="text-theme-brand-primary">{activeTrade.riskRewardRatio}</span>
-            </div>
+        {/* Details Ladder */}
+        <div className="px-5 py-3 space-y-2 text-xs font-mono">
+          {isOrder ? (
+            <>
+              <div className="flex justify-between items-center text-theme-text-secondary">
+                <span className="text-2xs text-theme-text-muted">Notional Value</span>
+                <span>{formatUSD(activeTrade.notionalUsdt)}</span>
+              </div>
+
+              <div className="flex justify-between items-center text-theme-text-secondary">
+                <span className="text-2xs text-theme-text-muted">Required Margin</span>
+                <span className="font-medium text-theme-text-primary">
+                  {formatUSD(activeTrade.initialMarginUsdt)}
+                </span>
+              </div>
+
+              {activeTrade.estimatedLiquidation && activeTrade.estimatedLiquidation > 0 && (
+                <div className="flex justify-between items-center text-theme-text-secondary">
+                  <span className="text-2xs text-theme-text-muted">Est. Liquidation</span>
+                  <span className="text-amber-400">
+                    {formatUSD(activeTrade.estimatedLiquidation)}
+                  </span>
+                </div>
+              )}
+
+              {activeTrade.riskRewardRatio && (
+                <div className="flex justify-between items-center text-theme-text-secondary">
+                  <span className="text-2xs text-theme-text-muted">Risk / Reward</span>
+                  <span className="text-theme-brand-primary">{activeTrade.riskRewardRatio}</span>
+                </div>
+              )}
+            </>
+          ) : isCancel ? (
+            <>
+              <div className="flex justify-between items-center text-theme-text-secondary">
+                <span className="text-2xs text-theme-text-muted">Target Order</span>
+                <span className="font-medium text-theme-text-primary">
+                  {activeTrade.cancelAll ? 'All Working Orders' : activeTrade.orderId || activeTrade.clientOid || '—'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-theme-text-secondary">
+                <span className="text-2xs text-theme-text-muted">Scope</span>
+                <span className="text-theme-status-warning font-semibold">Immediate Cancel</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between items-center text-theme-text-secondary">
+                <span className="text-2xs text-theme-text-muted">Exit Portion</span>
+                <span className="font-medium text-theme-text-primary">{activeTrade.sizePercent || 100}% of Position</span>
+              </div>
+              {activeTrade.unrealizedPnl && (
+                <div className="flex justify-between items-center text-theme-text-secondary">
+                  <span className="text-2xs text-theme-text-muted">Unrealized PnL</span>
+                  <span className={parseFloat(activeTrade.unrealizedPnl) >= 0 ? 'text-theme-status-success' : 'text-theme-status-danger'}>
+                    ${activeTrade.unrealizedPnl}
+                  </span>
+                </div>
+              )}
+              {activeTrade.rationale && (
+                <div className="pt-1 text-2xs text-theme-text-secondary italic font-sans">
+                  {activeTrade.rationale}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Risk bounds: TP/SL badge */}
-        {(activeTrade.stopLossPrice || activeTrade.takeProfitPrice) && (
+        {/* Risk bounds: TP/SL badge for orders */}
+        {isOrder && (activeTrade.stopLossPrice || activeTrade.takeProfitPrice) && (
           <div className="mx-5 mb-2 px-3 py-1.5 rounded-lg bg-theme-bg-elevated/40 border border-theme-border-subtle/40 flex items-center justify-between text-2xs font-mono">
             <div className="flex items-center gap-1 text-rose-400">
               <ArrowDownRight className="size-3" />
@@ -314,13 +422,13 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
         {executionState === 'error' && (
           <div className="mx-5 mb-3 flex items-center gap-1.5 text-2xs text-rose-400 bg-rose-500/10 px-3 py-2 rounded-lg border border-rose-500/20">
             <AlertCircle className="size-3.5 shrink-0" />
-            <span className="truncate">{localResponseMessage || 'Order failed'}</span>
+            <span className="truncate">{localResponseMessage || 'Action execution failed'}</span>
           </div>
         )}
 
         {isExpired && (
           <div className="mx-5 mb-3 text-2xs text-rose-400 bg-rose-500/10 px-3 py-2 rounded-lg border border-rose-500/20">
-            Quote expired. Restage trade for updated prices.
+            Action expired. Restage for an updated ticket token.
           </div>
         )}
 
@@ -334,19 +442,27 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
               className={`w-full py-2.5 px-4 rounded-xl font-medium text-xs transition-all active:scale-[0.99] select-none ${
                 isExpired
                   ? 'opacity-30 cursor-not-allowed bg-theme-bg-elevated text-theme-text-muted'
-                  : isBuy
-                    ? 'bg-emerald-500 hover:bg-emerald-400 text-black font-semibold cursor-pointer'
-                    : 'bg-rose-500 hover:bg-rose-400 text-white font-semibold cursor-pointer'
+                  : isOrder
+                    ? isBuy
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-black font-semibold cursor-pointer'
+                      : 'bg-rose-500 hover:bg-rose-400 text-white font-semibold cursor-pointer'
+                    : isCancel
+                      ? 'bg-amber-500 hover:bg-amber-400 text-black font-semibold cursor-pointer'
+                      : 'bg-rose-500 hover:bg-rose-400 text-white font-semibold cursor-pointer'
               }`}
             >
-              Confirm {isBuy ? 'Buy' : 'Sell'}
+              {isOrder
+                ? `Confirm ${isBuy ? 'Buy' : 'Sell'}`
+                : isCancel
+                  ? 'Confirm Order Cancellation'
+                  : 'Confirm Market Exit'}
             </button>
           )}
 
           {executionState === 'executing' && (
             <div className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-theme-bg-elevated text-theme-text-muted text-xs font-mono">
               <Loader2 className="size-3.5 animate-spin text-theme-text-primary" />
-              <span>Submitting...</span>
+              <span>Transmitting to Bitget v3 UTA...</span>
             </div>
           )}
 
@@ -356,7 +472,7 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
               onClick={handleConfirmOrder}
               className="w-full py-2.5 px-4 rounded-xl font-semibold text-xs bg-rose-500 hover:bg-rose-400 text-white transition-colors cursor-pointer"
             >
-              Retry Submission
+              Retry Execution
             </button>
           )}
 
@@ -369,9 +485,9 @@ const TradeConfirmationDialogContent = React.memo(function TradeConfirmationDial
               <CheckCircle2 className="size-3.5" />
               <span>
                 {localResponseMessage ||
-                  (activeTrade.orderId
-                    ? `Order #${activeTrade.orderId.substring(0, 8)} filled`
-                    : 'Order executed successfully')}
+                  (activeTrade.orderIdResult
+                    ? `Order #${activeTrade.orderIdResult.substring(0, 8)} filled`
+                    : 'Action executed successfully')}
               </span>
             </button>
           )}
