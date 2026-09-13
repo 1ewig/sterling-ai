@@ -13,8 +13,8 @@ export const getOpenOrdersParamsSchema = z.object({
   symbol: z.string().optional().describe('Optional symbol to filter open orders (e.g. BTCUSDT, RTSLAUSDT)'),
   category: z
     .enum(['all', 'spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
-    .default('usdt-futures')
-    .describe('Market category'),
+    .default('all')
+    .describe('Market category (default "all" aggregates Spot + USDT-Futures + Coin-Futures)'),
 });
 
 export const cancelOrderParamsSchema = z.object({

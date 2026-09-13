@@ -20,6 +20,14 @@ interface ParsedAssets {
   positionValue: number;
   unrealisedPnl: number;
   leverage: number;
+  assets?: Array<{
+    coin: string;
+    equity: number;
+    usdValue: number;
+    balance: number;
+    available: number;
+    locked: number;
+  }>;
 }
 
 function toNumber(v: unknown): number {
@@ -38,9 +46,20 @@ function parseAssetsData(data: unknown): ParsedAssets | null {
     // Legacy per-coin array fallback
     let total = 0;
     let available = 0;
-    for (const a of data as Array<{ equity?: string; usdtEquity?: string; available?: string }>) {
-      total += toNumber(a.equity || a.usdtEquity);
-      available += toNumber(a.available);
+    const assetsList = [];
+    for (const a of data as Array<{ coin?: string; equity?: string; usdtEquity?: string; available?: string; locked?: string; usdValue?: string }>) {
+      const eq = toNumber(a.equity || a.usdtEquity);
+      const av = toNumber(a.available);
+      total += eq;
+      available += av;
+      assetsList.push({
+        coin: a.coin || 'USDT',
+        equity: eq,
+        usdValue: toNumber(a.usdValue || eq),
+        balance: eq,
+        available: av,
+        locked: toNumber(a.locked),
+      });
     }
     return {
       totalEquityUsd: total,
@@ -52,15 +71,27 @@ function parseAssetsData(data: unknown): ParsedAssets | null {
       positionValue: 0,
       unrealisedPnl: 0,
       leverage: 0,
+      assets: assetsList,
     };
   }
 
   if (typeof data !== 'object' || data === null) return null;
 
   const o = data as Record<string, unknown>;
-  const perCoinAvailable = Array.isArray(o.assets)
-    ? (o.assets as Array<{ available?: string | number }>).reduce((sum, a) => sum + toNumber(a.available), 0)
-    : 0;
+  const rawAssets = Array.isArray(o.assets)
+    ? (o.assets as Array<{ coin?: string; equity?: string | number; usdValue?: string | number; balance?: string | number; available?: string | number; locked?: string | number }>)
+    : [];
+
+  const parsedAssets = rawAssets.map((a) => ({
+    coin: String(a.coin || 'UNKNOWN').toUpperCase(),
+    equity: toNumber(a.equity),
+    usdValue: toNumber(a.usdValue),
+    balance: toNumber(a.balance),
+    available: toNumber(a.available),
+    locked: toNumber(a.locked),
+  }));
+
+  const perCoinAvailable = parsedAssets.reduce((sum, a) => sum + a.available, 0);
   const effEquity = toNumber(o.effEquity);
 
   // effEquity is the USD-converted collateral usable for margin (matches "available equity").
@@ -76,6 +107,7 @@ function parseAssetsData(data: unknown): ParsedAssets | null {
     positionValue: toNumber(o.positionValue),
     unrealisedPnl: toNumber(o.unrealisedPnl),
     leverage: toNumber(o.leverage),
+    assets: parsedAssets,
   };
 }
 
@@ -218,6 +250,7 @@ export async function getAccountOverviewV3(
     effEquityUsdt: assetsData && assetsData.effEquity > 0 ? round2(assetsData.effEquity) : undefined,
     positions,
     positionsByCategory: positionCategories.length > 0 ? positionsByCategory : undefined,
+    assets: assetsData?.assets,
     sources,
     warnings: warnings.length > 0 ? warnings : undefined,
   };

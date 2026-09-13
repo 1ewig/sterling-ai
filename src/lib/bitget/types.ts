@@ -298,6 +298,15 @@ export interface BitgetAccountSource {
   error?: BitgetErrorDetails;
 }
 
+export interface BitgetAssetBalance {
+  coin: string;
+  equity: number;
+  usdValue: number;
+  balance: number;
+  available: number;
+  locked: number;
+}
+
 export interface BitgetAccountOverview {
   totalEquityUsdt: number;
   /** USDT-denominated equity (assets.usdtEquity) */
@@ -319,6 +328,8 @@ export interface BitgetAccountOverview {
   positionValueUsdt?: number;
   positions: BitgetV3Position[];
   positionsByCategory?: Record<string, BitgetV3Position[]>;
+  /** Spot & Collateral coin balances */
+  assets?: BitgetAssetBalance[];
   /** Per-source diagnostics so partial failures degrade gracefully instead of throwing */
   sources?: {
     settings: BitgetAccountSource;

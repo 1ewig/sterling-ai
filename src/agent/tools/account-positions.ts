@@ -42,9 +42,10 @@ export const accountOverviewTool = tool({
           profitRate: p.profitRate ? `${(toNumber(p.profitRate) * 100).toFixed(2)}%` : undefined,
           marginMode: p.marginMode,
         })),
+        spotAssets: (overview.assets || []).filter((a) => a.balance > 0 || a.locked > 0),
         warnings: overview.warnings && overview.warnings.length > 0 ? overview.warnings : undefined,
         sourcesHealthy,
-        summary: buildSummary(category, overview.totalEquityUsdt, overview.unrealizedPnlUsdt, positions.length),
+        summary: buildSummary(category, overview.totalEquityUsdt, overview.unrealizedPnlUsdt, positions.length, overview.assets),
         actionableGuidance: sourcesHealthy
           ? undefined
           : (overview.warnings?.[0] ?? 'Some account data sources failed. Retry the request.'),
@@ -72,9 +73,22 @@ function toNumber(v: string | number | undefined): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function buildSummary(category: string, totalEquity: number, unrealizedPnl: number, positionCount: number): string {
+function buildSummary(
+  category: string,
+  totalEquity: number,
+  unrealizedPnl: number,
+  positionCount: number,
+  assets?: Array<{ coin: string; balance: number; locked: number; usdValue: number }>
+): string {
   const pnl = `${unrealizedPnl >= 0 ? '+' : ''}$${unrealizedPnl.toFixed(2)}`;
+  const holdingCoins = (assets || [])
+    .filter((a) => a.balance > 0 && a.coin !== 'USDT')
+    .map((a) => `${a.balance.toFixed(4)} ${a.coin}`)
+    .join(', ');
+
+  const spotSummary = holdingCoins ? ` | Spot Holdings: ${holdingCoins}` : '';
+
   return positionCount > 0
-    ? `Active Positions (${category.toUpperCase()}): ${positionCount} contracts open with total unrealized PnL of ${pnl}.`
-    : `No open positions in ${category.toUpperCase()}. Equity $${totalEquity.toFixed(2)} is available as collateral.`;
+    ? `Active Positions (${category.toUpperCase()}): ${positionCount} contracts open with total unrealized PnL of ${pnl} (Total Equity: $${totalEquity.toFixed(2)}${spotSummary}).`
+    : `Total Equity: $${totalEquity.toFixed(2)} (Unrealized PnL: ${pnl}${spotSummary}). No active futures contracts open.`;
 }

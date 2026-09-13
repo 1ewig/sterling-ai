@@ -15,6 +15,15 @@ interface PositionItem {
   marginMode: string;
 }
 
+interface SpotAssetItem {
+  coin: string;
+  equity: number;
+  usdValue: number;
+  balance: number;
+  available: number;
+  locked: number;
+}
+
 interface AccountOverviewData {
   accountMode?: string;
   totalEquityUsdt?: number;
@@ -23,6 +32,7 @@ interface AccountOverviewData {
   marginRatioPercent?: number;
   positionCount?: number;
   positions?: PositionItem[];
+  spotAssets?: SpotAssetItem[];
   summary?: string;
 }
 
@@ -33,6 +43,7 @@ export const AccountOverviewCard = React.memo(function AccountOverviewCard({
 }) {
   const data = resultObj as unknown as AccountOverviewData;
   const positions = data.positions || [];
+  const spotAssets = data.spotAssets || [];
   const totalPnl = data.unrealizedPnlUsdt || 0;
 
   return (
@@ -70,18 +81,50 @@ export const AccountOverviewCard = React.memo(function AccountOverviewCard({
           </span>
         </div>
         <div className="flex flex-col bg-theme-bg-elevated/40 p-2 rounded col-span-2 sm:col-span-1">
-          <span className="text-theme-text-muted text-2xs uppercase">Open Contracts</span>
+          <span className="text-theme-text-muted text-2xs uppercase">Active Contracts</span>
           <span className="font-mono font-bold text-theme-text-primary">
             {positions.length} active
           </span>
         </div>
       </div>
 
+      {/* Spot Assets & Collateral */}
+      {spotAssets.length > 0 && (
+        <div className="flex flex-col gap-1.5 pt-1 border-t border-theme-border-subtle/30">
+          <span className="text-2xs font-mono text-theme-text-muted uppercase tracking-wider">
+            Spot Holdings & Collateral
+          </span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 font-mono text-2xs">
+            {spotAssets.map((asset) => (
+              <div
+                key={asset.coin}
+                className="p-1.5 rounded bg-theme-bg-elevated/40 border border-theme-border-subtle/30 flex flex-col gap-0.5"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-theme-text-primary">{asset.coin}</span>
+                  {asset.usdValue > 0 && (
+                    <span className="text-theme-text-muted">${asset.usdValue.toFixed(2)}</span>
+                  )}
+                </div>
+                <div className="flex justify-between text-2xs text-theme-text-secondary">
+                  <span>Bal: {asset.balance.toFixed(4)}</span>
+                  {asset.locked > 0 && (
+                    <span className="text-theme-status-warning font-semibold">
+                      Locked: {asset.locked.toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Positions Ladder */}
       {positions.length > 0 ? (
-        <div className="flex flex-col gap-1.5 pt-1">
+        <div className="flex flex-col gap-1.5 pt-1 border-t border-theme-border-subtle/30">
           <span className="text-2xs font-mono text-theme-text-muted uppercase tracking-wider">
-            Active Positions
+            Active Futures Positions
           </span>
           <div className="flex flex-col gap-1 max-h-48 overflow-y-auto custom-scrollbar">
             {positions.map((pos, idx) => {
@@ -125,9 +168,9 @@ export const AccountOverviewCard = React.memo(function AccountOverviewCard({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-1.5 p-2 rounded bg-theme-bg-elevated/20 text-theme-text-muted text-2xs">
+        <div className="flex items-center gap-1.5 p-2 rounded bg-theme-bg-elevated/20 text-theme-text-muted text-2xs border-t border-theme-border-subtle/30">
           <Shield className="size-3.5 text-theme-brand-primary" />
-          <span>No active positions open. Capital is 100% idle and available.</span>
+          <span>No active futures positions open. Capital is preserved in spot/collateral.</span>
         </div>
       )}
     </div>
