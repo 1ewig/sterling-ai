@@ -34,8 +34,8 @@ function formatUSD(val?: number | null, fallback = '—'): string {
 
 export const TradeConfirmationModal = React.memo(function TradeConfirmationModal() {
   const activePopupId = useStagedTradesStore((s) => s.activePopupId);
-  const activeTrade = useStagedTradesStore(
-    useCallback((s) => s.stagedTrades.find((t) => t.id === s.activePopupId), [activePopupId])
+  const activeTrade = useStagedTradesStore((s) =>
+    s.stagedTrades.find((t) => t.id === s.activePopupId)
   );
   const closePopup = useStagedTradesStore((s) => s.closePopup);
   const updateTradeStatus = useStagedTradesStore((s) => s.updateTradeStatus);
@@ -95,7 +95,7 @@ export const TradeConfirmationModal = React.memo(function TradeConfirmationModal
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [activeTrade?.id, activeTrade?.expiresAt, activeTrade?.status, updateTradeStatus]);
+  }, [activeTrade, updateTradeStatus]);
 
   // Escape key handler
   useEffect(() => {

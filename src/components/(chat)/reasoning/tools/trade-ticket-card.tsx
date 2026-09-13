@@ -78,7 +78,7 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
           riskRewardRatio: data.riskRewardRatio,
           rationale: data.rationale,
         },
-        true // Auto open popup
+        false // Synchronize into store without forcing popup if already closed
       );
     }
   }, [

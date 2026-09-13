@@ -3,6 +3,7 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { generateMessageId, getNowTimestamp } from '@/lib/utils';
 import { useAppStore } from '@/stores/app-store';
+import { useStagedTradesStore } from '@/stores/staged-trades-store';
 import {
   getConversation,
   renameConversation,
@@ -244,6 +245,41 @@ export function useAgentChat() {
 
       updateCachedMessage(finalMessage);
       await saveStoredMessage(finalMessage);
+
+      // Auto-stage any staged trade order tickets generated during inference & open confirmation popup
+      for (const step of finalSteps) {
+        if (
+          step.toolName === 'stage_trade_order' &&
+          step.toolResult &&
+          typeof step.toolResult === 'object'
+        ) {
+          const res = step.toolResult as Record<string, unknown>;
+          if (res.success && res.ticketId && res.ticketToken && res.symbol) {
+            useStagedTradesStore.getState().stageTrade(
+              {
+                id: String(res.ticketId),
+                ticketToken: String(res.ticketToken),
+                symbol: String(res.symbol),
+                category: typeof res.category === 'string' ? res.category : 'USDT-FUTURES',
+                side: (res.side as 'buy' | 'sell') || 'buy',
+                orderType: (res.orderType as 'limit' | 'market') || 'limit',
+                size: typeof res.size === 'number' ? res.size : 0,
+                price: typeof res.price === 'number' ? res.price : undefined,
+                tradeSide: typeof res.tradeSide === 'string' ? res.tradeSide : undefined,
+                leverage: typeof res.leverage === 'number' ? res.leverage : undefined,
+                notionalUsdt: typeof res.notionalUsdt === 'number' ? res.notionalUsdt : undefined,
+                initialMarginUsdt: typeof res.initialMarginUsdt === 'number' ? res.initialMarginUsdt : undefined,
+                estimatedLiquidation: typeof res.estimatedLiquidation === 'number' ? res.estimatedLiquidation : undefined,
+                stopLossPrice: typeof res.stopLossPrice === 'number' ? res.stopLossPrice : undefined,
+                takeProfitPrice: typeof res.takeProfitPrice === 'number' ? res.takeProfitPrice : undefined,
+                riskRewardRatio: typeof res.riskRewardRatio === 'string' ? res.riskRewardRatio : undefined,
+                rationale: typeof res.rationale === 'string' ? res.rationale : undefined,
+              },
+              true
+            );
+          }
+        }
+      }
 
       const resolvedTitle =
         finalResult?.sessionTitle ||
