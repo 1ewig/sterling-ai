@@ -54,11 +54,14 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
 
   // Insufficient Balance / Margin
   if (
+    cleanCode === '25203' ||
+    cleanCode === '25202' ||
     cleanCode === '43012' ||
     cleanCode === '43013' ||
     cleanCode === '40754' ||
     lowerMsg.includes('balance') ||
-    lowerMsg.includes('insufficient')
+    lowerMsg.includes('insufficient') ||
+    lowerMsg.includes('margin')
   ) {
     return {
       category: 'INSUFFICIENT_FUNDS',
@@ -71,7 +74,14 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
   }
 
   // Order Not Found
-  if (cleanCode === '40725' || cleanCode === '24056' || lowerMsg.includes('order not exist') || lowerMsg.includes('order not found')) {
+  if (
+    cleanCode === '25204' ||
+    cleanCode === '40725' ||
+    cleanCode === '24056' ||
+    lowerMsg.includes('order not exist') ||
+    lowerMsg.includes('order not found') ||
+    lowerMsg.includes('order does not exist')
+  ) {
     return {
       category: 'ORDER_NOT_FOUND',
       code: cleanCode,

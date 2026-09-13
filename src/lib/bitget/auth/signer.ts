@@ -12,7 +12,7 @@ export function sortQueryString(queryString: string): string {
 
 /**
  * Generates an RFC-compliant Base64 HMAC-SHA256 signature for Bitget private endpoints.
- * preHash = timestamp + method + requestPath + queryString + bodyString
+ * preHash = timestamp + method + requestPath + (queryString ? '?' + queryString : '') + bodyString
  */
 export function generateBitgetV3Signature(
   secretKey: string,
@@ -22,8 +22,7 @@ export function generateBitgetV3Signature(
   queryString = '',
   bodyString = ''
 ): string {
-  const sortedQuery = sortQueryString(queryString);
-  const fullPath = sortedQuery ? `${requestPath}?${sortedQuery}` : requestPath;
+  const fullPath = queryString ? `${requestPath}?${queryString}` : requestPath;
   const preHash = `${timestamp}${method.toUpperCase()}${fullPath}${bodyString}`;
   return crypto.createHmac('sha256', secretKey).update(preHash).digest('base64');
 }
@@ -49,14 +48,13 @@ export function getAuthHeaders(
   }
 
   const timestamp = Date.now().toString();
-  const sortedQuery = sortQueryString(queryString);
   const bodyString = bodyObj ? JSON.stringify(bodyObj) : '';
   const signature = generateBitgetV3Signature(
     apiSecret,
     timestamp,
     method,
     requestPath,
-    sortedQuery,
+    queryString,
     bodyString
   );
 

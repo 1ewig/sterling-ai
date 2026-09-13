@@ -86,29 +86,86 @@ export async function getOrderInfoV3(
 
     const json = (await response.json()) as {
       code: string;
-      data?: {
-        orderId: string;
-        clientOid?: string;
-        symbol: string;
-        side: 'buy' | 'sell';
-        orderType: 'limit' | 'market';
-        price?: string;
-        size: string;
-        status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-        baseVolume?: string;
-        cumExecQty?: string;
-        avgPrice?: string;
-        feeDetail?: Array<{ feeCoin: string; fee: string }>;
-        cTime?: string;
-        uTime?: string;
-      };
+      data?:
+        | {
+            orderId: string;
+            clientOid?: string;
+            symbol: string;
+            side: 'buy' | 'sell';
+            orderType: 'limit' | 'market';
+            price?: string;
+            size?: string;
+            qty?: string;
+            baseVolume?: string;
+            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+            cumExecQty?: string;
+            avgPrice?: string;
+            feeDetail?: Array<{ feeCoin: string; fee: string }>;
+            cTime?: string;
+            uTime?: string;
+            list?: Array<{
+              orderId: string;
+              clientOid?: string;
+              symbol: string;
+              side: 'buy' | 'sell';
+              orderType: 'limit' | 'market';
+              price?: string;
+              size?: string;
+              qty?: string;
+              status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+              baseVolume?: string;
+              cumExecQty?: string;
+              avgPrice?: string;
+              feeDetail?: Array<{ feeCoin: string; fee: string }>;
+              cTime?: string;
+              uTime?: string;
+            }>;
+          }
+        | Array<{
+            orderId: string;
+            clientOid?: string;
+            symbol: string;
+            side: 'buy' | 'sell';
+            orderType: 'limit' | 'market';
+            price?: string;
+            size?: string;
+            qty?: string;
+            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+            baseVolume?: string;
+            cumExecQty?: string;
+            avgPrice?: string;
+            feeDetail?: Array<{ feeCoin: string; fee: string }>;
+            cTime?: string;
+            uTime?: string;
+          }>;
     };
 
     if ((json.code === '00000' || json.code === '0') && json.data) {
-      return {
-        ...json.data,
-        category,
-      };
+      const order = Array.isArray(json.data)
+        ? json.data[0]
+        : Array.isArray(json.data.list)
+        ? json.data.list[0]
+        : json.data;
+
+      if (order && order.orderId) {
+        return {
+          orderId: order.orderId,
+          clientOid: order.clientOid,
+          symbol: order.symbol || normSym,
+          category,
+          side: order.side,
+          orderType: order.orderType,
+          price: order.price,
+          size: order.size || order.qty || '0',
+          status: order.status,
+          baseVolume: order.baseVolume,
+          cumExecQty: order.cumExecQty,
+          avgPrice: order.avgPrice,
+          feeDetail: order.feeDetail,
+          cTime: order.cTime,
+          uTime: order.uTime,
+        };
+      }
     }
     return null;
   } catch (err) {
@@ -140,27 +197,65 @@ export async function getUnfilledOrdersV3(
 
     const json = (await response.json()) as {
       code: string;
-      data?: Array<{
-        orderId: string;
-        clientOid?: string;
-        symbol: string;
-        side: 'buy' | 'sell';
-        orderType: 'limit' | 'market';
-        price?: string;
-        size: string;
-        status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
-        baseVolume?: string;
-        cumExecQty?: string;
-        avgPrice?: string;
-        cTime?: string;
-        uTime?: string;
-      }>;
+      data?:
+        | {
+            list?: Array<{
+              orderId: string;
+              clientOid?: string;
+              symbol: string;
+              side: 'buy' | 'sell';
+              orderType: 'limit' | 'market';
+              price?: string;
+              size?: string;
+              qty?: string;
+              status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+              baseVolume?: string;
+              cumExecQty?: string;
+              avgPrice?: string;
+              cTime?: string;
+              uTime?: string;
+            }>;
+          }
+        | Array<{
+            orderId: string;
+            clientOid?: string;
+            symbol: string;
+            side: 'buy' | 'sell';
+            orderType: 'limit' | 'market';
+            price?: string;
+            size?: string;
+            qty?: string;
+            status: 'init' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+            baseVolume?: string;
+            cumExecQty?: string;
+            avgPrice?: string;
+            cTime?: string;
+            uTime?: string;
+          }>;
     };
 
-    if ((json.code === '00000' || json.code === '0') && Array.isArray(json.data)) {
-      return json.data.map((o) => ({
-        ...o,
+    if (json.code === '00000' || json.code === '0') {
+      const rawList = Array.isArray(json.data)
+        ? json.data
+        : (json.data && 'list' in json.data && Array.isArray(json.data.list))
+        ? json.data.list
+        : [];
+
+      return rawList.map((o) => ({
+        orderId: o.orderId,
+        clientOid: o.clientOid,
+        symbol: o.symbol,
         category,
+        side: o.side,
+        orderType: o.orderType,
+        price: o.price,
+        size: o.size || o.qty || '0',
+        status: o.status,
+        baseVolume: o.baseVolume,
+        cumExecQty: o.cumExecQty,
+        avgPrice: o.avgPrice,
+        cTime: o.cTime,
+        uTime: o.uTime,
       }));
     }
 

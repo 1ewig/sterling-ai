@@ -6,10 +6,10 @@ export interface V3PlaceOrderPayload {
   symbol: string;
   side: 'buy' | 'sell';
   orderType: 'limit' | 'market';
-  size: string;
+  qty: string;
   price?: string;
   posSide?: 'long' | 'short' | 'net';
-  reduceOnly?: boolean;
+  reduceOnly?: 'YES' | 'NO';
   marginMode?: 'crossed' | 'isolated';
   timeInForce?: 'gtc' | 'ioc' | 'fok' | 'post_only';
   clientOid?: string;
@@ -32,8 +32,8 @@ export interface V3ModifyOrderPayload {
   symbol: string;
   orderId?: string;
   clientOid?: string;
-  newPrice?: string;
-  newSize?: string;
+  price?: string;
+  qty?: string;
   autoCancel?: boolean;
 }
 
@@ -54,9 +54,10 @@ export interface V3ClosePositionPayload {
   symbol: string;
   side: 'buy' | 'sell';
   orderType: 'market';
+  qty?: string;
   size?: string;
   posSide?: 'long' | 'short' | 'net';
-  reduceOnly: true;
+  reduceOnly: 'YES';
   clientOid?: string;
 }
 
@@ -68,16 +69,26 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
   const category = toV3Category(params.category);
   const isSpot = category === 'SPOT';
 
-  // In one-way mode or spot, posSide defaults to 'net'. In hedge mode, long or short.
-  const posSide = params.posSide ?? (isSpot ? 'net' : params.tradeSide === 'close' ? 'net' : 'net');
-  const reduceOnly = params.reduceOnly ?? (params.tradeSide === 'close');
+  // Determine posSide: in Spot = 'net'. In Futures Hedge Mode: buy = 'long', sell = 'short' unless specified.
+  let posSide = params.posSide;
+  if (!posSide) {
+    if (isSpot) {
+      posSide = 'net';
+    } else if (params.tradeSide === 'close') {
+      posSide = params.side === 'buy' ? 'short' : 'long';
+    } else {
+      posSide = params.side === 'buy' ? 'long' : 'short';
+    }
+  }
+
+  const isReduceOnly = params.reduceOnly === true || params.tradeSide === 'close';
 
   const payload: V3PlaceOrderPayload = {
     category,
     symbol,
     side: params.side,
     orderType: params.orderType,
-    size: params.size,
+    qty: params.size,
     clientOid: params.clientOid || `argus_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
   };
 
@@ -87,7 +98,9 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
 
   if (!isSpot) {
     payload.posSide = posSide;
-    payload.reduceOnly = reduceOnly;
+    if (isReduceOnly) {
+      payload.reduceOnly = 'YES';
+    }
     payload.marginMode = params.marginMode || 'crossed';
   }
 
@@ -137,10 +150,14 @@ export function buildModifyPayload(params: BitgetV3ModifyParams): V3ModifyOrderP
     symbol,
     orderId: params.orderId,
     clientOid: params.clientOid,
-    newPrice: params.newPrice,
-    newSize: params.newSize,
   };
 
+  if (params.newPrice) {
+    payload.price = params.newPrice;
+  }
+  if (params.newSize) {
+    payload.qty = params.newSize;
+  }
   if (params.autoCancel !== undefined) {
     payload.autoCancel = params.autoCancel;
   }
@@ -188,9 +205,10 @@ export function buildClosePositionsPayload(
     symbol: normSymbol,
     side,
     orderType: 'market',
+    qty: size,
     size,
     posSide: normCategory === 'SPOT' ? 'net' : posSide,
-    reduceOnly: true,
+    reduceOnly: 'YES',
     clientOid: `close_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
   };
 }
