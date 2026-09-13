@@ -224,24 +224,36 @@ export function generateTechnicalReport(
   granularity: string,
   candles: KlineCandle[]
 ): TechnicalIndicatorReport {
-  if (!candles || candles.length < 30) {
-    throw new Error(`Insufficient candlestick data for ${symbol}: received ${candles.length} bars`);
+  if (!candles || candles.length < 10) {
+    throw new Error(`Insufficient candlestick data for ${symbol}: received ${candles?.length ?? 0} bars (minimum 10 required)`);
   }
 
   const closes = candles.map((c) => c.close);
   const lastBar = candles[candles.length - 1];
   const currentPrice = lastBar.close;
 
-  // Indicators
-  const rsiSeries = calculateRSI(closes, 14);
-  const lastRSI = Number(rsiSeries[rsiSeries.length - 1].toFixed(2));
+  // Indicators: RSI with adaptive period for short histories
+  const rsiPeriod = Math.min(14, Math.max(2, closes.length - 1));
+  const rsiSeries = calculateRSI(closes, rsiPeriod);
+  const rawRSI = rsiSeries[rsiSeries.length - 1];
+  const lastRSI = !isNaN(rawRSI) ? Number(rawRSI.toFixed(2)) : 50;
   const rsiSignal = lastRSI >= 70 ? 'overbought' : lastRSI <= 30 ? 'oversold' : 'neutral';
 
-  const { dif, dea, hist } = calculateMACD(closes);
-  const lastDIF = Number(dif[dif.length - 1].toFixed(4));
-  const lastDEA = Number(dea[dea.length - 1].toFixed(4));
-  const lastHist = Number(hist[hist.length - 1].toFixed(4));
-  const prevHist = Number(hist[hist.length - 2].toFixed(4));
+  // MACD: adaptive fast/slow/signal for shorter windows
+  const slowPeriod = Math.min(26, Math.max(4, closes.length - 1));
+  const fastPeriod = Math.max(2, Math.floor(slowPeriod / 2));
+  const signalPeriod = Math.min(9, Math.max(2, Math.floor(fastPeriod / 2)));
+  const { dif, dea, hist } = calculateMACD(closes, fastPeriod, slowPeriod, signalPeriod);
+
+  const rawDIF = dif.length > 0 ? dif[dif.length - 1] : NaN;
+  const rawDEA = dea.length > 0 ? dea[dea.length - 1] : NaN;
+  const rawHist = hist.length > 0 ? hist[hist.length - 1] : NaN;
+  const rawPrevHist = hist.length > 1 ? hist[hist.length - 2] : NaN;
+
+  const lastDIF = !isNaN(rawDIF) ? Number(rawDIF.toFixed(4)) : 0;
+  const lastDEA = !isNaN(rawDEA) ? Number(rawDEA.toFixed(4)) : lastDIF;
+  const lastHist = !isNaN(rawHist) ? Number(rawHist.toFixed(4)) : 0;
+  const prevHist = !isNaN(rawPrevHist) ? Number(rawPrevHist.toFixed(4)) : 0;
 
   let macdSignal: TechnicalIndicatorReport['indicators']['macd']['signal'] = 'neutral';
   if (lastHist > 0 && prevHist <= 0) macdSignal = 'bullish_cross';
@@ -249,13 +261,16 @@ export function generateTechnicalReport(
   else if (lastHist > 0) macdSignal = 'bullish_momentum';
   else if (lastHist < 0) macdSignal = 'bearish_momentum';
 
-  const ema20 = calculateEMA(closes, 20);
-  const ema50 = calculateEMA(closes, 50);
+  // EMAs with adaptive length fallback
+  const ema20 = calculateEMA(closes, Math.min(20, closes.length));
+  const ema50 = calculateEMA(closes, Math.min(50, closes.length));
   const ema200 = closes.length >= 200 ? calculateEMA(closes, 200) : undefined;
 
-  const lastEMA20 = Number(ema20[ema20.length - 1].toFixed(2));
-  const lastEMA50 = Number(ema50[ema50.length - 1].toFixed(2));
-  const lastEMA200 = ema200 ? Number(ema200[ema200.length - 1].toFixed(2)) : undefined;
+  const rawEMA20 = ema20[ema20.length - 1];
+  const rawEMA50 = ema50[ema50.length - 1];
+  const lastEMA20 = !isNaN(rawEMA20) ? Number(rawEMA20.toFixed(2)) : currentPrice;
+  const lastEMA50 = !isNaN(rawEMA50) ? Number(rawEMA50.toFixed(2)) : lastEMA20;
+  const lastEMA200 = ema200 && !isNaN(ema200[ema200.length - 1]) ? Number(ema200[ema200.length - 1].toFixed(2)) : undefined;
 
   let emaAlignment: 'bullish' | 'bearish' | 'mixed' = 'mixed';
   if (currentPrice > lastEMA20 && lastEMA20 > lastEMA50) {
@@ -264,17 +279,27 @@ export function generateTechnicalReport(
     emaAlignment = 'bearish';
   }
 
-  const { upper, middle, lower, bandwidth } = calculateBollingerBands(closes, 20, 2);
-  const lastUpper = Number(upper[upper.length - 1].toFixed(2));
-  const lastMiddle = Number(middle[middle.length - 1].toFixed(2));
-  const lastLower = Number(lower[lower.length - 1].toFixed(2));
-  const lastBandwidth = Number(bandwidth[bandwidth.length - 1].toFixed(2));
+  // Bollinger Bands
+  const bbPeriod = Math.min(20, closes.length);
+  const { upper, middle, lower, bandwidth } = calculateBollingerBands(closes, bbPeriod, 2);
+  const rawUpper = upper[upper.length - 1];
+  const rawMiddle = middle[middle.length - 1];
+  const rawLower = lower[lower.length - 1];
+  const rawBandwidth = bandwidth[bandwidth.length - 1];
+
+  const lastUpper = !isNaN(rawUpper) ? Number(rawUpper.toFixed(2)) : currentPrice;
+  const lastMiddle = !isNaN(rawMiddle) ? Number(rawMiddle.toFixed(2)) : currentPrice;
+  const lastLower = !isNaN(rawLower) ? Number(rawLower.toFixed(2)) : currentPrice;
+  const lastBandwidth = !isNaN(rawBandwidth) ? Number(rawBandwidth.toFixed(2)) : 0;
 
   const bbPosition =
     currentPrice >= lastUpper ? 'above_upper' : currentPrice <= lastLower ? 'below_lower' : 'inside';
 
-  const atrSeries = calculateATR(candles, 14);
-  const lastATR = Number(atrSeries[atrSeries.length - 1].toFixed(2));
+  // ATR with adaptive period
+  const atrPeriod = Math.min(14, Math.max(2, candles.length - 1));
+  const atrSeries = calculateATR(candles, atrPeriod);
+  const rawATR = atrSeries[atrSeries.length - 1];
+  const lastATR = !isNaN(rawATR) ? Number(rawATR.toFixed(2)) : Number((lastBar.high - lastBar.low).toFixed(2));
 
   const fib = calculateFibonacci(candles);
 

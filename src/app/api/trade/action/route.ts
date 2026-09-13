@@ -5,6 +5,7 @@ import {
   closePositionsV3,
   verifyActionTicketToken,
 } from '@/lib/bitget/trade';
+import { toV3Category } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';
 
@@ -58,9 +59,15 @@ export async function POST(req: Request) {
     }
 
     if (action === 'cancel_order') {
+      if (!orderId && !clientOid) {
+        return NextResponse.json(
+          { success: false, error: 'Cancelling an order requires either orderId or clientOid.' },
+          { status: 400 }
+        );
+      }
       const res = await cancelOrderV3({
         symbol,
-        category: category as any,
+        category: toV3Category(category),
         orderId,
         clientOid,
       });
@@ -69,7 +76,10 @@ export async function POST(req: Request) {
         action: 'cancel_order',
         symbol,
         orderId: res.orderId,
-        message: `Order ${orderId || clientOid} cancelled successfully.`,
+        alreadyTerminal: (res as { alreadyTerminal?: boolean }).alreadyTerminal,
+        message:
+          (res as { message?: string }).message ||
+          `Order ${orderId || clientOid} cancelled successfully.`,
       });
     }
 

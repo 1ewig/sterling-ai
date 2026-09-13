@@ -47,7 +47,7 @@ export const getOpenOrdersTool = tool({
   inputSchema: getOpenOrdersParamsSchema,
   execute: async ({ symbol, category = 'usdt-futures' }) => {
     try {
-      const v3Cat = category === 'all' ? 'USDT-FUTURES' : toV3Category(category);
+      const v3Cat = category === 'all' ? 'all' : toV3Category(category);
       const orders = await getUnfilledOrdersV3(symbol, v3Cat);
 
       return {
@@ -69,8 +69,8 @@ export const getOpenOrdersTool = tool({
         })),
         summary:
           orders.length > 0
-            ? `Found ${orders.length} open working order(s) for ${symbol || v3Cat}.`
-            : `No open working orders found for ${symbol || v3Cat}.`,
+            ? `Found ${orders.length} open working order(s) for ${symbol || category.toUpperCase()}.`
+            : `No open working orders found for ${symbol || category.toUpperCase()}.`,
       };
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to query open orders';

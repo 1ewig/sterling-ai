@@ -120,7 +120,7 @@ export async function fetchBitgetCandles(
 ): Promise<KlineCandle[]> {
   const sym = normalizeSymbol(symbol);
   const interval = normalizeV3Interval(granularity);
-  const safeLimit = Math.min(Math.max(limit, 30), 200);
+  const safeLimit = Math.min(Math.max(limit, 10), 200);
 
   // 1. Try V3 Futures Candlesticks
   if (isFutures) {

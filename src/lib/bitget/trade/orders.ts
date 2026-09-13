@@ -185,8 +185,22 @@ export async function getOrderInfoV3(
  */
 export async function getUnfilledOrdersV3(
   symbol?: string,
-  categoryInput?: string
+  categoryInput = 'USDT-FUTURES'
 ): Promise<BitgetV3OrderInfo[]> {
+  if (categoryInput === 'all') {
+    const categories = ['USDT-FUTURES', 'SPOT', 'COIN-FUTURES', 'USDC-FUTURES'];
+    const results = await Promise.allSettled(
+      categories.map((cat) => getUnfilledOrdersV3(symbol, cat))
+    );
+    const combined: BitgetV3OrderInfo[] = [];
+    for (const r of results) {
+      if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+        combined.push(...r.value);
+      }
+    }
+    return combined;
+  }
+
   const path = '/api/v3/trade/unfilled-orders';
   const category = toV3Category(categoryInput);
 
@@ -310,7 +324,7 @@ export async function modifyOrderV3(
  */
 export async function cancelOrderV3(
   params: BitgetV3CancelParams
-): Promise<{ success: boolean; orderId?: string }> {
+): Promise<{ success: boolean; orderId?: string; alreadyTerminal?: boolean; message?: string }> {
   const path = '/api/v3/trade/cancel-order';
   const payload = buildCancelPayload(params);
 
@@ -327,6 +341,16 @@ export async function cancelOrderV3(
     return {
       success: true,
       orderId: json.data?.orderId || params.orderId,
+    };
+  }
+
+  // 25204: Order does not exist (already filled or cancelled)
+  if (json.code === '25204') {
+    return {
+      success: true,
+      orderId: params.orderId,
+      alreadyTerminal: true,
+      message: 'Order does not exist on exchange (already filled or cancelled).',
     };
   }
 
