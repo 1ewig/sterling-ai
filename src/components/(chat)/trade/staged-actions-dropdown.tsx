@@ -115,16 +115,15 @@ export const StagedActionsDropdown = React.memo(function StagedActionsDropdown({
         title={`${counts.total} staged action${counts.total > 1 ? 's' : ''} awaiting confirmation`}
         aria-label="Staged Actions Drawer"
         aria-expanded={isOpen}
-        className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 select-none transition-all cursor-pointer border shadow-2xs ${
+        className={`h-8 px-2.5 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 select-none transition-colors border cursor-pointer ${
           isOpen
-            ? 'bg-theme-brand-accent/20 text-theme-brand-accent border-theme-brand-accent/40'
-            : 'bg-theme-bg-surface hover:bg-theme-bg-elevated text-theme-text-primary border-theme-border-subtle'
+            ? 'bg-theme-brand-primary/15 text-theme-brand-primary border-theme-brand-primary/30 shadow-2xs'
+            : 'bg-theme-bg-surface hover:bg-theme-bg-elevated text-theme-text-secondary hover:text-theme-text-primary border-theme-border-subtle'
         }`}
       >
-        <Layers className="size-3.5 text-theme-brand-accent" />
-        <span className="font-bold text-theme-text-primary">
-          Staged <span className="text-theme-brand-accent">({counts.total})</span>
-        </span>
+        <Layers className="size-3.5" />
+        <span className="hidden sm:inline">Staged</span>
+        <span>({counts.total})</span>
       </motion.button>
 
       {/* Overflow Dropdown Menu */}
