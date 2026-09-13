@@ -159,15 +159,6 @@ export interface BitgetInstrument {
   sellLimitPriceRatio?: string;
 }
 
-export interface BitgetPositionTier {
-  symbol: string;
-  level: number;
-  startUnit: string;
-  endUnit: string;
-  leverage: string;
-  maintenanceMarginRate: string; // e.g. '0.005'
-}
-
 export interface BitgetV3OrderInfo {
   orderId: string;
   clientOid?: string;
@@ -213,23 +204,6 @@ export interface BitgetV3OrderInfo {
   execType?: string;
   /** Verbatim orderStatus string from the response (before normalization) */
   rawStatus?: string;
-}
-
-export interface BitgetAccountAssets {
-  accountEquity: string;
-  effEquity: string;
-  unrealisedPnl: string;
-  mmr: string;
-  imr?: string;
-  mgnRatio: string;
-  positionValue: string;
-  assets: Array<{
-    coin: string;
-    equity: string;
-    available: string;
-    frozen?: string;
-    unrealisedPnl?: string;
-  }>;
 }
 
 /**

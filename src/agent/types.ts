@@ -281,6 +281,7 @@ export interface NewsBriefingData {
   headlines: NewsBriefingItem[];
   summary: string;
   warning?: string;
+  actionableGuidance?: string;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { newsBriefingParamsSchema, type NewsBriefingItem } from '@/agent/types';
+import { newsBriefingParamsSchema, type NewsBriefingData, type NewsBriefingItem } from '@/agent/types';
 import { searchExa } from '@/lib/exa';
 
 /**
@@ -11,7 +11,7 @@ export const newsBriefingTool = tool({
   description:
     'Synthesize a real-time news briefing and breaking narrative summary for any cryptocurrency, equity, or macro market event (e.g., "BTC ETF flows", "Fed rate cut", "SEC enforcement"). Returns structured headlines, source domains, publication dates, and key highlights.',
   inputSchema: newsBriefingParamsSchema,
-  execute: async ({ symbol, topic = 'crypto market', limit = 4 }) => {
+  execute: async ({ symbol, topic = 'crypto market', limit = 4 }): Promise<NewsBriefingData> => {
     const topicQuery = symbol ? `${symbol} ${topic}`.trim() : topic.trim();
 
     try {
