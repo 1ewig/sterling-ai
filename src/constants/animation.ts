@@ -172,35 +172,6 @@ export const emptyStatePillItemVariants: Variants = {
 };
 
 /**
- * Smooth entrance fade-in animation for the empty state background luminous glow.
- */
-export const emptyStateGlowVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.6,
-      ease: EASING_ARCHITECTURAL,
-    },
-  },
-};
-
-/**
- * Gentle vertical entry for individual empty-state suggestion items.
- */
-export const emptyStateItemVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.28,
-      ease: EASING_ARCHITECTURAL,
-    },
-  },
-};
-
-/**
  * Smooth backdrop fade and modal scale variants for confirm dialogs.
  */
 export const modalBackdropVariants: Variants = {
@@ -240,11 +211,6 @@ export const modalContentVariants: Variants = {
  * Tactile touch and press feedback configurations for interactive buttons, icons, and accordions.
  * Provides immediate physical responsiveness across mouse clicks and mobile touch interactions.
  */
-export const tapScaleButton = {
-  scale: 0.94,
-  transition: { duration: 0.1, ease: 'easeOut' },
-} as const;
-
 export const tapScaleIcon = {
   scale: 0.88,
   transition: { duration: 0.08, ease: 'easeOut' },
@@ -265,16 +231,6 @@ export const hoverLiftPill = {
   transition: { duration: 0.15, ease: 'easeOut' },
 } as const;
 
-export const hoverLiftCard = {
-  y: -1,
-  transition: { duration: 0.15, ease: 'easeOut' },
-} as const;
-
-export const tapScaleCard = {
-  scale: 0.98,
-  transition: { duration: 0.1, ease: 'easeOut' },
-} as const;
-
 export const hoverScaleIcon = {
   scale: 1.05,
   transition: { duration: 0.12, ease: 'easeOut' },
@@ -284,29 +240,10 @@ export const hoverScaleIcon = {
  * Buttery smooth 60/120fps easing parameters for Left Sidebar width collapse and expansion.
  * Uses architectural cubic-bezier deceleration for fluid, zero-jitter transitions.
  */
-export const sidebarTransition = {
+export const sidebarSpringTransition = {
   duration: 0.28,
   ease: EASING_ARCHITECTURAL,
 } as const;
-
-export const sidebarSpringTransition = sidebarTransition;
-
-export const pillSpringTransition = {
-  type: 'spring',
-  stiffness: 450,
-  damping: 32,
-} as const;
-
-export const sidebarContentVariants: Variants = {
-  collapsed: {
-    opacity: 0,
-    transition: { duration: 0.12, ease: 'easeOut' },
-  },
-  expanded: {
-    opacity: 1,
-    transition: { duration: 0.22, delay: 0.06, ease: EASING_ARCHITECTURAL },
-  },
-};
 
 /**
  * Clean width and opacity collapse for sidebar item labels and action containers.
