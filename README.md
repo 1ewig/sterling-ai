@@ -153,17 +153,20 @@ sterling-ai/
 │   ├── app/                          # Next.js 16 App Router
 │   │   ├── api/                      # API routes (chat streaming, symbol cache, trade execution)
 │   │   ├── chat/                     # Main trading desk interface route
-│   │   ├── assets/                   # Portfolio & assets overview route
+│   │   ├── portfolio/                # Portfolio & assets overview route
 │   │   └── globals.css               # Semantic design tokens & Tailwind utilities
 │   ├── components/                   # Modular presentation components
 │   │   ├── (chat)/                   # Chat client, message list, input bar, and staged-actions modals
-│   │   ├── (assets)/                 # Portfolio metric cards, risk meter, and holdings table
+│   │   ├── (portfolio)/              # Portfolio metric cards, risk meter, and holdings table
+│   │   ├── (orders)/                 # Working orders, positions, and trade workbench
 │   │   ├── (market-streamer)/        # WebSocket ticker, L2 depth ladder, and sparkline charts
 │   │   └── common/                   # Modal dialogs, loaders, and tool badges
 │   ├── hooks/                        # Specialized reactive hooks
-│   │   ├── chat/                     # useAgentChat, useChatSessions, useStagedActions
+│   │   ├── chat/                     # useAgentChat, useChatSessions, useStagedActions, useExecuteTrade
+│   │   ├── orders/                   # useOrdersWorkbench
+│   │   ├── portfolio/                # usePortfolioOverview
 │   │   ├── market/                   # useBitgetWebSocket, useMarketSymbols
-│   │   └── account/                  # useAccountOverview
+│   │   └── ui/                       # useTheme, useSidebar, useIsMobile, timers
 │   ├── lib/                          # Core infrastructure & API clients
 │   │   ├── bitget/                   # Bitget V3 UTA client, quant engine, L2 book & WebSocket
 │   │   │   ├── auth/                 # Request signer, error classifier & HMAC ticket builders

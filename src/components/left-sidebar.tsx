@@ -9,7 +9,7 @@ import {
   SidebarHeader,
   SidebarAgentChat,
   SidebarOrdersButton,
-  SidebarAssetsButton,
+  SidebarPortfolioButton,
   SidebarSessionList,
   SidebarThemeToggle,
 } from './sidebar';
@@ -111,7 +111,7 @@ export function LeftSidebar() {
           onNewChat={handleNewSession}
         />
 
-        <SidebarAssetsButton
+        <SidebarPortfolioButton
           isCollapsed={isSidebarCollapsed}
         />
 
@@ -179,7 +179,7 @@ export function LeftSidebar() {
                 }}
               />
 
-              <SidebarAssetsButton
+              <SidebarPortfolioButton
                 isCollapsed={false}
                 onNavigate={closeMobileSidebar}
               />

@@ -1,5 +1,5 @@
 export * from './chat';
 export * from './ui';
 export * from './market';
-export * from './account';
-export * from './trade';
+export * from './portfolio';
+export * from './orders';

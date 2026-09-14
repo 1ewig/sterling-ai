@@ -3,8 +3,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AgentLoader } from '@/components/common/agent-loader';
-import { AssetsUnconfigured } from '@/components/(assets)/assets-unconfigured';
-import { useOrdersWorkbench } from '@/hooks/trade/use-orders-workbench';
+import { PortfolioUnconfigured } from '@/components/(portfolio)';
+import { useOrdersWorkbench } from '@/hooks/orders/use-orders-workbench';
 import { OrdersHeader } from './orders-header';
 import { PositionsTable } from './positions-table';
 import { OpenOrdersTable } from './open-orders-table';
@@ -44,14 +44,14 @@ export function OrdersPageClient() {
         {/* Missing API Credentials / Unconfigured State */}
         {isMissingConfig && (
           <div className="min-h-[70vh] flex items-center justify-center">
-            <AssetsUnconfigured errorMessage={error || undefined} />
+            <PortfolioUnconfigured errorMessage={error || undefined} />
           </div>
         )}
 
         {/* General Error State */}
         {!isLoading && !data && !isMissingConfig && error && (
           <div className="min-h-[70vh] flex items-center justify-center">
-            <AssetsUnconfigured errorMessage={error} />
+            <PortfolioUnconfigured errorMessage={error} />
           </div>
         )}
 

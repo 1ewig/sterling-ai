@@ -3,7 +3,7 @@
 import React, { memo } from 'react';
 import { DollarSign, Wallet, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
-export interface AssetsMetricCardsProps {
+export interface PortfolioMetricCardsProps {
   totalEquity: number;
   availableEquity: number;
   unrealizedPnl: number;
@@ -11,13 +11,13 @@ export interface AssetsMetricCardsProps {
   positionValue?: number;
 }
 
-export const AssetsMetricCards = memo(function AssetsMetricCards({
+export const PortfolioMetricCards = memo(function PortfolioMetricCards({
   totalEquity,
   availableEquity,
   unrealizedPnl,
   marginRatioPercent,
   positionValue = 0,
-}: AssetsMetricCardsProps) {
+}: PortfolioMetricCardsProps) {
   const isPnlPositive = unrealizedPnl >= 0;
   const formattedPnl = (isPnlPositive ? '+' : '') + unrealizedPnl.toLocaleString(undefined, {
     minimumFractionDigits: 2,

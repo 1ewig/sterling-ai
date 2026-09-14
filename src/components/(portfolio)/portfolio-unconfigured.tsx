@@ -4,13 +4,13 @@ import React, { memo } from 'react';
 import Link from 'next/link';
 import { KeyRound, ShieldAlert, ArrowRight, Bot } from 'lucide-react';
 
-export interface AssetsUnconfiguredProps {
+export interface PortfolioUnconfiguredProps {
   errorMessage?: string;
 }
 
-export const AssetsUnconfigured = memo(function AssetsUnconfigured({
+export const PortfolioUnconfigured = memo(function PortfolioUnconfigured({
   errorMessage,
-}: AssetsUnconfiguredProps) {
+}: PortfolioUnconfiguredProps) {
   return (
     <div className="rounded-2xl bg-theme-bg-surface border border-theme-border-subtle p-spacing-lg sm:p-spacing-xl flex flex-col items-center justify-center text-center max-w-2xl mx-auto shadow-sm my-auto">
       <div className="size-14 rounded-2xl bg-theme-bg-elevated border border-theme-border-subtle flex items-center justify-center text-theme-brand-primary mb-4 shadow-2xs">
@@ -57,3 +57,6 @@ BITGET_DEMO_TRADING=false`}
     </div>
   );
 });
+
+export const AssetsUnconfigured = PortfolioUnconfigured;
+export type AssetsUnconfiguredProps = PortfolioUnconfiguredProps;

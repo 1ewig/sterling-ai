@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Layers, Clock } from 'lucide-react';
-import type { OrdersWorkbenchSummary } from '@/hooks/trade/use-orders-workbench';
+import type { OrdersWorkbenchSummary } from '@/hooks/orders/use-orders-workbench';
 
 export interface OrdersHeaderProps {
   summary: OrdersWorkbenchSummary;

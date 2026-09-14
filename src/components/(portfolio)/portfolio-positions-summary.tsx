@@ -5,13 +5,13 @@ import Link from 'next/link';
 import { ArrowUpRight, ArrowDownRight, Bot } from 'lucide-react';
 import type { BitgetV3Position } from '@/lib/bitget/types';
 
-export interface AssetsPositionsSummaryProps {
+export interface PortfolioPositionsSummaryProps {
   positions: BitgetV3Position[];
 }
 
-export const AssetsPositionsSummary = memo(function AssetsPositionsSummary({
+export const PortfolioPositionsSummary = memo(function PortfolioPositionsSummary({
   positions,
-}: AssetsPositionsSummaryProps) {
+}: PortfolioPositionsSummaryProps) {
   if (positions.length === 0) {
     return null;
   }

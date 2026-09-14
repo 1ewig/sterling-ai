@@ -3,17 +3,17 @@
 import React, { memo } from 'react';
 import { AlertTriangle, ShieldCheck } from 'lucide-react';
 
-export interface AssetsRiskMeterProps {
+export interface PortfolioRiskMeterProps {
   marginRatioPercent: number;
   positionMgnRatioPercent?: number;
   positionValue?: number;
 }
 
-export const AssetsRiskMeter = memo(function AssetsRiskMeter({
+export const PortfolioRiskMeter = memo(function PortfolioRiskMeter({
   marginRatioPercent,
   positionMgnRatioPercent = 0,
   positionValue = 0,
-}: AssetsRiskMeterProps) {
+}: PortfolioRiskMeterProps) {
   // MMR Risk zoning
   // < 50%: Safe, 50-80%: Moderate / Caution, > 80%: High risk of forced liquidation
   const clampedMMR = Math.min(Math.max(marginRatioPercent, 0), 100);

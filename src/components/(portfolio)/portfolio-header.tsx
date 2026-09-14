@@ -5,17 +5,17 @@ import { RefreshCw, ShieldCheck, Clock } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
 import { motion } from 'framer-motion';
 
-export interface AssetsHeaderProps {
+export interface PortfolioHeaderProps {
   lastUpdated: Date | null;
   isLoading: boolean;
   onRefresh: () => void;
 }
 
-export const AssetsHeader = memo(function AssetsHeader({
+export const PortfolioHeader = memo(function PortfolioHeader({
   lastUpdated,
   isLoading,
   onRefresh,
-}: AssetsHeaderProps) {
+}: PortfolioHeaderProps) {
   const formattedTime = lastUpdated
     ? lastUpdated.toLocaleTimeString()
     : null;

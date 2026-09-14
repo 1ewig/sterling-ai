@@ -3,15 +3,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AgentLoader } from '@/components/common/agent-loader';
-import { useAccountOverview } from '@/hooks';
-import { AssetsHeader } from './assets-header';
-import { AssetsMetricCards } from './assets-metric-cards';
-import { AssetsRiskMeter } from './assets-risk-meter';
-import { AssetsTable } from './assets-table';
-import { AssetsPositionsSummary } from './assets-positions-summary';
-import { AssetsUnconfigured } from './assets-unconfigured';
+import { usePortfolioOverview } from '@/hooks';
+import { PortfolioHeader } from './portfolio-header';
+import { PortfolioMetricCards } from './portfolio-metric-cards';
+import { PortfolioRiskMeter } from './portfolio-risk-meter';
+import { PortfolioTable } from './portfolio-table';
+import { PortfolioPositionsSummary } from './portfolio-positions-summary';
+import { PortfolioUnconfigured } from './portfolio-unconfigured';
 
-export function AssetsPageClient() {
+export function PortfolioPageClient() {
   const {
     data,
     isLoading,
@@ -20,7 +20,7 @@ export function AssetsPageClient() {
     isMissingConfig,
     lastUpdated,
     refetch,
-  } = useAccountOverview();
+  } = usePortfolioOverview();
 
   return (
     <div className="flex-1 min-h-0 w-full flex flex-col overflow-y-auto bg-theme-bg-base select-text">
@@ -38,18 +38,18 @@ export function AssetsPageClient() {
         {/* Missing API Credentials / Unconfigured State */}
         {isMissingConfig && (
           <div className="min-h-[70vh] flex items-center justify-center">
-            <AssetsUnconfigured errorMessage={error || undefined} />
+            <PortfolioUnconfigured errorMessage={error || undefined} />
           </div>
         )}
 
         {/* General Error State (when keys configured but exchange rejected) */}
         {!isLoading && !data && !isMissingConfig && error && (
           <div className="min-h-[70vh] flex items-center justify-center">
-            <AssetsUnconfigured errorMessage={error} />
+            <PortfolioUnconfigured errorMessage={error} />
           </div>
         )}
 
-        {/* Populated Assets View */}
+        {/* Populated Portfolio View */}
         {data && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -58,14 +58,14 @@ export function AssetsPageClient() {
             className="flex flex-col gap-6"
           >
             {/* Header */}
-            <AssetsHeader
+            <PortfolioHeader
               lastUpdated={lastUpdated}
               isLoading={isRefreshing}
               onRefresh={refetch}
             />
 
             {/* Metric Cards Deck */}
-            <AssetsMetricCards
+            <PortfolioMetricCards
               totalEquity={data.totalEquityUsdt}
               availableEquity={data.effEquityUsdt ?? data.availableEquityUsdt}
               unrealizedPnl={data.unrealizedPnlUsdt}
@@ -74,17 +74,17 @@ export function AssetsPageClient() {
             />
 
             {/* MMR Risk Meter */}
-            <AssetsRiskMeter
+            <PortfolioRiskMeter
               marginRatioPercent={data.marginRatioPercent}
               positionMgnRatioPercent={data.positionMgnRatioPercent}
               positionValue={data.positionValueUsdt}
             />
 
             {/* Active Derivatives Positions (if any) */}
-            <AssetsPositionsSummary positions={data.positions || []} />
+            <PortfolioPositionsSummary positions={data.positions || []} />
 
             {/* Spot Holdings Table */}
-            <AssetsTable
+            <PortfolioTable
               assets={data.assets || []}
               totalEquityUsdt={data.totalEquityUsdt}
             />
@@ -94,3 +94,5 @@ export function AssetsPageClient() {
     </div>
   );
 }
+
+export const AssetsPageClient = PortfolioPageClient;

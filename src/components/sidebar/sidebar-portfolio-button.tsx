@@ -7,25 +7,25 @@ import { motion } from 'framer-motion';
 import { Wallet } from 'lucide-react';
 import { sidebarHorizontalCollapseVariants, tapScalePill } from '@/constants/animation';
 
-export interface SidebarAssetsButtonProps {
+export interface SidebarPortfolioButtonProps {
   isCollapsed: boolean;
   onNavigate?: () => void;
 }
 
-export const SidebarAssetsButton = memo(function SidebarAssetsButton({
+export const SidebarPortfolioButton = memo(function SidebarPortfolioButton({
   isCollapsed,
   onNavigate,
-}: SidebarAssetsButtonProps) {
+}: SidebarPortfolioButtonProps) {
   const pathname = usePathname();
-  const isActive = pathname === '/assets' || pathname.startsWith('/assets/');
+  const isActive = pathname === '/portfolio' || pathname.startsWith('/portfolio/');
 
   return (
     <div className="pt-1.5 px-3.5 shrink-0 flex items-center justify-center">
       <Link
-        href="/assets"
+        href="/portfolio"
         onClick={onNavigate}
-        title={isCollapsed ? 'Portfolio & Assets' : undefined}
-        aria-label="Portfolio & Assets"
+        title={isCollapsed ? 'Portfolio' : undefined}
+        aria-label="Portfolio"
         className="w-full"
       >
         <motion.div
@@ -51,10 +51,13 @@ export const SidebarAssetsButton = memo(function SidebarAssetsButton({
             animate={isCollapsed ? 'collapsed' : 'expanded'}
             className="whitespace-nowrap overflow-hidden select-none truncate tracking-tight text-left pr-3"
           >
-            Portfolio & Assets
+            Portfolio
           </motion.span>
         </motion.div>
       </Link>
     </div>
   );
 });
+
+export const SidebarAssetsButton = SidebarPortfolioButton;
+export type SidebarAssetsButtonProps = SidebarPortfolioButtonProps;

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { BitgetAccountOverview } from '@/lib/bitget/types';
 
-export interface UseAccountOverviewReturn {
+export interface UsePortfolioOverviewReturn {
   data: BitgetAccountOverview | null;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -13,10 +13,12 @@ export interface UseAccountOverviewReturn {
   refetch: () => Promise<void>;
 }
 
+export type UseAccountOverviewReturn = UsePortfolioOverviewReturn;
+
 /**
- * Dedicated hook for fetching, refreshing, and managing Bitget UTA v3 account overview state.
+ * Dedicated hook for fetching, refreshing, and managing Bitget UTA v3 portfolio overview state.
  */
-export function useAccountOverview(): UseAccountOverviewReturn {
+export function usePortfolioOverview(): UsePortfolioOverviewReturn {
   const [data, setData] = useState<BitgetAccountOverview | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -120,3 +122,5 @@ export function useAccountOverview(): UseAccountOverviewReturn {
     refetch,
   };
 }
+
+export const useAccountOverview = usePortfolioOverview;

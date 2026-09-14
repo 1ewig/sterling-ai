@@ -4,15 +4,15 @@ import React, { memo, useState, useMemo } from 'react';
 import { Search, ArrowUpDown } from 'lucide-react';
 import type { BitgetAssetBalance } from '@/lib/bitget/types';
 
-export interface AssetsTableProps {
+export interface PortfolioTableProps {
   assets: BitgetAssetBalance[];
   totalEquityUsdt: number;
 }
 
-export const AssetsTable = memo(function AssetsTable({
+export const PortfolioTable = memo(function PortfolioTable({
   assets,
   totalEquityUsdt,
-}: AssetsTableProps) {
+}: PortfolioTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [hideZeroBalances, setHideZeroBalances] = useState(true);
   const [sortField, setSortField] = useState<'coin' | 'balance' | 'usdValue'>('usdValue');
