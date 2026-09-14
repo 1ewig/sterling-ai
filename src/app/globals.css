@@ -69,23 +69,23 @@
   --navbar-height: 3.5rem; /* 56px - Architectural top navigation bar height */
 }
 
-/* Light Theme Overrides (Clean Minimal Snow) */
+/* Light Theme Overrides (Swiss Alabaster & Electric Royal Azure) */
 html.light {
-  --theme-bg-base: #fafafa;             /* Clean snow canvas */
-  --theme-bg-surface: #ffffff;          /* Crisp card containers & deck surfaces */
-  --theme-bg-elevated: #f4f4f5;         /* Soft secondary controls, chips, tabs & hover */
-  --theme-bg-overlay: #09090b;          /* Deep pitch high-contrast focus cards & docks */
-  --theme-border-subtle: #e4e4e7;       /* Subtle hairline micro-dividers & borders */
-  --theme-border-strong: #d4d4d8;       /* Focused active borders & indicators */
-  --theme-text-primary: #09090b;        /* Pure slate dark for display headings */
-  --theme-text-secondary: #52525b;      /* Refined neutral zinc for subtitles & labels */
-  --theme-text-muted: #a1a1aa;          /* Legible slate for timestamps & micro-details */
-  --theme-brand-primary: #00a3b4;       /* Primary cyan accent */
-  --theme-brand-accent: #00c4d6;        /* Aqua for active meters & hover highlights */
-  --theme-status-success: #10b981;      /* Emerald green for positive status */
-  --theme-status-danger: #f43f5e;       /* Crimson for errors & risk triggers */
-  --theme-status-warning: #f59e0b;      /* Warm amber for warnings & caution alerts */
-  --theme-status-info: #0284c7;         /* Clean technical cyan for analyst stream */
+  --theme-bg-base: #f4f6fb;             /* Distinctive porcelain alabaster canvas with crystalline tint */
+  --theme-bg-surface: #ffffff;          /* Crisp optical ivory card containers & deck surfaces */
+  --theme-bg-elevated: #e9edf5;         /* Frosted platinum for secondary controls, chips, tabs & hover */
+  --theme-bg-overlay: #ffffff;          /* Pure optical white for high-contrast button text & frosted docks */
+  --theme-border-subtle: #dfe5f0;       /* Hairline silver-slate micro-dividers & borders */
+  --theme-border-strong: #c5d0e3;       /* Focused active borders & structural indicators */
+  --theme-text-primary: #090e1a;        /* Deep cosmic midnight navy-slate for headings & lead stats */
+  --theme-text-secondary: #415168;      /* Refined architectural slate for subtitles & secondary values */
+  --theme-text-muted: #8a99ad;          /* Harmonized cool slate for timestamps & micro-details */
+  --theme-brand-primary: #005cf0;       /* Signature electric royal cerulean accent */
+  --theme-brand-accent: #00c2e8;        /* Luminous high-frequency aqua highlights & active meters */
+  --theme-status-success: #059669;      /* Rich emerald for positive yields & executed orders */
+  --theme-status-danger: #e11d48;       /* Vivid rose crimson for risks & de-risk triggers */
+  --theme-status-warning: #d97706;      /* High-contrast amber for caution & margin alerts */
+  --theme-status-info: #0284c7;         /* Clean technical cerulean for analyst stream */
 }
 
 @theme inline {
