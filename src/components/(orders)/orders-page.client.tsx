@@ -15,7 +15,6 @@ export function OrdersPageClient() {
     data,
     summary,
     isLoading,
-    isWsConnected,
     isActionPending,
     error,
     isMissingConfig,
@@ -66,7 +65,6 @@ export function OrdersPageClient() {
             {/* Header & KPI Summary */}
             <OrdersHeader
               summary={summary}
-              isWsConnected={isWsConnected}
             />
 
             {/* Empty State if no positions and no orders */}

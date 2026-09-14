@@ -6,12 +6,10 @@ import type { OrdersWorkbenchSummary } from '@/hooks/orders/use-orders-workbench
 
 export interface OrdersHeaderProps {
   summary: OrdersWorkbenchSummary;
-  isWsConnected?: boolean;
 }
 
 export const OrdersHeader = React.memo(function OrdersHeader({
   summary,
-  isWsConnected = false,
 }: OrdersHeaderProps) {
   const isPnlPositive = summary.totalUnrealizedPnl >= 0;
 
@@ -20,31 +18,12 @@ export const OrdersHeader = React.memo(function OrdersHeader({
       {/* Top Title Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme-border-subtle pb-4">
         <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-black text-theme-text-primary tracking-tight">
-              Positions & Orders Desk
-            </h1>
-            <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
-              UTA v3
-            </span>
-          </div>
+          <h1 className="text-xl sm:text-2xl font-black text-theme-text-primary tracking-tight">
+            Positions & Orders Desk
+          </h1>
           <p className="text-xs text-theme-text-secondary">
             Real-time derivative positions, mark-to-market PnL calculations, and resting order book flow.
           </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {isWsConnected ? (
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-theme-status-success/10 text-theme-status-success border border-theme-status-success/20">
-              <span className="size-2 rounded-full bg-theme-status-success animate-pulse" />
-              <span>Real-Time Stream Active</span>
-            </div>
-          ) : (
-            <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-theme-bg-elevated text-theme-text-muted border border-theme-border-subtle">
-              <span className="size-2 rounded-full bg-theme-text-muted animate-pulse" />
-              <span>Connecting Stream...</span>
-            </div>
-          )}
         </div>
       </div>
 
