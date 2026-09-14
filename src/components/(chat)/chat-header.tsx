@@ -4,7 +4,7 @@ import React, { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Menu, Activity } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
-import { StagedActionsClient } from '@/components/(chat)/trade/staged-actions-client';
+import { StagedActionsClient } from '@/components/(chat)/staged-actions/staged-actions-client';
 
 export interface ChatHeaderProps {
   title?: string;
