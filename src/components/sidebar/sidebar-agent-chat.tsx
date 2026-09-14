@@ -19,7 +19,7 @@ export const SidebarAgentChat = memo(function SidebarAgentChat({
   disabled = false,
 }: SidebarAgentChatProps) {
   return (
-    <div className="py-spacing-sm px-3.5 border-b border-theme-border-subtle shrink-0 flex items-center justify-center">
+    <div className="pt-spacing-sm px-3.5 shrink-0 flex items-center justify-center">
       <motion.button
         type="button"
         whileTap={disabled ? undefined : tapScalePill}
@@ -48,4 +48,3 @@ export const SidebarAgentChat = memo(function SidebarAgentChat({
 });
 
 export const SidebarNewChat = SidebarAgentChat;
-
