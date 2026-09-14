@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
 
 export interface OrdersWorkbenchData {
@@ -20,23 +20,89 @@ export interface OrdersWorkbenchSummary {
   planOrdersCount: number;
 }
 
-const POLL_INTERVAL_MS = 6000;
-
 export function useOrdersWorkbench() {
   const [data, setData] = useState<OrdersWorkbenchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isWsConnected, setIsWsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isMissingConfig, setIsMissingConfig] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isActionPending, setIsActionPending] = useState(false);
 
-  const fetchWorkbenchData = useCallback(async (isInitial = false) => {
-    if (isInitial) {
-      setIsLoading(true);
-    } else {
-      setIsRefreshing(true);
-    }
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Helper to merge position updates into active positions
+  const mergePositions = useCallback((incoming: BitgetV3Position[]) => {
+    setData((prev) => {
+      const current = prev?.positions ? [...prev.positions] : [];
+      for (const inc of incoming) {
+        const totalNum = parseFloat(inc.total || '0');
+        const idx = current.findIndex(
+          (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
+        );
+
+        if (totalNum === 0) {
+          // Position was closed, remove from active list
+          if (idx !== -1) {
+            current.splice(idx, 1);
+          }
+        } else {
+          // Position updated or opened
+          if (idx !== -1) {
+            current[idx] = { ...current[idx], ...inc };
+          } else {
+            current.unshift(inc);
+          }
+        }
+      }
+
+      return {
+        positions: current,
+        orders: prev?.orders || [],
+        timestamp: Date.now(),
+      };
+    });
+    setLastUpdated(new Date());
+  }, []);
+
+  // Helper to merge order updates into active open orders
+  const mergeOrders = useCallback((incoming: BitgetV3OrderInfo[]) => {
+    setData((prev) => {
+      const current = prev?.orders ? [...prev.orders] : [];
+      for (const inc of incoming) {
+        const isTerminal = inc.status === 'filled' || inc.status === 'cancelled';
+        const idx = current.findIndex(
+          (o) => o.orderId === inc.orderId || (o.clientOid && inc.clientOid && o.clientOid === inc.clientOid)
+        );
+
+        if (isTerminal) {
+          if (idx !== -1) {
+            current.splice(idx, 1);
+          }
+        } else {
+          if (idx !== -1) {
+            current[idx] = { ...current[idx], ...inc };
+          } else {
+            current.unshift(inc);
+          }
+        }
+      }
+
+      return {
+        positions: prev?.positions || [],
+        orders: current,
+        timestamp: Date.now(),
+      };
+    });
+    setLastUpdated(new Date());
+  }, []);
+
+  // Background / on-demand REST reconciliation
+  const fetchWorkbenchData = useCallback(async () => {
+    setIsRefreshing(true);
 
     try {
       const res = await fetch('/api/trade/orders', {
@@ -61,72 +127,151 @@ export function useOrdersWorkbench() {
       const msg = err instanceof Error ? err.message : 'Network error';
       setError(msg);
     } finally {
-      if (isInitial) {
-        setIsLoading(false);
-      } else {
-        setIsRefreshing(false);
-      }
+      setIsRefreshing(false);
     }
   }, []);
 
-  // Initial load and adaptive polling
+  // Real-Time SSE Stream Listener
   useEffect(() => {
-    let isCancelled = false;
+    isMountedRef.current = true;
+    let retryDelay = 2000;
 
-    async function initialLoad() {
+    const connectStream = async () => {
+      if (!isMountedRef.current) return;
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
-        const res = await fetch('/api/trade/orders', {
+        const response = await fetch('/api/trade/stream', {
           method: 'GET',
           cache: 'no-store',
+          signal: controller.signal,
         });
-        const json = await res.json();
-        if (isCancelled) return;
 
-        if (json.isMissingConfig) {
-          setIsMissingConfig(true);
-          setError(json.error || 'Bitget API credentials not configured.');
-          setData(null);
-        } else if (json.success && json.data) {
-          setData(json.data);
-          setError(null);
-          setIsMissingConfig(false);
-          setLastUpdated(new Date());
-        } else {
-          setError(json.error || 'Failed to load orders and positions');
+        if (!response.ok || !response.body) {
+          throw new Error(`Stream connection failed with HTTP ${response.status}`);
+        }
+
+        setIsWsConnected(true);
+        setIsLoading(false);
+        setError(null);
+        retryDelay = 2000; // Reset retry delay on successful connect
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (isMountedRef.current) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const block of lines) {
+            if (!block.trim() || block.startsWith(':')) continue;
+
+            let eventType = 'message';
+            let eventData = '';
+
+            const blockLines = block.split('\n');
+            for (const line of blockLines) {
+              if (line.startsWith('event:')) {
+                eventType = line.replace('event:', '').trim();
+              } else if (line.startsWith('data:')) {
+                eventData = line.replace('data:', '').trim();
+              }
+            }
+
+            if (!eventData) continue;
+
+            try {
+              const parsed = JSON.parse(eventData);
+
+              if (eventType === 'snapshot') {
+                setData({
+                  positions: parsed.positions || [],
+                  orders: parsed.orders || [],
+                  timestamp: parsed.timestamp || Date.now(),
+                });
+                setIsLoading(false);
+                setIsMissingConfig(false);
+                setError(null);
+                setLastUpdated(new Date());
+              } else if (
+                (eventType === 'positions_snapshot' || eventType === 'positions_update') &&
+                Array.isArray(parsed.positions)
+              ) {
+                // For snapshot acknowledgments, only merge if array has active positions
+                if (eventType === 'positions_update' || parsed.positions.length > 0) {
+                  mergePositions(parsed.positions);
+                }
+              } else if (eventType === 'orders_update' && Array.isArray(parsed.orders)) {
+                mergeOrders(parsed.orders);
+              } else if (eventType === 'error') {
+                if (parsed.isMissingConfig) {
+                  setIsMissingConfig(true);
+                }
+                setError(parsed.error || 'Stream error');
+              }
+            } catch {
+              // Ignore parse error on malformed frame
+            }
+          }
         }
       } catch (err) {
-        if (!isCancelled) {
-          setError(err instanceof Error ? err.message : 'Network error');
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
         }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
+        setIsWsConnected(false);
+        if (isMountedRef.current) {
+          // Schedule reconnect
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) {
+              retryDelay = Math.min(retryDelay * 1.5, 15000);
+              connectStream();
+            }
+          }, retryDelay);
         }
       }
-    }
+    };
 
-    initialLoad();
+    connectStream();
 
+    // Background REST reconciliation (every 8s when tab visible) to keep mark prices,
+    // unrealized PnL, and MMR precisely synchronized alongside real-time WS push events.
     const intervalId = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchWorkbenchData(false);
+        fetchWorkbenchData();
       }
-    }, POLL_INTERVAL_MS);
+    }, 8000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchWorkbenchData(false);
+        fetchWorkbenchData();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      isCancelled = true;
+      isMountedRef.current = false;
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, [fetchWorkbenchData]);
+  }, [mergePositions, mergeOrders, fetchWorkbenchData]);
 
   // Cancel a single open order
   const cancelOrder = useCallback(
@@ -147,7 +292,7 @@ export function useOrdersWorkbench() {
         if (!json.success) {
           throw new Error(json.error || 'Failed to cancel order');
         }
-        await fetchWorkbenchData(false);
+        await fetchWorkbenchData();
         return { success: true, message: json.message };
       } finally {
         setIsActionPending(false);
@@ -174,7 +319,7 @@ export function useOrdersWorkbench() {
         if (!json.success) {
           throw new Error(json.error || 'Failed to cancel orders');
         }
-        await fetchWorkbenchData(false);
+        await fetchWorkbenchData();
         return { success: true, message: json.message };
       } finally {
         setIsActionPending(false);
@@ -210,7 +355,7 @@ export function useOrdersWorkbench() {
         if (!json.success) {
           throw new Error(json.error || 'Failed to close position');
         }
-        await fetchWorkbenchData(false);
+        await fetchWorkbenchData();
         return { success: true, message: json.message };
       } finally {
         setIsActionPending(false);
@@ -272,11 +417,12 @@ export function useOrdersWorkbench() {
     summary,
     isLoading,
     isRefreshing,
+    isWsConnected,
     isActionPending,
     error,
     isMissingConfig,
     lastUpdated,
-    refetch: () => fetchWorkbenchData(false),
+    refetch: () => fetchWorkbenchData(),
     cancelOrder,
     cancelSymbolOrders,
     closePosition,

@@ -15,12 +15,10 @@ export function OrdersPageClient() {
     data,
     summary,
     isLoading,
-    isRefreshing,
+    isWsConnected,
     isActionPending,
     error,
     isMissingConfig,
-    lastUpdated,
-    refetch,
     cancelOrder,
     cancelSymbolOrders,
     closePosition,
@@ -38,7 +36,7 @@ export function OrdersPageClient() {
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
             <AgentLoader className="size-9 text-theme-brand-primary" />
             <p className="text-xs text-theme-text-secondary animate-pulse">
-              Querying Bitget UTA v3 active positions & open orders...
+              Connecting real-time Bitget UTA v3 stream & positions...
             </p>
           </div>
         )}
@@ -68,9 +66,7 @@ export function OrdersPageClient() {
             {/* Header & KPI Summary */}
             <OrdersHeader
               summary={summary}
-              lastUpdated={lastUpdated}
-              isLoading={isRefreshing}
-              onRefresh={refetch}
+              isWsConnected={isWsConnected}
             />
 
             {/* Empty State if no positions and no orders */}

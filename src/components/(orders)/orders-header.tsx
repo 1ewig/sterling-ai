@@ -1,29 +1,23 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { RefreshCw, TrendingUp, TrendingDown, DollarSign, Layers, Clock } from 'lucide-react';
-import { tapScalePill } from '@/constants/animation';
+import { TrendingUp, TrendingDown, DollarSign, Layers, Clock } from 'lucide-react';
 import type { OrdersWorkbenchSummary } from '@/hooks/trade/use-orders-workbench';
 
 export interface OrdersHeaderProps {
   summary: OrdersWorkbenchSummary;
-  lastUpdated: Date | null;
-  isLoading: boolean;
-  onRefresh: () => void;
+  isWsConnected?: boolean;
 }
 
 export function OrdersHeader({
   summary,
-  lastUpdated,
-  isLoading,
-  onRefresh,
+  isWsConnected = false,
 }: OrdersHeaderProps) {
   const isPnlPositive = summary.totalUnrealizedPnl >= 0;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Top Title & Refresh Row */}
+      {/* Top Title Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme-border-subtle pb-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2.5">
@@ -31,7 +25,7 @@ export function OrdersHeader({
               Positions & Orders Desk
             </h1>
             <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
-              UTA v3 Live
+              UTA v3
             </span>
           </div>
           <p className="text-xs text-theme-text-secondary">
@@ -39,30 +33,18 @@ export function OrdersHeader({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <div className="flex items-center gap-1.5 text-2xs text-theme-text-muted font-mono">
-              <Clock className="size-3" />
-              <span>Synced: {lastUpdated.toLocaleTimeString()}</span>
+        <div className="flex items-center gap-2">
+          {isWsConnected ? (
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-theme-status-success/10 text-theme-status-success border border-theme-status-success/20">
+              <span className="size-2 rounded-full bg-theme-status-success animate-pulse" />
+              <span>Real-Time Stream Active</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-theme-bg-elevated text-theme-text-muted border border-theme-border-subtle">
+              <span className="size-2 rounded-full bg-theme-text-muted animate-pulse" />
+              <span>Connecting Stream...</span>
             </div>
           )}
-
-          <motion.button
-            type="button"
-            whileTap={tapScalePill}
-            onClick={onRefresh}
-            disabled={isLoading}
-            className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer select-none ${
-              isLoading
-                ? 'bg-theme-bg-elevated border-theme-border-subtle text-theme-text-muted cursor-not-allowed'
-                : 'bg-theme-bg-surface hover:bg-theme-bg-elevated border-theme-border-subtle hover:border-theme-border-strong text-theme-text-primary shadow-2xs'
-            }`}
-            title="Refresh positions and open orders"
-            aria-label="Refresh positions and open orders"
-          >
-            <RefreshCw className={`size-3.5 ${isLoading ? 'animate-spin text-theme-brand-primary' : ''}`} />
-            <span>Refresh</span>
-          </motion.button>
         </div>
       </div>
 

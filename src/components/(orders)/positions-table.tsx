@@ -25,23 +25,15 @@ export function PositionsTable({
 }: PositionsTableProps) {
   const [closingKey, setClosingKey] = useState<string | null>(null);
 
-  const handleClose = async (p: BitgetV3Position, percent: number) => {
-    const key = `${p.symbol}-${p.posSide}-${percent}`;
+  const handleClose = async (p: BitgetV3Position) => {
+    const key = `${p.symbol}-${p.posSide}`;
     setClosingKey(key);
 
     const isLong = p.posSide === 'long' || (p.posSide === 'net' && parseFloat(p.total) > 0);
     const executionSide: 'buy' | 'sell' = isLong ? 'sell' : 'buy';
 
-    let sizeToClose: string | undefined;
-    if (percent < 100) {
-      const totalNum = parseFloat(p.total);
-      if (!isNaN(totalNum) && totalNum > 0) {
-        sizeToClose = (totalNum * (percent / 100)).toString();
-      }
-    }
-
     try {
-      await onClosePosition(p.symbol, 'usdt-futures', executionSide, sizeToClose, p.posSide);
+      await onClosePosition(p.symbol, 'usdt-futures', executionSide, undefined, p.posSide);
     } catch {
       // Error handled by hook
     } finally {
@@ -77,7 +69,7 @@ export function PositionsTable({
               <th className="py-2.5 px-3 text-right">Mark Price</th>
               <th className="py-2.5 px-3 text-right">Liq. Price</th>
               <th className="py-2.5 px-3 text-right">Unrealized PnL</th>
-              <th className="py-2.5 px-3 text-center">Quick De-Risk</th>
+              <th className="py-2.5 px-3 text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-theme-border-subtle/40 text-xs">
@@ -190,31 +182,19 @@ export function PositionsTable({
                     </div>
                   </td>
 
-                  {/* Quick Action Buttons */}
+                  {/* Action Button */}
                   <td className="py-3 px-3 text-center">
-                    <div className="inline-flex items-center gap-1">
-                      <motion.button
-                        type="button"
-                        whileTap={tapScalePill}
-                        onClick={() => handleClose(p, 50)}
-                        disabled={isPending || closingKey !== null}
-                        className="h-7 px-2 text-2xs font-semibold rounded bg-theme-bg-elevated hover:bg-theme-bg-surface text-theme-text-secondary hover:text-theme-text-primary border border-theme-border-subtle cursor-pointer disabled:opacity-40 select-none"
-                        title="Close 50% of position at market"
-                      >
-                        50%
-                      </motion.button>
-                      <motion.button
-                        type="button"
-                        whileTap={tapScalePill}
-                        onClick={() => handleClose(p, 100)}
-                        disabled={isPending || closingKey !== null}
-                        className="h-7 px-2.5 text-2xs font-bold rounded bg-theme-status-error/10 hover:bg-theme-status-error/20 text-theme-status-error border border-theme-status-error/30 flex items-center gap-1 cursor-pointer disabled:opacity-40 select-none"
-                        title="Close 100% of position at market"
-                      >
-                        <XCircle className="size-3" />
-                        <span>Close</span>
-                      </motion.button>
-                    </div>
+                    <motion.button
+                      type="button"
+                      whileTap={tapScalePill}
+                      onClick={() => handleClose(p)}
+                      disabled={isPending || closingKey !== null}
+                      className="h-7 px-2.5 text-2xs font-bold rounded bg-theme-status-error/10 hover:bg-theme-status-error/20 text-theme-status-error border border-theme-status-error/30 inline-flex items-center gap-1 cursor-pointer disabled:opacity-40 select-none"
+                      title="Close position at market"
+                    >
+                      <XCircle className="size-3" />
+                      <span>Close</span>
+                    </motion.button>
                   </td>
                 </tr>
               );
