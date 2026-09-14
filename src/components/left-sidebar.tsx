@@ -7,6 +7,7 @@ import { sidebarSpringTransition } from '@/constants/animation';
 import { useTheme, useSidebar, useChatSessions } from '@/hooks';
 import {
   SidebarHeader,
+  SidebarNavigation,
   SidebarAgentChat,
   SidebarSessionList,
   SidebarThemeToggle,
@@ -105,6 +106,10 @@ export function LeftSidebar() {
           onToggle={toggleSidebar}
         />
 
+        <SidebarNavigation
+          isCollapsed={isSidebarCollapsed}
+        />
+
         <SidebarAgentChat
           isCollapsed={isSidebarCollapsed}
           onNewChat={handleNewSession}
@@ -161,6 +166,11 @@ export function LeftSidebar() {
               <SidebarHeader
                 isCollapsed={false}
                 onToggle={closeMobileSidebar}
+              />
+
+              <SidebarNavigation
+                isCollapsed={false}
+                onNavigate={closeMobileSidebar}
               />
 
               <SidebarAgentChat
