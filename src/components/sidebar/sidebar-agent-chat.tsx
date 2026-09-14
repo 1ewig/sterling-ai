@@ -25,7 +25,7 @@ export const SidebarAgentChat = memo(function SidebarAgentChat({
         whileTap={disabled ? undefined : tapScalePill}
         onClick={disabled ? undefined : onNewChat}
         disabled={disabled}
-        title={disabled ? 'Current chat is already new' : 'Agent Chat'}
+        title="Agent Chat"
         aria-label="Agent Chat"
         className={`h-10 w-full rounded-xl font-bold text-xs flex items-center justify-center overflow-hidden select-none transition-colors px-2.5 ${
           disabled

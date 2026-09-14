@@ -44,7 +44,6 @@ export function LeftSidebar() {
     handleCancelRename,
     handleDeleteSession,
     handleNewSession,
-    isNewChatDisabled,
   } = useChatSessions();
 
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -109,7 +108,6 @@ export function LeftSidebar() {
         <SidebarAgentChat
           isCollapsed={isSidebarCollapsed}
           onNewChat={handleNewSession}
-          disabled={isNewChatDisabled}
         />
 
         <SidebarAssetsButton
@@ -174,7 +172,6 @@ export function LeftSidebar() {
                   handleNewSession();
                   closeMobileSidebar();
                 }}
-                disabled={isNewChatDisabled}
               />
 
               <SidebarAssetsButton
