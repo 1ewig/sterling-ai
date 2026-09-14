@@ -19,7 +19,7 @@ export type UseAccountOverviewReturn = UsePortfolioOverviewReturn;
 
 /**
  * Dedicated hook for managing live real-time Bitget UTA v3 portfolio overview state.
- * Employs SSE streaming from private WebSocket hub + RAF delta batching + REST background reconciliation.
+ * Employs continuous SSE streaming from private WebSocket hub with in-memory RAF delta updates.
  */
 export function usePortfolioOverview(): UsePortfolioOverviewReturn {
   const [data, setData] = useState<BitgetAccountOverview | null>(null);
@@ -86,11 +86,9 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     }
   }, [flushBatchUpdates]);
 
-  // Background on-demand REST reconciliation
-  const fetchOverview = useCallback(async (isInitial = false) => {
-    if (isInitial) {
-      setIsLoading(true);
-    } else {
+  // Silent REST reconciliation (only shows isRefreshing on manual refetch)
+  const fetchOverview = useCallback(async (isManual = false) => {
+    if (isManual) {
       setIsRefreshing(true);
     }
 
@@ -118,9 +116,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Network error while fetching account data');
     } finally {
-      if (isInitial) {
-        setIsLoading(false);
-      } else {
+      if (isManual) {
         setIsRefreshing(false);
       }
     }
@@ -196,8 +192,32 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
                   scheduleBatchFlush();
                 }
               } else if (eventType === 'account_update' && parsed.account) {
-                // Background REST sync to ensure complex spot/token assets convert cleanly
-                fetchOverview(false);
+                // In-memory real-time state patch from WebSocket push
+                const accList = Array.isArray(parsed.account) ? parsed.account : [parsed.account];
+                setData((prev) => {
+                  if (!prev) return prev;
+                  const updated = { ...prev };
+                  for (const acc of accList as Array<Record<string, unknown>>) {
+                    if (acc.usdtEquity !== undefined || acc.equity !== undefined) {
+                      const eq = Number.parseFloat(String(acc.usdtEquity || acc.equity || '0'));
+                      if (eq > 0) updated.totalEquityUsdt = Number.parseFloat(eq.toFixed(2));
+                    }
+                    if (acc.available !== undefined) {
+                      const av = Number.parseFloat(String(acc.available || '0'));
+                      updated.availableEquityUsdt = Number.parseFloat(av.toFixed(2));
+                    }
+                    if (acc.unrealizedPL !== undefined) {
+                      const upnl = Number.parseFloat(String(acc.unrealizedPL || '0'));
+                      updated.unrealizedPnlUsdt = Number.parseFloat(upnl.toFixed(2));
+                    }
+                    if (acc.crossedRiskRate !== undefined) {
+                      const risk = Number.parseFloat(String(acc.crossedRiskRate || '0'));
+                      updated.marginRatioPercent = Number.parseFloat((risk * 100).toFixed(2));
+                    }
+                  }
+                  return updated;
+                });
+                setLastUpdated(new Date());
               } else if (eventType === 'error') {
                 if (parsed.isMissingConfig) setIsMissingConfig(true);
                 setError(parsed.error || 'Stream error');
@@ -223,13 +243,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
 
     connectStream();
 
-    // Background REST reconciliation (every 3.5s when tab is visible)
-    const intervalId = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchOverview(false);
-      }
-    }, 3500);
-
+    // Reconcile once on window visibility return (e.g. user comes back from another tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         fetchOverview(false);
@@ -240,7 +254,6 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
 
     return () => {
       isMountedRef.current = false;
-      clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
@@ -254,7 +267,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
   }, [scheduleBatchFlush, fetchOverview]);
 
   const refetch = useCallback(async () => {
-    await fetchOverview(false);
+    await fetchOverview(true);
   }, [fetchOverview]);
 
   return {

@@ -15,11 +15,8 @@ export function PortfolioPageClient() {
   const {
     data,
     isLoading,
-    isRefreshing,
     error,
     isMissingConfig,
-    lastUpdated,
-    refetch,
   } = usePortfolioOverview();
 
   return (
@@ -58,11 +55,7 @@ export function PortfolioPageClient() {
             className="flex flex-col gap-6"
           >
             {/* Header */}
-            <PortfolioHeader
-              lastUpdated={lastUpdated}
-              isLoading={isRefreshing}
-              onRefresh={refetch}
-            />
+            <PortfolioHeader />
 
             {/* Metric Cards Deck */}
             <PortfolioMetricCards
