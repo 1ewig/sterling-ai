@@ -3,8 +3,8 @@ import {
   cancelOrderV3,
   cancelSymbolOrdersV3,
   closePositionsV3,
-  verifyActionTicketToken,
 } from '@/lib/bitget/trade';
+import { verifyActionTicketToken } from '@/lib/bitget/auth';
 import { toV3Category } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';

@@ -1,10 +1,10 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { normalizeSymbol } from '@/lib/bitget/symbols';
+import { createActionTicketToken } from '@/lib/bitget/auth';
 import {
   fetchOpenOrdersV3,
   getPositionsV3,
-  normalizeSymbol,
-  createActionTicketToken,
   getInstrument,
   snapQtyToStep,
 } from '@/lib/bitget/trade';

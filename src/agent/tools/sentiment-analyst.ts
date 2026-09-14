@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { sentimentAnalystParamsSchema } from '@/agent/types';
-import { getSentimentAnalysis, normalizeSymbol } from '@/lib/bitget/client';
+import { getSentimentAnalysis } from '@/lib/bitget/analysts';
+import { normalizeSymbol } from '@/lib/bitget/symbols';
 
 export const sentimentAnalystTool = tool({
   description:

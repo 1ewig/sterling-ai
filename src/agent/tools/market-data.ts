@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { marketDataParamsSchema } from '@/agent/types';
-import { fetchBitgetTicker, fetchFundingRate, fetchOpenInterest, fetchOrderbook, normalizeSymbol } from '@/lib/bitget/client';
+import { fetchBitgetTicker, fetchFundingRate, fetchOpenInterest, fetchOrderbook } from '@/lib/bitget/rest';
+import { normalizeSymbol } from '@/lib/bitget/symbols';
 
 export const marketDataTool = tool({
   description:

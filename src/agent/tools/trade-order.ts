@@ -1,14 +1,14 @@
 import { tool } from 'ai';
 import { stageTradeOrderParamsSchema } from '@/lib/bitget/types';
 import { fetchBitgetTicker } from '@/lib/bitget/rest';
+import { normalizeSymbol } from '@/lib/bitget/symbols';
+import { createTradeTicketToken } from '@/lib/bitget/auth';
 import {
-  normalizeSymbol,
   getInstrument,
   snapPriceToTick,
   snapQtyToStep,
   validateOrderConstraints,
   getTierMmr,
-  createTradeTicketToken,
 } from '@/lib/bitget/trade';
 
 export const stageTradeOrderTool = tool({

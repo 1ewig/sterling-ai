@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { technicalAnalysisParamsSchema } from '@/agent/types';
-import { getTechnicalAnalysis, normalizeSymbol } from '@/lib/bitget/client';
+import { getTechnicalAnalysis } from '@/lib/bitget/analysts';
+import { normalizeSymbol } from '@/lib/bitget/symbols';
 
 export const technicalAnalysisTool = tool({
   description:

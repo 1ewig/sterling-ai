@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { marketIntelParamsSchema } from '@/agent/types';
-import { getMarketIntel } from '@/lib/bitget/client';
+import { getMarketIntel } from '@/lib/bitget/analysts';
 
 export const marketIntelTool = tool({
   description:

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { placeOrderV3, getOrderInfoV3, verifyTradeTicketToken } from '@/lib/bitget/trade';
+import { placeOrderV3, getOrderInfoV3 } from '@/lib/bitget/trade';
+import { verifyTradeTicketToken } from '@/lib/bitget/auth';
 import type { BitgetV3OrderParams } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';

@@ -1,36 +1,6 @@
-const ASSET_ALIASES: Record<string, string> = {
-  BTC: 'BTCUSDT',
-  ETH: 'ETHUSDT',
-  SOL: 'SOLUSDT',
-  XRP: 'XRPUSDT',
-  DOGE: 'DOGEUSDT',
-  ADA: 'ADAUSDT',
-  BNB: 'BNBUSDT',
-  AVAX: 'AVAXUSDT',
-  LINK: 'LINKUSDT',
-  SUI: 'SUIUSDT',
-  NEAR: 'NEARUSDT',
-  APT: 'APTUSDT',
-  TSLA: 'TSLAUSDT',
-  NVDA: 'NVDAUSDT',
-  SPY: 'SPYUSDT',
-  QQQ: 'QQQUSDT',
-  AAPL: 'AAPLUSDT',
-  MSFT: 'MSFTUSDT',
-  AMZN: 'AMZNUSDT',
-  GOOGL: 'GOOGLUSDT',
-  META: 'METAUSDT',
-  COIN: 'COINUSDT',
-  MSTR: 'MSTRUSDT',
-  GOLD: 'XAUUSDT',
-  XAU: 'XAUUSDT',
-  SILVER: 'XAGUSDT',
-  XAG: 'XAGUSDT',
-};
-
 /**
  * Normalizes user and agent symbol strings into standard Bitget trading pairs.
- * Handles suffixes (-PERP, .P, /USDT), lowercase tickers, and commodity/stock aliases.
+ * Handles suffixes (-PERP, .P, /USDT), lowercase tickers, and non-alphanumeric chars.
  */
 export function normalizeSymbol(raw: string): string {
   if (!raw || typeof raw !== 'string') return 'BTCUSDT';
@@ -45,12 +15,6 @@ export function normalizeSymbol(raw: string): string {
 
   if (!clean) return 'BTCUSDT';
 
-  // Check alias table first
-  if (ASSET_ALIASES[clean]) {
-    return ASSET_ALIASES[clean];
-  }
-
-  // Fallback to standard USDT pair
   return `${clean}USDT`;
 }
 

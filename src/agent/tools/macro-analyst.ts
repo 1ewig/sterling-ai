@@ -1,6 +1,6 @@
 import { tool } from 'ai';
 import { macroAnalystParamsSchema } from '@/agent/types';
-import { getMacroAnalysis } from '@/lib/bitget/client';
+import { getMacroAnalysis } from '@/lib/bitget/analysts';
 
 export const macroAnalystTool = tool({
   description:
