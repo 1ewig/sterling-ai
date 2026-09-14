@@ -115,3 +115,27 @@ export function formatSpread(spread: number): string {
   }
   return spread.toFixed(8);
 }
+
+/**
+ * Formats USD currency values with adaptive decimal places.
+ */
+export function formatUSD(val?: number | null, fallback = '—'): string {
+  if (val === undefined || val === null || isNaN(val)) return fallback;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: val < 1 && val > 0 ? 4 : 2,
+    maximumFractionDigits: val < 1 && val > 0 ? 6 : 2,
+  }).format(val);
+}
+
+/**
+ * Formats countdown seconds as mm:ss string.
+ */
+export function formatCountdown(remainingSeconds: number): string {
+  const safeSeconds = Math.max(0, remainingSeconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+

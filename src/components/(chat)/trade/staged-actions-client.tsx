@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from 'react';
+import React, { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
-import { useStagedActions } from '@/hooks/chat';
+import { useStagedActions, useExecuteTrade } from '@/hooks/chat';
 import { StagedActionsDropdown } from './staged-actions-dropdown';
 import { OrderConfirmationModal } from './order-confirmation-modal';
 import { CancelOrderModal } from './cancel-order-modal';
@@ -17,7 +17,7 @@ const emptySubscribe = () => () => {};
 
 /**
  * Dedicated client for staged actions.
- * Manages store connectivity, API calls, countdown timers, and abort signals,
+ * Manages store connectivity, countdown timers, and consolidated execution pipelines,
  * while passing pure data and callbacks as props to all 4 UI blocks:
  * 1. StagedTradesHeaderPill
  * 2. OrderConfirmationModal
@@ -49,41 +49,11 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
     () => false
   );
 
-  const [localExecutionState, setLocalExecutionState] = useState<
-    'idle' | 'executing' | 'success' | 'error'
-  >('idle');
-  const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
-
-  const autoCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
-      if (abortControllerRef.current) abortControllerRef.current.abort();
-    };
-  }, []);
-
   // Find currently active popup item
   const activeTrade = useMemo(() => {
     if (!activePopupId) return null;
     return activeActions.find((t) => t.id === activePopupId) || null;
   }, [activePopupId, activeActions]);
-
-  // Derive execution state and response message reactively from store or local state
-  const executionState =
-    activeTrade?.status === 'executed'
-      ? 'success'
-      : activeTrade?.status === 'executing'
-        ? 'executing'
-        : localExecutionState;
-
-  const responseMessage =
-    activeTrade?.status === 'executed'
-      ? activeTrade.orderIdResult
-        ? `Order #${activeTrade.orderIdResult.substring(0, 8)} filled`
-        : localResponseMessage || 'Action executed successfully'
-      : localResponseMessage || activeTrade?.executionError || null;
 
   // Remaining seconds calculation
   const remainingSeconds = activeTrade
@@ -97,191 +67,20 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
     }
   }, [activeTrade, remainingSeconds, updateActionStatus]);
 
-  // Unified close handler
-  const handleCloseModal = useCallback(() => {
-    if (autoCloseTimerRef.current) {
-      clearTimeout(autoCloseTimerRef.current);
-      autoCloseTimerRef.current = null;
-    }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    setLocalExecutionState('idle');
-    setLocalResponseMessage(null);
-    closePopup();
-  }, [closePopup]);
-
-  // Execute Order (/api/trade/execute)
-  const handleConfirmOrder = useCallback(async () => {
-    if (!activeTrade || executionState === 'executing' || remainingSeconds <= 0) return;
-
-    setLocalExecutionState('executing');
-    setLocalResponseMessage(null);
-    await updateActionStatus(activeTrade.id, { status: 'executing' });
-
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const res = await fetch('/api/trade/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: abortControllerRef.current.signal,
-        body: JSON.stringify({
-          ticketToken: activeTrade.ticketToken,
-          symbol: activeTrade.symbol,
-          category: activeTrade.category,
-          side: activeTrade.side,
-          orderType: activeTrade.orderType,
-          size: activeTrade.size,
-          price: activeTrade.price,
-          tradeSide: activeTrade.tradeSide,
-          leverage: activeTrade.leverage,
-          stopLossPrice: activeTrade.stopLossPrice,
-          takeProfitPrice: activeTrade.takeProfitPrice,
-        }),
-      });
-
-      const json = (await res.json()) as {
-        success?: boolean;
-        orderId?: string;
-        message?: string;
-        error?: string;
-      };
-
-      if (json.success) {
-        setLocalExecutionState('success');
-        const successMsg =
-          json.message ||
-          (json.orderId ? `Order #${json.orderId.substring(0, 8)} filled` : 'Order executed');
-        setLocalResponseMessage(successMsg);
-        await updateActionStatus(activeTrade.id, { status: 'executed', orderIdResult: json.orderId });
-
-        if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
-        autoCloseTimerRef.current = setTimeout(handleCloseModal, 2000);
-      } else {
-        const errMsg = json.error || 'Order execution rejected';
-        setLocalExecutionState('error');
-        setLocalResponseMessage(errMsg);
-        await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
-      }
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      const errMsg = err instanceof Error ? err.message : 'Network error';
-      setLocalExecutionState('error');
-      setLocalResponseMessage(errMsg);
-      await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
-    }
-  }, [activeTrade, executionState, remainingSeconds, updateActionStatus, handleCloseModal]);
-
-  // Execute Cancel (/api/trade/action)
-  const handleConfirmCancel = useCallback(async () => {
-    if (!activeTrade || executionState === 'executing' || remainingSeconds <= 0) return;
-
-    setLocalExecutionState('executing');
-    setLocalResponseMessage(null);
-    await updateActionStatus(activeTrade.id, { status: 'executing' });
-
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const res = await fetch('/api/trade/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: abortControllerRef.current.signal,
-        body: JSON.stringify({
-          actionToken: activeTrade.actionToken,
-          action: activeTrade.action || (activeTrade.cancelAll ? 'cancel_symbol' : 'cancel_order'),
-          symbol: activeTrade.symbol,
-          category: activeTrade.category,
-          orderId: activeTrade.orderId,
-          clientOid: activeTrade.clientOid,
-        }),
-      });
-
-      const json = (await res.json()) as {
-        success?: boolean;
-        message?: string;
-        error?: string;
-      };
-
-      if (json.success) {
-        setLocalExecutionState('success');
-        const successMsg =
-          json.message ||
-          (activeTrade.cancelAll ? 'All working orders cancelled' : 'Order cancelled successfully');
-        setLocalResponseMessage(successMsg);
-        await updateActionStatus(activeTrade.id, { status: 'executed' });
-
-        if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
-        autoCloseTimerRef.current = setTimeout(handleCloseModal, 2000);
-      } else {
-        const errMsg = json.error || 'Cancellation rejected';
-        setLocalExecutionState('error');
-        setLocalResponseMessage(errMsg);
-        await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
-      }
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      const errMsg = err instanceof Error ? err.message : 'Network error';
-      setLocalExecutionState('error');
-      setLocalResponseMessage(errMsg);
-      await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
-    }
-  }, [activeTrade, executionState, remainingSeconds, updateActionStatus, handleCloseModal]);
-
-  // Execute Close Position (/api/trade/action)
-  const handleConfirmClose = useCallback(async () => {
-    if (!activeTrade || executionState === 'executing' || remainingSeconds <= 0) return;
-
-    setLocalExecutionState('executing');
-    setLocalResponseMessage(null);
-    await updateActionStatus(activeTrade.id, { status: 'executing' });
-
-    abortControllerRef.current = new AbortController();
-
-    try {
-      const res = await fetch('/api/trade/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: abortControllerRef.current.signal,
-        body: JSON.stringify({
-          actionToken: activeTrade.actionToken,
-          action: 'close_position',
-          symbol: activeTrade.symbol,
-          category: activeTrade.category,
-          side: activeTrade.closeSide || activeTrade.side,
-          size: activeTrade.closeSize,
-        }),
-      });
-
-      const json = (await res.json()) as {
-        success?: boolean;
-        message?: string;
-        error?: string;
-      };
-
-      if (json.success) {
-        setLocalExecutionState('success');
-        const successMsg = json.message || 'Position exit submitted successfully';
-        setLocalResponseMessage(successMsg);
-        await updateActionStatus(activeTrade.id, { status: 'executed' });
-
-        if (autoCloseTimerRef.current) clearTimeout(autoCloseTimerRef.current);
-        autoCloseTimerRef.current = setTimeout(handleCloseModal, 2000);
-      } else {
-        const errMsg = json.error || 'Position exit rejected';
-        setLocalExecutionState('error');
-        setLocalResponseMessage(errMsg);
-        await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
-      }
-    } catch (err: unknown) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      const errMsg = err instanceof Error ? err.message : 'Network error';
-      setLocalExecutionState('error');
-      setLocalResponseMessage(errMsg);
-      await updateActionStatus(activeTrade.id, { status: 'staged', executionError: errMsg });
-    }
-  }, [activeTrade, executionState, remainingSeconds, updateActionStatus, handleCloseModal]);
+  // Consolidated trade execution pipeline
+  const {
+    executionState,
+    responseMessage,
+    handleClose,
+    confirmOrder,
+    confirmCancel,
+    confirmClose,
+  } = useExecuteTrade({
+    activeTrade,
+    remainingSeconds,
+    updateActionStatus,
+    onClose: closePopup,
+  });
 
   const actionType = activeTrade?.actionType || 'order';
   const isOrderModalOpen = Boolean(activeTrade && actionType === 'order');
@@ -316,8 +115,8 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
               remainingSeconds={remainingSeconds}
               executionState={executionState}
               responseMessage={responseMessage}
-              onClose={handleCloseModal}
-              onConfirm={handleConfirmOrder}
+              onClose={handleClose}
+              onConfirm={confirmOrder}
             />
 
             <CancelOrderModal
@@ -326,8 +125,8 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
               remainingSeconds={remainingSeconds}
               executionState={executionState}
               responseMessage={responseMessage}
-              onClose={handleCloseModal}
-              onConfirm={handleConfirmCancel}
+              onClose={handleClose}
+              onConfirm={confirmCancel}
             />
 
             <ClosePositionModal
@@ -336,8 +135,8 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
               remainingSeconds={remainingSeconds}
               executionState={executionState}
               responseMessage={responseMessage}
-              onClose={handleCloseModal}
-              onConfirm={handleConfirmClose}
+              onClose={handleClose}
+              onConfirm={confirmClose}
             />
           </>,
           document.body
@@ -345,3 +144,4 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
     </>
   );
 });
+
