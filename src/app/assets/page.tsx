@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
-import { AssetsPageClient } from '@/components/assets';
+import { AssetsPageClient } from '@/components/(assets)';
 
 export const metadata: Metadata = {
   title: 'Portfolio & Assets',
