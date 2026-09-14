@@ -25,7 +25,6 @@
 
   /* ==========================================================================
      2. TEXT SIZE VARIABLES (8)
-     Scaled up to eliminate ant-sized fonts and deliver colossal, confident impact:
      ========================================================================== */
   --text-2xs: 0.75rem;   /* 12px - Sharp legible tag badges & micro-annotations */
   --text-xs: 0.875rem;   /* 14px - Section uppercase labels & sub-stats */
@@ -37,25 +36,7 @@
   --text-3xl: 4.25rem;   /* 68px - Hero display titles & colossal portfolio balances */
 
   /* ==========================================================================
-     3. FONT WEIGHT VARIABLES (5)
-     ========================================================================== */
-  --weight-regular: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-  --weight-bold: 700;
-  --weight-extrabold: 800;
-
-  /* ==========================================================================
-     4. LINE HEIGHT VARIABLES (5)
-     ========================================================================== */
-  --leading-none: 1;
-  --leading-tight: 1.15;
-  --leading-snug: 1.3;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.65;
-
-  /* ==========================================================================
-     5. SPACING VARIABLES (5)
+     3. SPACING VARIABLES (5)
      ========================================================================== */
   --spacing-xs: 0.25rem;  /* 4px - Micro gaps & indicator ticks */
   --spacing-sm: 0.5rem;   /* 8px - Chip padding & icon margins */
@@ -64,28 +45,28 @@
   --spacing-xl: 2.5rem;   /* 40px - Large dashboard deck framing */
 
   /* ==========================================================================
-     6. LAYOUT DIMENSIONS
+     4. LAYOUT DIMENSIONS
      ========================================================================== */
   --navbar-height: 3.5rem; /* 56px - Architectural top navigation bar height */
 }
 
-/* Light Theme Overrides (Swiss Alabaster & Electric Royal Azure) */
+/* Light Theme Overrides (Clean Minimal Snow) */
 html.light {
-  --theme-bg-base: #f4f6fb;             /* Distinctive porcelain alabaster canvas with crystalline tint */
-  --theme-bg-surface: #ffffff;          /* Crisp optical ivory card containers & deck surfaces */
-  --theme-bg-elevated: #e9edf5;         /* Frosted platinum for secondary controls, chips, tabs & hover */
-  --theme-bg-overlay: #ffffff;          /* Pure optical white for high-contrast button text & frosted docks */
-  --theme-border-subtle: #dfe5f0;       /* Hairline silver-slate micro-dividers & borders */
-  --theme-border-strong: #c5d0e3;       /* Focused active borders & structural indicators */
-  --theme-text-primary: #090e1a;        /* Deep cosmic midnight navy-slate for headings & lead stats */
-  --theme-text-secondary: #415168;      /* Refined architectural slate for subtitles & secondary values */
-  --theme-text-muted: #8a99ad;          /* Harmonized cool slate for timestamps & micro-details */
-  --theme-brand-primary: #005cf0;       /* Signature electric royal cerulean accent */
-  --theme-brand-accent: #00c2e8;        /* Luminous high-frequency aqua highlights & active meters */
-  --theme-status-success: #059669;      /* Rich emerald for positive yields & executed orders */
-  --theme-status-danger: #e11d48;       /* Vivid rose crimson for risks & de-risk triggers */
-  --theme-status-warning: #d97706;      /* High-contrast amber for caution & margin alerts */
-  --theme-status-info: #0284c7;         /* Clean technical cerulean for analyst stream */
+  --theme-bg-base: #fafafa;             /* Clean snow canvas */
+  --theme-bg-surface: #ffffff;          /* Crisp card containers & deck surfaces */
+  --theme-bg-elevated: #f4f4f5;         /* Soft secondary controls, chips, tabs & hover */
+  --theme-bg-overlay: #09090b;          /* Deep pitch high-contrast focus cards & docks */
+  --theme-border-subtle: #e4e4e7;       /* Subtle hairline micro-dividers & borders */
+  --theme-border-strong: #d4d4d8;       /* Focused active borders & indicators */
+  --theme-text-primary: #09090b;        /* Pure slate dark for display headings */
+  --theme-text-secondary: #52525b;      /* Refined neutral zinc for subtitles & labels */
+  --theme-text-muted: #a1a1aa;          /* Legible slate for timestamps & micro-details */
+  --theme-brand-primary: #00a3b4;       /* Primary cyan accent */
+  --theme-brand-accent: #00c4d6;        /* Aqua for active meters & hover highlights */
+  --theme-status-success: #10b981;      /* Emerald green for positive status */
+  --theme-status-danger: #f43f5e;       /* Crimson for errors & risk triggers */
+  --theme-status-warning: #f59e0b;      /* Warm amber for warnings & caution alerts */
+  --theme-status-info: #0284c7;         /* Clean technical cyan for analyst stream */
 }
 
 @theme inline {
@@ -117,18 +98,6 @@ html.light {
   --text-2xl: var(--text-2xl);
   --text-3xl: var(--text-3xl);
 
-  --font-weight-regular: var(--weight-regular);
-  --font-weight-medium: var(--weight-medium);
-  --font-weight-semibold: var(--weight-semibold);
-  --font-weight-bold: var(--weight-bold);
-  --font-weight-extrabold: var(--weight-extrabold);
-
-  --line-height-none: var(--leading-none);
-  --line-height-tight: var(--leading-tight);
-  --line-height-snug: var(--leading-snug);
-  --line-height-normal: var(--leading-normal);
-  --line-height-relaxed: var(--leading-relaxed);
-
   --spacing-navbar: var(--navbar-height);
   --spacing-spacing-xs: var(--spacing-xs);
   --spacing-spacing-sm: var(--spacing-sm);
@@ -136,65 +105,6 @@ html.light {
   --spacing-spacing-lg: var(--spacing-lg);
   --spacing-spacing-xl: var(--spacing-xl);
 }
-
-/* Explicit Layout Utilities Guaranteed Across Build Targets */
-.h-navbar { height: var(--navbar-height); }
-.pt-navbar { padding-top: var(--navbar-height); }
-
-/* Explicit Spacing Utilities Guaranteed Across Build Targets */
-.p-spacing-xs { padding: var(--spacing-xs); }
-.p-spacing-sm { padding: var(--spacing-sm); }
-.p-spacing-md { padding: var(--spacing-md); }
-.p-spacing-lg { padding: var(--spacing-lg); }
-.p-spacing-xl { padding: var(--spacing-xl); }
-
-.px-spacing-xs { padding-left: var(--spacing-xs); padding-right: var(--spacing-xs); }
-.px-spacing-sm { padding-left: var(--spacing-sm); padding-right: var(--spacing-sm); }
-.px-spacing-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
-.px-spacing-lg { padding-left: var(--spacing-lg); padding-right: var(--spacing-lg); }
-.px-spacing-xl { padding-left: var(--spacing-xl); padding-right: var(--spacing-xl); }
-
-.py-spacing-xs { padding-top: var(--spacing-xs); padding-bottom: var(--spacing-xs); }
-.py-spacing-sm { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
-.py-spacing-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
-.py-spacing-lg { padding-top: var(--spacing-lg); padding-bottom: var(--spacing-lg); }
-.py-spacing-xl { padding-top: var(--spacing-xl); padding-bottom: var(--spacing-xl); }
-
-.pt-spacing-xs { padding-top: var(--spacing-xs); }
-.pt-spacing-sm { padding-top: var(--spacing-sm); }
-.pt-spacing-md { padding-top: var(--spacing-md); }
-.pt-spacing-lg { padding-top: var(--spacing-lg); }
-.pt-spacing-xl { padding-top: var(--spacing-xl); }
-
-.pb-spacing-xs { padding-bottom: var(--spacing-xs); }
-.pb-spacing-sm { padding-bottom: var(--spacing-sm); }
-.pb-spacing-md { padding-bottom: var(--spacing-md); }
-.pb-spacing-lg { padding-bottom: var(--spacing-lg); }
-.pb-spacing-xl { padding-bottom: var(--spacing-xl); }
-
-.gap-spacing-xs { gap: var(--spacing-xs); }
-.gap-spacing-sm { gap: var(--spacing-sm); }
-.gap-spacing-md { gap: var(--spacing-md); }
-.gap-spacing-lg { gap: var(--spacing-lg); }
-.gap-spacing-xl { gap: var(--spacing-xl); }
-
-.m-spacing-xs { margin: var(--spacing-xs); }
-.m-spacing-sm { margin: var(--spacing-sm); }
-.m-spacing-md { margin: var(--spacing-md); }
-.m-spacing-lg { margin: var(--spacing-lg); }
-.m-spacing-xl { margin: var(--spacing-xl); }
-
-.mt-spacing-xs { margin-top: var(--spacing-xs); }
-.mt-spacing-sm { margin-top: var(--spacing-sm); }
-.mt-spacing-md { margin-top: var(--spacing-md); }
-.mt-spacing-lg { margin-top: var(--spacing-lg); }
-.mt-spacing-xl { margin-top: var(--spacing-xl); }
-
-.mb-spacing-xs { margin-bottom: var(--spacing-xs); }
-.mb-spacing-sm { margin-bottom: var(--spacing-sm); }
-.mb-spacing-md { margin-bottom: var(--spacing-md); }
-.mb-spacing-lg { margin-bottom: var(--spacing-lg); }
-.mb-spacing-xl { margin-bottom: var(--spacing-xl); }
 
 /* Custom subtle scrollbars */
 ::-webkit-scrollbar {
@@ -236,16 +146,6 @@ button,
 [role="button"] {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-}
-
-/* Atmospheric Ambient Depth Glow */
-.ambient-glow-gemini {
-  background: radial-gradient(
-    ellipse 80% 60% at 50% 45%,
-    color-mix(in srgb, var(--theme-brand-primary) 6%, transparent) 0%,
-    color-mix(in srgb, var(--theme-brand-accent) 2%, transparent) 45%,
-    transparent 75%
-  );
 }
 
 /* Ambient Background & Floating Blobs for Empty Chat State */
@@ -377,8 +277,6 @@ button,
 
 /* ==========================================================================
    Gemini AI Studio-Style Dual-Point Orbiting Input Aura & Gradient Border
-   Two diametrically opposed subtle light sources (0° and 180°) orbiting
-   around the obsidian input container.
    ========================================================================== */
 .chat-input-aura-glow-container {
   position: absolute;
@@ -462,7 +360,7 @@ button,
 body {
   background: var(--theme-bg-base);
   color: var(--theme-text-primary);
-  font-family: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   letter-spacing: -0.025em;
   overflow: hidden;
 }
@@ -493,4 +391,3 @@ pre.shiki {
   margin: 0;
   padding: 0;
 }
-

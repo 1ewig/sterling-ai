@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { AlertTriangle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { useStagedActions } from '@/hooks/chat';
+import { useStagedActions, useExecuteTrade } from '@/hooks/chat';
+import { CategoryBadge } from './tool-badge';
 
 interface OrderActionData {
   actionId?: string;
@@ -31,27 +32,15 @@ export const OrderActionCard = React.memo(function OrderActionCard({
   resultObj: Record<string, unknown>;
 }) {
   const data = resultObj as unknown as OrderActionData;
-  const { allActions, updateActionStatus, stageAction } = useStagedActions();
-
-  const [localExecutionState, setLocalExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
-  const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
-
-  const stagedItem = data.actionId ? allActions.find((t) => t.id === data.actionId) : undefined;
-  const isExecutedInStore = stagedItem?.status === 'executed';
-  const effectiveState =
-    isExecutedInStore
-      ? 'success'
-      : stagedItem?.status === 'executing'
-      ? 'executing'
-      : localExecutionState;
-
-  const responseMessage =
-    isExecutedInStore
-      ? localResponseMessage || 'Action executed successfully.'
-      : localResponseMessage || stagedItem?.executionError || null;
+  const { allActions, updateActionStatus, stageAction, now } = useStagedActions();
 
   const isClose = data.action === 'close_position';
   const isCancel = data.action === 'cancel_order' || data.action === 'cancel_symbol';
+
+  // Find stored action in Dexie
+  const stagedItem = useMemo(() => {
+    return data.actionId ? allActions.find((t) => t.id === data.actionId) || null : null;
+  }, [data.actionId, allActions]);
 
   // Auto-stage action ticket to Dexie without forcing popup if already closed
   useEffect(() => {
@@ -102,53 +91,22 @@ export const OrderActionCard = React.memo(function OrderActionCard({
     stageAction,
   ]);
 
-  const handleConfirmAction = async () => {
-    setLocalExecutionState('executing');
-    setLocalResponseMessage(null);
-    if (data.actionId) {
-      void updateActionStatus(data.actionId, { status: 'executing' });
-    }
+  const remainingSeconds = stagedItem ? Math.max(0, Math.floor((stagedItem.expiresAt - now) / 1000)) : 300;
 
-    try {
-      const res = await fetch('/api/trade/action', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          actionToken: data.actionToken,
-          action: data.action,
-          symbol: data.symbol,
-          category: data.category,
-          orderId: data.orderId,
-          clientOid: data.clientOid,
-          side: data.closeSide || data.side,
-          size: data.closeSize,
-        }),
-      });
 
-      const json = (await res.json()) as { success?: boolean; message?: string; error?: string };
+  const {
+    executionState,
+    responseMessage,
+    confirmCancel,
+    confirmClose,
+  } = useExecuteTrade({
+    activeTrade: stagedItem,
+    remainingSeconds,
+    updateActionStatus,
+    onClose: () => {},
+  });
 
-      if (json.success) {
-        setLocalExecutionState('success');
-        setLocalResponseMessage(json.message || 'Action executed successfully.');
-        if (data.actionId) {
-          void updateActionStatus(data.actionId, { status: 'executed' });
-        }
-      } else {
-        setLocalExecutionState('error');
-        setLocalResponseMessage(json.error || 'Action execution rejected.');
-        if (data.actionId) {
-          void updateActionStatus(data.actionId, { status: 'staged', executionError: json.error });
-        }
-      }
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : 'Network error';
-      setLocalExecutionState('error');
-      setLocalResponseMessage(errMsg);
-      if (data.actionId) {
-        void updateActionStatus(data.actionId, { status: 'staged', executionError: errMsg });
-      }
-    }
-  };
+  const handleExecute = isClose ? confirmClose : confirmCancel;
 
   return (
     <div className="flex flex-col gap-2.5 p-3 rounded-lg bg-theme-bg-surface border border-theme-border-subtle text-xs">
@@ -160,9 +118,7 @@ export const OrderActionCard = React.memo(function OrderActionCard({
             {isClose ? 'Position Exit Ticket' : 'Order Cancellation Ticket'}
           </span>
         </div>
-        <span className="px-1.5 py-0.5 rounded bg-theme-bg-elevated text-theme-text-muted text-2xs font-mono">
-          {data.category?.toUpperCase() || 'FUTURES'}
-        </span>
+        <CategoryBadge category={data.category?.toUpperCase() || 'FUTURES'} />
       </div>
 
       {/* Details Box */}
@@ -214,11 +170,11 @@ export const OrderActionCard = React.memo(function OrderActionCard({
       </div>
 
       {/* Action Execution Button */}
-      {effectiveState === 'idle' && (
+      {executionState === 'idle' && (
         <button
           type="button"
-          onClick={handleConfirmAction}
-          className={`w-full py-2 px-3 rounded font-medium text-xs transition-colors flex items-center justify-center gap-1.5 ${
+          onClick={handleExecute}
+          className={`w-full py-2 px-3 rounded font-medium text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
             isClose
               ? 'bg-theme-status-danger/90 hover:bg-theme-status-danger text-theme-text-primary'
               : 'bg-theme-brand-primary hover:bg-theme-brand-accent text-theme-bg-base font-semibold'
@@ -228,21 +184,21 @@ export const OrderActionCard = React.memo(function OrderActionCard({
         </button>
       )}
 
-      {effectiveState === 'executing' && (
+      {executionState === 'executing' && (
         <div className="py-2 flex items-center justify-center gap-1.5 text-theme-brand-primary font-mono text-2xs">
           <Loader2 className="size-3.5 animate-spin" />
           Transmitting to Bitget v3 UTA...
         </div>
       )}
 
-      {effectiveState === 'success' && (
+      {executionState === 'success' && (
         <div className="p-2 rounded bg-theme-status-success/15 border border-theme-status-success/30 flex items-center gap-1.5 text-theme-status-success text-2xs">
           <CheckCircle2 className="size-3.5 flex-shrink-0" />
           <span>{responseMessage || 'Action executed successfully.'}</span>
         </div>
       )}
 
-      {effectiveState === 'error' && (
+      {executionState === 'error' && (
         <div className="flex flex-col gap-2">
           <div className="p-2 rounded bg-theme-status-danger/15 border border-theme-status-danger/30 flex items-center gap-1.5 text-theme-status-danger text-2xs">
             <AlertCircle className="size-3.5 flex-shrink-0" />
@@ -250,7 +206,7 @@ export const OrderActionCard = React.memo(function OrderActionCard({
           </div>
           <button
             type="button"
-            onClick={handleConfirmAction}
+            onClick={handleExecute}
             className="w-full py-1.5 px-3 rounded font-medium text-xs bg-theme-bg-elevated hover:bg-theme-bg-elevated/80 text-theme-text-primary transition-colors cursor-pointer"
           >
             Retry Execution

@@ -1,6 +1,8 @@
 export * from './types';
 export * from './display-info';
 export * from './tool-result-card';
+export * from './tool-badge';
+export * from './metric-tile';
 export * from './web-search-card';
 export * from './market-data-card';
 export * from './technical-analysis-card';
@@ -9,4 +11,3 @@ export * from './sentiment-analyst-card';
 export * from './market-intel-card';
 export * from './trade-ticket-card';
 export * from './account-overview-card';
-

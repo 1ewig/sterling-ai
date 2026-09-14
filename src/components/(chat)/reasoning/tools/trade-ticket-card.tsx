@@ -1,8 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ArrowUpRight, ArrowDownRight, ShieldCheck, CheckCircle2, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
-import { useStagedActions } from '@/hooks/chat';
+import React, { useEffect, useMemo } from 'react';
+import { ShieldCheck, CheckCircle2, AlertCircle, Loader2, ExternalLink, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { useStagedActions, useExecuteTrade } from '@/hooks/chat';
+import { formatUSD } from '@/lib/bitget/formatters';
+import { SideBadge, CategoryBadge } from './tool-badge';
+import { MetricTile, MetricGrid } from './metric-tile';
 
 interface TradeTicketData {
   ticketId?: string;
@@ -31,35 +34,12 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
   resultObj: Record<string, unknown>;
 }) {
   const data = resultObj as unknown as TradeTicketData;
-  const { allActions, openPopup, updateActionStatus, stageAction } = useStagedActions();
+  const { allActions, openPopup, updateActionStatus, stageAction, now } = useStagedActions();
 
-  // Synchronize with Dexie staged status
-  const storedTrade = data.ticketId ? allActions.find((t) => t.id === data.ticketId) : undefined;
-
-  const [localExecutionState, setLocalExecutionState] = useState<'idle' | 'executing' | 'success' | 'error'>('idle');
-  const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);
-  const [prevTicketId, setPrevTicketId] = useState<string | undefined>(data.ticketId);
-
-  // Reset local state whenever the ticketId changes (render-time pattern)
-  if (data.ticketId !== prevTicketId) {
-    setPrevTicketId(data.ticketId);
-    setLocalExecutionState('idle');
-    setLocalResponseMessage(null);
-  }
-
-  const executionState =
-    storedTrade?.status === 'executed'
-      ? 'success'
-      : storedTrade?.status === 'executing'
-      ? 'executing'
-      : localExecutionState;
-
-  const responseMessage =
-    storedTrade?.status === 'executed' && (storedTrade.orderIdResult || storedTrade.orderId)
-      ? `Order #${(storedTrade.orderIdResult || storedTrade.orderId || '').substring(0, 10)} Filled / Placed`
-      : localResponseMessage;
-
-  const isBuy = data.side === 'buy';
+  // Find stored action item in Dexie
+  const storedTrade = useMemo(() => {
+    return data.ticketId ? allActions.find((t) => t.id === data.ticketId) || null : null;
+  }, [data.ticketId, allActions]);
 
   // Auto-stage to Dexie without forcing popup if already closed
   useEffect(() => {
@@ -109,57 +89,21 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
     stageAction,
   ]);
 
-  const handleConfirmOrder = async () => {
-    setLocalExecutionState('executing');
-    setLocalResponseMessage(null);
-    if (data.ticketId) {
-      void updateActionStatus(data.ticketId, { status: 'executing' });
-    }
+  const remainingSeconds = storedTrade ? Math.max(0, Math.floor((storedTrade.expiresAt - now) / 1000)) : 300;
 
-    try {
-      const res = await fetch('/api/trade/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ticketToken: data.ticketToken,
-          symbol: data.symbol,
-          category: data.category,
-          side: data.side,
-          orderType: data.orderType,
-          size: data.size,
-          price: data.price,
-          tradeSide: data.tradeSide,
-          leverage: data.leverage,
-          stopLossPrice: data.stopLossPrice,
-          takeProfitPrice: data.takeProfitPrice,
-        }),
-      });
 
-      const json = (await res.json()) as { success?: boolean; orderId?: string; error?: string; message?: string };
+  const {
+    executionState,
+    responseMessage,
+    confirmOrder,
+  } = useExecuteTrade({
+    activeTrade: storedTrade,
+    remainingSeconds,
+    updateActionStatus,
+    onClose: () => {},
+  });
 
-      if (json.success) {
-        setLocalExecutionState('success');
-        setLocalResponseMessage(json.orderId ? `Order #${json.orderId.substring(0, 10)} Filled / Placed` : 'Order executed successfully');
-        if (data.ticketId) {
-          void updateActionStatus(data.ticketId, { status: 'executed', orderIdResult: json.orderId });
-        }
-      } else {
-        const errMsg = json.error || 'Order execution rejected';
-        setLocalExecutionState('error');
-        setLocalResponseMessage(errMsg);
-        if (data.ticketId) {
-          void updateActionStatus(data.ticketId, { status: 'staged', executionError: errMsg });
-        }
-      }
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : 'Network error';
-      setLocalExecutionState('error');
-      setLocalResponseMessage(errMsg);
-      if (data.ticketId) {
-        void updateActionStatus(data.ticketId, { status: 'staged', executionError: errMsg });
-      }
-    }
-  };
+  const isBuy = data.side === 'buy';
 
   return (
     <div className="flex flex-col gap-2 p-3 rounded-lg bg-theme-bg-surface border border-theme-border-subtle text-xs">
@@ -172,60 +116,30 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span
-            className={`px-1.5 py-0.5 rounded font-mono font-bold text-2xs uppercase ${
-              isBuy
-                ? 'bg-theme-status-success/15 text-theme-status-success border border-theme-status-success/30'
-                : 'bg-theme-status-danger/15 text-theme-status-danger border border-theme-status-danger/30'
-            }`}
-          >
-            {isBuy ? 'BUY / LONG' : 'SELL / SHORT'}
-          </span>
-          <span className="px-1.5 py-0.5 rounded bg-theme-bg-elevated text-theme-text-muted text-2xs font-mono">
-            {data.category?.toUpperCase() || 'FUTURES'}
-          </span>
+          <SideBadge side={data.side} />
+          <CategoryBadge category={data.category?.toUpperCase() || 'FUTURES'} />
         </div>
       </div>
 
       {/* Primary Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-        <div className="flex flex-col bg-theme-bg-elevated/40 p-2 rounded">
-          <span className="text-theme-text-muted text-2xs uppercase">Asset</span>
-          <span className="font-mono font-bold text-theme-text-primary truncate">{data.symbol}</span>
-        </div>
-        <div className="flex flex-col bg-theme-bg-elevated/40 p-2 rounded">
-          <span className="text-theme-text-muted text-2xs uppercase">Order Type</span>
-          <span className="font-mono font-medium text-theme-text-primary capitalize">{data.orderType}</span>
-        </div>
-        <div className="flex flex-col bg-theme-bg-elevated/40 p-2 rounded">
-          <span className="text-theme-text-muted text-2xs uppercase">Size</span>
-          <span className="font-mono font-bold text-theme-text-primary">{data.size}</span>
-        </div>
-        <div className="flex flex-col bg-theme-bg-elevated/40 p-2 rounded">
-          <span className="text-theme-text-muted text-2xs uppercase">Target Price</span>
-          <span className="font-mono font-bold text-theme-brand-primary">
-            ${data.price?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </span>
-        </div>
-      </div>
+      <MetricGrid columns={4}>
+        <MetricTile label="Asset" value={data.symbol} />
+        <MetricTile label="Order Type" value={data.orderType} className="capitalize" />
+        <MetricTile label="Size" value={data.size} />
+        <MetricTile label="Target Price" value={formatUSD(data.price, 'MARKET')} valueColor="text-theme-brand-primary" />
+      </MetricGrid>
 
       {/* Sizing & Risk Details */}
-      <div className="grid grid-cols-3 gap-2 bg-theme-bg-elevated/20 p-2 rounded border border-theme-border-subtle/40">
-        <div className="flex flex-col">
-          <span className="text-theme-text-muted text-2xs">Notional</span>
-          <span className="font-mono text-theme-text-primary">${data.notionalUsdt?.toFixed(2)}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-theme-text-muted text-2xs">Est. Margin ({data.leverage}x)</span>
-          <span className="font-mono text-theme-text-primary">${data.initialMarginUsdt?.toFixed(2)}</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-theme-text-muted text-2xs">Est. Liquidation</span>
-          <span className="font-mono text-theme-status-warning">
-            {data.estimatedLiquidation ? `$${data.estimatedLiquidation.toFixed(2)}` : 'N/A'}
-          </span>
-        </div>
-      </div>
+      <MetricGrid columns={3} className="bg-theme-bg-elevated/20 p-2 rounded border border-theme-border-subtle/40">
+        <MetricTile label="Notional" value={formatUSD(data.notionalUsdt)} className="bg-transparent p-0" />
+        <MetricTile label={`Est. Margin (${data.leverage || 1}x)`} value={formatUSD(data.initialMarginUsdt)} className="bg-transparent p-0" />
+        <MetricTile
+          label="Est. Liquidation"
+          value={data.estimatedLiquidation ? formatUSD(data.estimatedLiquidation) : 'N/A'}
+          valueColor="text-theme-status-warning"
+          className="bg-transparent p-0"
+        />
+      </MetricGrid>
 
       {/* TP / SL / Risk:Reward */}
       {(data.stopLossPrice || data.takeProfitPrice) && (
@@ -233,13 +147,13 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
           {data.stopLossPrice && (
             <div className="flex items-center gap-1 text-theme-status-danger">
               <ArrowDownRight className="size-3" />
-              <span>SL: ${data.stopLossPrice}</span>
+              <span>SL: {formatUSD(data.stopLossPrice)}</span>
             </div>
           )}
           {data.takeProfitPrice && (
             <div className="flex items-center gap-1 text-theme-status-success">
               <ArrowUpRight className="size-3" />
-              <span>TP: ${data.takeProfitPrice}</span>
+              <span>TP: {formatUSD(data.takeProfitPrice)}</span>
             </div>
           )}
           {data.riskRewardRatio && (
@@ -270,7 +184,7 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
 
             <button
               type="button"
-              onClick={handleConfirmOrder}
+              onClick={confirmOrder}
               className={`w-full sm:w-auto py-2 px-3 rounded font-medium text-xs flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
                 isBuy
                   ? 'bg-theme-status-success/15 hover:bg-theme-status-success/25 text-theme-status-success border-theme-status-success/30'
@@ -308,8 +222,8 @@ export const TradeTicketCard = React.memo(function TradeTicketCard({
             </div>
             <button
               type="button"
-              onClick={handleConfirmOrder}
-              className="self-end px-2 py-0.5 rounded bg-theme-status-danger text-white text-2xs hover:bg-theme-status-danger/80"
+              onClick={confirmOrder}
+              className="self-end px-2 py-0.5 rounded bg-theme-status-danger text-white text-2xs hover:bg-theme-status-danger/80 cursor-pointer"
             >
               Retry
             </button>
