@@ -217,13 +217,7 @@ export function useOrdersWorkbench() {
 
     connectStream();
 
-    // Background REST reconciliation (every 2.5s when tab visible)
-    const intervalId = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchWorkbenchData();
-      }
-    }, 2500);
-
+    // Reconcile once when user returns to window tab
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         fetchWorkbenchData();
@@ -234,7 +228,6 @@ export function useOrdersWorkbench() {
 
     return () => {
       isMountedRef.current = false;
-      clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);

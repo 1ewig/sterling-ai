@@ -90,7 +90,43 @@ export async function GET(req: Request) {
         },
       });
 
-      // 3. Keep-alive heartbeat interval (every 15 seconds)
+      // 3. Continuous Server-Side Stream Synchronization (every 2.5 seconds)
+      // Streams live positions mark prices, floating PnL, and resting orders over this persistent SSE pipe
+      let isSyncing = false;
+      const syncInterval = setInterval(async () => {
+        if (isStreamClosed) {
+          clearInterval(syncInterval);
+          return;
+        }
+        if (isSyncing) return;
+        isSyncing = true;
+        try {
+          const [positionsRes, ordersRes] = await Promise.allSettled([
+            fetchPositionsV3('USDT-FUTURES'),
+            fetchOpenOrdersV3({ categoryInput: 'all' }),
+          ]);
+
+          const positions: BitgetV3Position[] =
+            positionsRes.status === 'fulfilled' && positionsRes.value.ok
+              ? positionsRes.value.positions
+              : [];
+
+          const orders: BitgetV3OrderInfo[] =
+            ordersRes.status === 'fulfilled' ? ordersRes.value.orders || [] : [];
+
+          sendEvent('snapshot', {
+            positions,
+            orders,
+            timestamp: Date.now(),
+          });
+        } catch {
+          // Ignore transient errors
+        } finally {
+          isSyncing = false;
+        }
+      }, 2500);
+
+      // 4. Keep-alive heartbeat interval (every 15 seconds)
       const heartbeatInterval = setInterval(() => {
         if (isStreamClosed) {
           clearInterval(heartbeatInterval);
@@ -102,6 +138,7 @@ export async function GET(req: Request) {
       // Clean up resources when the client disconnects or aborts
       req.signal.addEventListener('abort', () => {
         isStreamClosed = true;
+        clearInterval(syncInterval);
         clearInterval(heartbeatInterval);
         unsubscribeFromHub();
         try {

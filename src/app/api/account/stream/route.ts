@@ -76,7 +76,30 @@ export async function GET(req: Request) {
         },
       });
 
-      // 3. Keep-alive heartbeat interval (every 15 seconds)
+      // 3. Continuous Server-Side Stream Synchronization (every 2.5 seconds)
+      // Streams live mark-to-market prices, floating PnL, and collateral valuations over this persistent SSE pipe
+      let isSyncing = false;
+      const syncInterval = setInterval(async () => {
+        if (isStreamClosed) {
+          clearInterval(syncInterval);
+          return;
+        }
+        if (isSyncing) return;
+        isSyncing = true;
+        try {
+          const overview: BitgetAccountOverview = await getAccountOverviewV3('all');
+          sendEvent('snapshot', {
+            overview,
+            timestamp: Date.now(),
+          });
+        } catch {
+          // Ignore transient network hiccups
+        } finally {
+          isSyncing = false;
+        }
+      }, 2500);
+
+      // 4. Keep-alive heartbeat interval (every 15 seconds)
       const heartbeatInterval = setInterval(() => {
         if (isStreamClosed) {
           clearInterval(heartbeatInterval);
@@ -88,6 +111,7 @@ export async function GET(req: Request) {
       // Clean up resources when client disconnects or aborts
       req.signal.addEventListener('abort', () => {
         isStreamClosed = true;
+        clearInterval(syncInterval);
         clearInterval(heartbeatInterval);
         unsubscribeFromHub();
         try {
