@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
+import { applyPositionDelta } from '@/lib/bitget/trade';
 
 export interface OrdersWorkbenchData {
   positions: BitgetV3Position[];
@@ -18,26 +19,6 @@ export interface OrdersWorkbenchSummary {
   workingOrdersCount: number;
   limitOrdersCount: number;
   planOrdersCount: number;
-}
-
-// Immutable helper to merge position delta updates
-function applyPositionDelta(current: BitgetV3Position[], updates: BitgetV3Position[]): BitgetV3Position[] {
-  const list = [...current];
-  for (const inc of updates) {
-    const totalNum = parseFloat(inc.total || '0');
-    const idx = list.findIndex(
-      (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
-    );
-
-    if (totalNum === 0) {
-      if (idx !== -1) list.splice(idx, 1);
-    } else if (idx !== -1) {
-      list[idx] = { ...list[idx], ...inc };
-    } else {
-      list.unshift(inc);
-    }
-  }
-  return list;
 }
 
 // Immutable helper to merge order delta updates

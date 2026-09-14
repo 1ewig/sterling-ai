@@ -6,7 +6,7 @@ export interface BitgetPrivateWsCallbacks {
   onPositionsSnapshot?: (positions: BitgetV3Position[]) => void;
   onPositionsUpdate?: (positions: BitgetV3Position[]) => void;
   onOrdersUpdate?: (orders: BitgetV3OrderInfo[]) => void;
-  onAccountUpdate?: (account: unknown) => void;
+  onAccountUpdate?: (account: unknown, category?: BitgetV3Category) => void;
   onError?: (err: Error) => void;
   onClose?: () => void;
 }
@@ -185,7 +185,7 @@ export function createBitgetPrivateWsSession(
           );
           callbacks.onOrdersUpdate?.(mappedOrders);
         } else if (channel === 'account') {
-          callbacks.onAccountUpdate?.(parsed.data);
+          callbacks.onAccountUpdate?.(parsed.data, instType);
         }
       }
     } catch (e) {
@@ -264,8 +264,8 @@ class BitgetPrivateWsHub {
           onOrdersUpdate: (orders) => {
             this.broadcast('orders_update', { orders, timestamp: Date.now() });
           },
-          onAccountUpdate: (account) => {
-            this.broadcast('account_update', { account, timestamp: Date.now() });
+          onAccountUpdate: (account, category) => {
+            this.broadcast('account_update', { account, category, timestamp: Date.now() });
           },
           onError: (err) => {
             this.broadcast('ws_error', { error: err.message });

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import type { BitgetAccountOverview } from '@/lib/bitget/types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { BitgetAccountOverview, BitgetV3Position } from '@/lib/bitget/types';
+import { applyPositionDelta } from '@/lib/bitget/trade';
 
 export interface UsePortfolioOverviewReturn {
   data: BitgetAccountOverview | null;
   isLoading: boolean;
   isRefreshing: boolean;
+  isWsConnected: boolean;
   error: string | null;
   isMissingConfig: boolean;
   lastUpdated: Date | null;
@@ -16,23 +18,81 @@ export interface UsePortfolioOverviewReturn {
 export type UseAccountOverviewReturn = UsePortfolioOverviewReturn;
 
 /**
- * Dedicated hook for fetching, refreshing, and managing Bitget UTA v3 portfolio overview state.
+ * Dedicated hook for managing live real-time Bitget UTA v3 portfolio overview state.
+ * Employs SSE streaming from private WebSocket hub + RAF delta batching + REST background reconciliation.
  */
 export function usePortfolioOverview(): UsePortfolioOverviewReturn {
   const [data, setData] = useState<BitgetAccountOverview | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isWsConnected, setIsWsConnected] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isMissingConfig, setIsMissingConfig] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  // RAF Update Batching Buffer
+  const pendingPositionsDeltaRef = useRef<BitgetV3Position[]>([]);
+  const rafIdRef = useRef<number | null>(null);
+
+  // Atomic flush of pending deltas once per display refresh cycle
+  const flushBatchUpdates = useCallback(() => {
+    if (!isMountedRef.current) return;
+    const posUpdates = pendingPositionsDeltaRef.current;
+    pendingPositionsDeltaRef.current = [];
+
+    if (posUpdates.length === 0) return;
+
+    setData((prev) => {
+      if (!prev) return prev;
+      const updatedPositions = applyPositionDelta(prev.positions || [], posUpdates);
+
+      // Recompute dynamic position-based floating metrics
+      const unrealizedPnlUsdt = updatedPositions.reduce(
+        (sum, p) => sum + Number.parseFloat(p.unrealisedPnl || '0'),
+        0
+      );
+      const positionValueUsdt = updatedPositions.reduce(
+        (sum, p) =>
+          sum +
+          Math.abs(Number.parseFloat(p.total || '0')) *
+            Number.parseFloat(p.markPrice || p.avgPrice || '0'),
+        0
+      );
+
+      return {
+        ...prev,
+        positions: updatedPositions,
+        unrealizedPnlUsdt: Number.parseFloat(unrealizedPnlUsdt.toFixed(2)),
+        positionValueUsdt: Number.parseFloat(positionValueUsdt.toFixed(2)),
+      };
+    });
+    setLastUpdated(new Date());
+  }, []);
+
+  const scheduleBatchFlush = useCallback(() => {
+    if (typeof window === 'undefined') {
+      flushBatchUpdates();
+      return;
+    }
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        flushBatchUpdates();
+      });
+    }
+  }, [flushBatchUpdates]);
+
+  // Background on-demand REST reconciliation
   const fetchOverview = useCallback(async (isInitial = false) => {
     if (isInitial) {
       setIsLoading(true);
     } else {
       setIsRefreshing(true);
     }
-    setError(null);
 
     try {
       const res = await fetch('/api/account/overview', {
@@ -45,6 +105,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
       if (json.success && json.data) {
         setData(json.data);
         setIsMissingConfig(false);
+        setError(null);
         setLastUpdated(new Date());
       } else if (json.isMissingConfig) {
         setIsMissingConfig(true);
@@ -65,48 +126,132 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     }
   }, []);
 
+  // Real-time SSE Stream Listener
   useEffect(() => {
-    let isCancelled = false;
+    isMountedRef.current = true;
+    let retryDelay = 2000;
 
-    async function initialLoad() {
+    const connectStream = async () => {
+      if (!isMountedRef.current) return;
+      abortControllerRef.current?.abort();
+
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       try {
-        const res = await fetch('/api/account/overview', {
+        const response = await fetch('/api/account/stream', {
           method: 'GET',
           cache: 'no-store',
+          signal: controller.signal,
         });
 
-        const json = await res.json();
-        if (isCancelled) return;
+        if (!response.ok || !response.body) {
+          throw new Error(`Stream connection failed with HTTP ${response.status}`);
+        }
 
-        if (json.success && json.data) {
-          setData(json.data);
-          setIsMissingConfig(false);
-          setLastUpdated(new Date());
-        } else if (json.isMissingConfig) {
-          setIsMissingConfig(true);
-          if (json.error) {
-            setError(json.error);
+        setIsWsConnected(true);
+        setIsLoading(false);
+        setError(null);
+        retryDelay = 2000;
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (isMountedRef.current) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const block of lines) {
+            if (!block.trim() || block.startsWith(':')) continue;
+
+            let eventType = 'message';
+            let eventData = '';
+            for (const line of block.split('\n')) {
+              if (line.startsWith('event:')) eventType = line.slice(6).trim();
+              else if (line.startsWith('data:')) eventData = line.slice(5).trim();
+            }
+
+            if (!eventData) continue;
+
+            try {
+              const parsed = JSON.parse(eventData);
+
+              if (eventType === 'snapshot' && parsed.overview) {
+                setData(parsed.overview);
+                setIsLoading(false);
+                setIsMissingConfig(false);
+                setError(null);
+                setLastUpdated(new Date());
+              } else if (
+                (eventType === 'positions_snapshot' || eventType === 'positions_update') &&
+                Array.isArray(parsed.positions)
+              ) {
+                if (eventType === 'positions_update' || parsed.positions.length > 0) {
+                  pendingPositionsDeltaRef.current.push(...parsed.positions);
+                  scheduleBatchFlush();
+                }
+              } else if (eventType === 'account_update' && parsed.account) {
+                // Background REST sync to ensure complex spot/token assets convert cleanly
+                fetchOverview(false);
+              } else if (eventType === 'error') {
+                if (parsed.isMissingConfig) setIsMissingConfig(true);
+                setError(parsed.error || 'Stream error');
+              }
+            } catch {
+              // Ignore malformed frame
+            }
           }
-        } else {
-          setError(json.error || 'Failed to fetch account overview');
         }
       } catch (err) {
-        if (!isCancelled) {
-          setError(err instanceof Error ? err.message : 'Network error while fetching account data');
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setIsWsConnected(false);
+        if (isMountedRef.current) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            if (isMountedRef.current) {
+              retryDelay = Math.min(retryDelay * 1.5, 15000);
+              connectStream();
+            }
+          }, retryDelay);
         }
       }
-    }
+    };
 
-    initialLoad();
+    connectStream();
+
+    // Background REST reconciliation (every 3.5s when tab is visible)
+    const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchOverview(false);
+      }
+    }, 3500);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchOverview(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
-      isCancelled = true;
+      isMountedRef.current = false;
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+      abortControllerRef.current?.abort();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [scheduleBatchFlush, fetchOverview]);
 
   const refetch = useCallback(async () => {
     await fetchOverview(false);
@@ -116,6 +261,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     data,
     isLoading,
     isRefreshing,
+    isWsConnected,
     error,
     isMissingConfig,
     lastUpdated,

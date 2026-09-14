@@ -105,3 +105,29 @@ export async function getPositionsV3(categoryInput = 'USDT-FUTURES'): Promise<Bi
   }
   return result.positions;
 }
+
+/**
+ * Merges position delta updates immutably into a position list.
+ * Removes positions when total becomes 0, updates modified positions, or prepends new positions.
+ */
+export function applyPositionDelta(
+  current: BitgetV3Position[],
+  updates: BitgetV3Position[]
+): BitgetV3Position[] {
+  const list = [...current];
+  for (const inc of updates) {
+    const totalNum = Number.parseFloat(inc.total || '0');
+    const idx = list.findIndex(
+      (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
+    );
+
+    if (totalNum === 0) {
+      if (idx !== -1) list.splice(idx, 1);
+    } else if (idx !== -1) {
+      list[idx] = { ...list[idx], ...inc };
+    } else {
+      list.unshift(inc);
+    }
+  }
+  return list;
+}
