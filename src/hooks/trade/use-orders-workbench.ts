@@ -20,6 +20,46 @@ export interface OrdersWorkbenchSummary {
   planOrdersCount: number;
 }
 
+// Immutable helper to merge position delta updates
+function applyPositionDelta(current: BitgetV3Position[], updates: BitgetV3Position[]): BitgetV3Position[] {
+  const list = [...current];
+  for (const inc of updates) {
+    const totalNum = parseFloat(inc.total || '0');
+    const idx = list.findIndex(
+      (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
+    );
+
+    if (totalNum === 0) {
+      if (idx !== -1) list.splice(idx, 1);
+    } else if (idx !== -1) {
+      list[idx] = { ...list[idx], ...inc };
+    } else {
+      list.unshift(inc);
+    }
+  }
+  return list;
+}
+
+// Immutable helper to merge order delta updates
+function applyOrderDelta(current: BitgetV3OrderInfo[], updates: BitgetV3OrderInfo[]): BitgetV3OrderInfo[] {
+  const list = [...current];
+  for (const inc of updates) {
+    const isTerminal = inc.status === 'filled' || inc.status === 'cancelled';
+    const idx = list.findIndex(
+      (o) => o.orderId === inc.orderId || (o.clientOid && inc.clientOid && o.clientOid === inc.clientOid)
+    );
+
+    if (isTerminal) {
+      if (idx !== -1) list.splice(idx, 1);
+    } else if (idx !== -1) {
+      list[idx] = { ...list[idx], ...inc };
+    } else {
+      list.unshift(inc);
+    }
+  }
+  return list;
+}
+
 export function useOrdersWorkbench() {
   const [data, setData] = useState<OrdersWorkbenchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,53 +89,11 @@ export function useOrdersWorkbench() {
 
     if (posUpdates.length === 0 && ordUpdates.length === 0) return;
 
-    setData((prev) => {
-      let nextPositions = prev?.positions ? [...prev.positions] : [];
-      if (posUpdates.length > 0) {
-        for (const inc of posUpdates) {
-          const totalNum = parseFloat(inc.total || '0');
-          const idx = nextPositions.findIndex(
-            (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
-          );
-
-          if (totalNum === 0) {
-            if (idx !== -1) nextPositions.splice(idx, 1);
-          } else {
-            if (idx !== -1) {
-              nextPositions[idx] = { ...nextPositions[idx], ...inc };
-            } else {
-              nextPositions.unshift(inc);
-            }
-          }
-        }
-      }
-
-      let nextOrders = prev?.orders ? [...prev.orders] : [];
-      if (ordUpdates.length > 0) {
-        for (const inc of ordUpdates) {
-          const isTerminal = inc.status === 'filled' || inc.status === 'cancelled';
-          const idx = nextOrders.findIndex(
-            (o) => o.orderId === inc.orderId || (o.clientOid && inc.clientOid && o.clientOid === inc.clientOid)
-          );
-
-          if (isTerminal) {
-            if (idx !== -1) nextOrders.splice(idx, 1);
-          } else {
-            if (idx !== -1) {
-              nextOrders[idx] = { ...nextOrders[idx], ...inc };
-            } else {
-              nextOrders.unshift(inc);
-            }
-          }
-        }
-      }
-
-      return {
-        positions: nextPositions,
-        orders: nextOrders,
-        timestamp: Date.now(),
-      };
-    });
+    setData((prev) => ({
+      positions: posUpdates.length > 0 ? applyPositionDelta(prev?.positions || [], posUpdates) : prev?.positions || [],
+      orders: ordUpdates.length > 0 ? applyOrderDelta(prev?.orders || [], ordUpdates) : prev?.orders || [],
+      timestamp: Date.now(),
+    }));
     setLastUpdated(new Date());
   }, []);
 
@@ -115,12 +113,8 @@ export function useOrdersWorkbench() {
   // Background / on-demand REST reconciliation
   const fetchWorkbenchData = useCallback(async () => {
     setIsRefreshing(true);
-
     try {
-      const res = await fetch('/api/trade/orders', {
-        method: 'GET',
-        cache: 'no-store',
-      });
+      const res = await fetch('/api/trade/orders', { method: 'GET', cache: 'no-store' });
       const json = await res.json();
 
       if (json.isMissingConfig) {
@@ -136,8 +130,7 @@ export function useOrdersWorkbench() {
         setError(json.error || 'Failed to load orders and positions');
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Network error';
-      setError(msg);
+      setError(err instanceof Error ? err.message : 'Network error');
     } finally {
       setIsRefreshing(false);
     }
@@ -150,10 +143,7 @@ export function useOrdersWorkbench() {
 
     const connectStream = async () => {
       if (!isMountedRef.current) return;
-
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -172,7 +162,7 @@ export function useOrdersWorkbench() {
         setIsWsConnected(true);
         setIsLoading(false);
         setError(null);
-        retryDelay = 2000; // Reset retry delay on successful connect
+        retryDelay = 2000;
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -191,21 +181,15 @@ export function useOrdersWorkbench() {
 
             let eventType = 'message';
             let eventData = '';
-
-            const blockLines = block.split('\n');
-            for (const line of blockLines) {
-              if (line.startsWith('event:')) {
-                eventType = line.replace('event:', '').trim();
-              } else if (line.startsWith('data:')) {
-                eventData = line.replace('data:', '').trim();
-              }
+            for (const line of block.split('\n')) {
+              if (line.startsWith('event:')) eventType = line.slice(6).trim();
+              else if (line.startsWith('data:')) eventData = line.slice(5).trim();
             }
 
             if (!eventData) continue;
 
             try {
               const parsed = JSON.parse(eventData);
-
               if (eventType === 'snapshot') {
                 setData({
                   positions: parsed.positions || [],
@@ -220,7 +204,6 @@ export function useOrdersWorkbench() {
                 (eventType === 'positions_snapshot' || eventType === 'positions_update') &&
                 Array.isArray(parsed.positions)
               ) {
-                // For snapshot acknowledgments, only merge if array has active positions
                 if (eventType === 'positions_update' || parsed.positions.length > 0) {
                   pendingPositionsDeltaRef.current.push(...parsed.positions);
                   scheduleBatchFlush();
@@ -229,23 +212,18 @@ export function useOrdersWorkbench() {
                 pendingOrdersDeltaRef.current.push(...parsed.orders);
                 scheduleBatchFlush();
               } else if (eventType === 'error') {
-                if (parsed.isMissingConfig) {
-                  setIsMissingConfig(true);
-                }
+                if (parsed.isMissingConfig) setIsMissingConfig(true);
                 setError(parsed.error || 'Stream error');
               }
             } catch {
-              // Ignore parse error on malformed frame
+              // Ignore malformed frame
             }
           }
         }
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return;
-        }
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setIsWsConnected(false);
         if (isMountedRef.current) {
-          // Schedule reconnect
           reconnectTimeoutRef.current = setTimeout(() => {
             if (isMountedRef.current) {
               retryDelay = Math.min(retryDelay * 1.5, 15000);
@@ -258,8 +236,7 @@ export function useOrdersWorkbench() {
 
     connectStream();
 
-    // Background REST reconciliation (every 2.5s when tab visible) to keep mark prices,
-    // unrealized PnL, and MMR precisely synchronized alongside real-time WS push events.
+    // Background REST reconciliation (every 2.5s when tab visible)
     const intervalId = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchWorkbenchData();
@@ -282,104 +259,57 @@ export function useOrdersWorkbench() {
         cancelAnimationFrame(rafIdRef.current);
         rafIdRef.current = null;
       }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
   }, [scheduleBatchFlush, fetchWorkbenchData]);
 
-  // Cancel a single open order
+  // Unified Trade Action Dispatcher
+  const executeTradeAction = useCallback(
+    async (payload: Record<string, unknown>) => {
+      setIsActionPending(true);
+      try {
+        const res = await fetch('/api/trade/action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!json.success) {
+          throw new Error(json.error || 'Trade action failed');
+        }
+        await fetchWorkbenchData();
+        return { success: true, message: json.message as string | undefined };
+      } finally {
+        setIsActionPending(false);
+      }
+    },
+    [fetchWorkbenchData]
+  );
+
   const cancelOrder = useCallback(
-    async (orderId: string, symbol: string, category = 'usdt-futures') => {
-      setIsActionPending(true);
-      try {
-        const res = await fetch('/api/trade/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'cancel_order',
-            orderId,
-            symbol,
-            category,
-          }),
-        });
-        const json = await res.json();
-        if (!json.success) {
-          throw new Error(json.error || 'Failed to cancel order');
-        }
-        await fetchWorkbenchData();
-        return { success: true, message: json.message };
-      } finally {
-        setIsActionPending(false);
-      }
-    },
-    [fetchWorkbenchData]
+    (orderId: string, symbol: string, category = 'usdt-futures') =>
+      executeTradeAction({ action: 'cancel_order', orderId, symbol, category }),
+    [executeTradeAction]
   );
 
-  // Cancel all open orders for a symbol
   const cancelSymbolOrders = useCallback(
-    async (symbol: string, category = 'usdt-futures') => {
-      setIsActionPending(true);
-      try {
-        const res = await fetch('/api/trade/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'cancel_symbol',
-            symbol,
-            category,
-          }),
-        });
-        const json = await res.json();
-        if (!json.success) {
-          throw new Error(json.error || 'Failed to cancel orders');
-        }
-        await fetchWorkbenchData();
-        return { success: true, message: json.message };
-      } finally {
-        setIsActionPending(false);
-      }
-    },
-    [fetchWorkbenchData]
+    (symbol: string, category = 'usdt-futures') =>
+      executeTradeAction({ action: 'cancel_symbol', symbol, category }),
+    [executeTradeAction]
   );
 
-  // Close position
   const closePosition = useCallback(
-    async (
+    (
       symbol: string,
       category: string,
       side: 'buy' | 'sell',
       size?: string,
       posSide?: 'long' | 'short' | 'net'
-    ) => {
-      setIsActionPending(true);
-      try {
-        const res = await fetch('/api/trade/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'close_position',
-            symbol,
-            category,
-            side,
-            size,
-            posSide,
-          }),
-        });
-        const json = await res.json();
-        if (!json.success) {
-          throw new Error(json.error || 'Failed to close position');
-        }
-        await fetchWorkbenchData();
-        return { success: true, message: json.message };
-      } finally {
-        setIsActionPending(false);
-      }
-    },
-    [fetchWorkbenchData]
+    ) => executeTradeAction({ action: 'close_position', symbol, category, side, size, posSide }),
+    [executeTradeAction]
   );
 
   // Derived metrics and summary
@@ -395,28 +325,16 @@ export function useOrdersWorkbench() {
     for (const p of positions) {
       const size = parseFloat(p.total || '0');
       const mark = parseFloat(p.markPrice || p.avgPrice || '0');
-      const uPnl = parseFloat(p.unrealisedPnl || '0');
-
       totalExposureUsdt += size * mark;
-      totalUnrealizedPnl += uPnl;
+      totalUnrealizedPnl += parseFloat(p.unrealisedPnl || '0');
 
-      if (p.posSide === 'long' || (p.posSide === 'net' && size > 0)) {
-        longsCount++;
-      } else if (p.posSide === 'short' || (p.posSide === 'net' && size < 0)) {
-        shortsCount++;
-      }
+      const isLong = p.posSide === 'long' || (p.posSide === 'net' && size > 0);
+      const isShort = p.posSide === 'short' || (p.posSide === 'net' && size < 0);
+      if (isLong) longsCount++;
+      else if (isShort) shortsCount++;
     }
 
-    let limitOrdersCount = 0;
-    let planOrdersCount = 0;
-
-    for (const o of orders) {
-      if (o.orderType === 'limit') {
-        limitOrdersCount++;
-      } else {
-        planOrdersCount++;
-      }
-    }
+    const limitOrdersCount = orders.filter((o) => o.orderType === 'limit').length;
 
     return {
       totalExposureUsdt,
@@ -426,7 +344,7 @@ export function useOrdersWorkbench() {
       shortsCount,
       workingOrdersCount: orders.length,
       limitOrdersCount,
-      planOrdersCount,
+      planOrdersCount: orders.length - limitOrdersCount,
     };
   }, [data]);
 
