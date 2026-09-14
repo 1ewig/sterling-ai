@@ -1,6 +1,6 @@
 import { fetchPositionsV3 } from '@/lib/bitget/trade/positions';
 import { fetchOpenOrdersV3 } from '@/lib/bitget/trade/queries';
-import { createBitgetPrivateWsSession } from '@/lib/bitget/trade/private-ws';
+import { privateWsHub } from '@/lib/bitget/trade/private-ws';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
 
 export const dynamic = 'force-dynamic';
@@ -78,39 +78,17 @@ export async function GET(req: Request) {
         });
       }
 
-      // 2. Upstream Private WebSocket Session for Real-Time Streaming
-      let wsSession: { close: () => void } | null = null;
-      try {
-        wsSession = createBitgetPrivateWsSession({
-          onPositionsSnapshot(positions) {
-            // Bitget WS pushes data: [] as a subscription acknowledgment.
-            // Only send positions_snapshot if it actually contains active positions,
-            // preventing overwriting the authoritative REST positions.
-            if (positions && positions.length > 0) {
-              sendEvent('positions_snapshot', { positions, timestamp: Date.now() });
-            }
-          },
-          onPositionsUpdate(positions) {
-            sendEvent('positions_update', { positions, timestamp: Date.now() });
-          },
-          onOrdersUpdate(orders) {
-            sendEvent('orders_update', { orders, timestamp: Date.now() });
-          },
-          onAccountUpdate(account) {
-            sendEvent('account_update', { account, timestamp: Date.now() });
-          },
-          onError(err) {
-            sendEvent('ws_error', { error: err.message });
-          },
-          onClose() {
-            sendComment('ws_closed');
-          },
-        });
-      } catch (err) {
-        sendEvent('error', {
-          error: err instanceof Error ? err.message : 'Failed to establish upstream WebSocket',
-        });
-      }
+      // 2. Subscribe to Shared Upstream Private WebSocket Hub (1 connection for all tabs)
+      const clientId = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const unsubscribeFromHub = privateWsHub.subscribe({
+        id: clientId,
+        onEvent: (event, data) => {
+          sendEvent(event, data);
+        },
+        onComment: (comment) => {
+          sendComment(comment);
+        },
+      });
 
       // 3. Keep-alive heartbeat interval (every 15 seconds)
       const heartbeatInterval = setInterval(() => {
@@ -125,7 +103,7 @@ export async function GET(req: Request) {
       req.signal.addEventListener('abort', () => {
         isStreamClosed = true;
         clearInterval(heartbeatInterval);
-        wsSession?.close();
+        unsubscribeFromHub();
         try {
           controller.close();
         } catch {

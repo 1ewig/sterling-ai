@@ -13,7 +13,7 @@ export interface OpenOrdersTableProps {
   onCancelSymbolOrders: (symbol: string, category?: string) => Promise<{ success: boolean; message?: string }>;
 }
 
-export function OpenOrdersTable({
+export const OpenOrdersTable = React.memo(function OpenOrdersTable({
   orders,
   isPending,
   onCancelOrder,
@@ -206,4 +206,4 @@ export function OpenOrdersTable({
       </div>
     </div>
   );
-}
+});

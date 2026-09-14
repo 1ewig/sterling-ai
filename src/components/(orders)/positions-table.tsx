@@ -18,7 +18,7 @@ export interface PositionsTableProps {
   ) => Promise<{ success: boolean; message?: string }>;
 }
 
-export function PositionsTable({
+export const PositionsTable = React.memo(function PositionsTable({
   positions,
   isPending,
   onClosePosition,
@@ -204,4 +204,4 @@ export function PositionsTable({
       </div>
     </div>
   );
-}
+});

@@ -207,3 +207,115 @@ export function createBitgetPrivateWsSession(
     close: cleanup,
   };
 }
+
+/* -------------------------------------------------------------------------- */
+/*             Server-Side Shared WebSocket Singleton Broadcast Hub            */
+/* -------------------------------------------------------------------------- */
+
+export interface WsHubListener {
+  id: string;
+  onEvent: (event: string, data: unknown) => void;
+  onComment?: (comment: string) => void;
+}
+
+class BitgetPrivateWsHub {
+  private session: BitgetPrivateWsSession | null = null;
+  private listeners = new Map<string, WsHubListener>();
+  private idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+  private broadcast(event: string, data: unknown) {
+    for (const listener of this.listeners.values()) {
+      try {
+        listener.onEvent(event, data);
+      } catch {
+        // Ignore listener write error
+      }
+    }
+  }
+
+  private broadcastComment(comment: string) {
+    for (const listener of this.listeners.values()) {
+      try {
+        listener.onComment?.(comment);
+      } catch {
+        // Ignore listener write error
+      }
+    }
+  }
+
+  private ensureConnected() {
+    if (this.idleTimer) {
+      clearTimeout(this.idleTimer);
+      this.idleTimer = null;
+    }
+
+    if (!this.session) {
+      try {
+        this.session = createBitgetPrivateWsSession({
+          onPositionsSnapshot: (positions) => {
+            // Guard: empty data: [] ACK frame must not wipe out active positions
+            if (positions.length > 0) {
+              this.broadcast('positions_snapshot', { positions, timestamp: Date.now() });
+            }
+          },
+          onPositionsUpdate: (positions) => {
+            this.broadcast('positions_update', { positions, timestamp: Date.now() });
+          },
+          onOrdersUpdate: (orders) => {
+            this.broadcast('orders_update', { orders, timestamp: Date.now() });
+          },
+          onAccountUpdate: (account) => {
+            this.broadcast('account_update', { account, timestamp: Date.now() });
+          },
+          onError: (err) => {
+            this.broadcast('ws_error', { error: err.message });
+          },
+          onClose: () => {
+            this.session = null;
+            this.broadcastComment('ws_closed');
+          },
+        });
+      } catch (err) {
+        this.broadcast('error', {
+          error: err instanceof Error ? err.message : 'Failed to establish upstream WebSocket',
+        });
+      }
+    }
+  }
+
+  subscribe(listener: WsHubListener): () => void {
+    this.listeners.set(listener.id, listener);
+    this.ensureConnected();
+
+    return () => {
+      this.listeners.delete(listener.id);
+      if (this.listeners.size === 0) {
+        // 30s grace period before closing upstream WebSocket connection
+        // Allows tab refresh, HMR, and multi-window navigation without reconnecting
+        if (this.idleTimer) clearTimeout(this.idleTimer);
+        this.idleTimer = setTimeout(() => {
+          if (this.listeners.size === 0 && this.session) {
+            this.session.close();
+            this.session = null;
+          }
+        }, 30000);
+      }
+    };
+  }
+
+  getListenerCount(): number {
+    return this.listeners.size;
+  }
+}
+
+// Global singleton instance across Next.js API route invocations
+const globalForHub = globalThis as unknown as {
+  bitgetPrivateWsHub?: BitgetPrivateWsHub;
+};
+
+export const privateWsHub =
+  globalForHub.bitgetPrivateWsHub ?? new BitgetPrivateWsHub();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForHub.bitgetPrivateWsHub = privateWsHub;
+}

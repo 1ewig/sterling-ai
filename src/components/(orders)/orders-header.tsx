@@ -9,7 +9,7 @@ export interface OrdersHeaderProps {
   isWsConnected?: boolean;
 }
 
-export function OrdersHeader({
+export const OrdersHeader = React.memo(function OrdersHeader({
   summary,
   isWsConnected = false,
 }: OrdersHeaderProps) {
@@ -131,4 +131,4 @@ export function OrdersHeader({
       </div>
     </div>
   );
-}
+});

@@ -244,13 +244,13 @@ export function useOrdersWorkbench() {
 
     connectStream();
 
-    // Background REST reconciliation (every 8s when tab visible) to keep mark prices,
+    // Background REST reconciliation (every 2.5s when tab visible) to keep mark prices,
     // unrealized PnL, and MMR precisely synchronized alongside real-time WS push events.
     const intervalId = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchWorkbenchData();
       }
-    }, 8000);
+    }, 2500);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
