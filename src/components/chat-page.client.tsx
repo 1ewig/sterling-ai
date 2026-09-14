@@ -6,7 +6,7 @@ import { useChatSessions } from '@/hooks';
 import { useAppStore } from '@/stores/app-store';
 import { useMessages } from '@/lib/db';
 import { ChatHeader, ChatClient } from '@/components/(chat)';
-import { MarketStreamerPanel } from '@/components/market-streamer';
+import { MarketStreamerPanel } from '@/components/(market-streamer)';
 
 /**
  * Main orchestrator for the chat page layout.
