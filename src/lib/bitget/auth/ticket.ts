@@ -1,34 +1,7 @@
 import crypto from 'node:crypto';
+import type { StagedTradeTicketPayload, StagedActionTicketPayload } from '../types';
 
-export interface StagedTradeTicketPayload {
-  ticketId: string;
-  symbol: string;
-  category: string;
-  side: 'buy' | 'sell';
-  orderType: 'limit' | 'market';
-  size: number;
-  price?: number;
-  tradeSide?: 'open' | 'close';
-  leverage?: number;
-  stopLossPrice?: number;
-  takeProfitPrice?: number;
-  clientOid: string;
-  timestamp: number;
-}
-
-export interface StagedActionTicketPayload {
-  actionId: string;
-  action: 'cancel_order' | 'cancel_symbol' | 'close_position';
-  symbol: string;
-  category: string;
-  orderId?: string;
-  clientOid?: string;
-  side?: 'buy' | 'sell';
-  size?: string;
-  posSide?: 'long' | 'short' | 'net';
-  marginMode?: 'crossed' | 'isolated';
-  timestamp: number;
-}
+export type { StagedTradeTicketPayload, StagedActionTicketPayload };
 
 const TICKET_TTL_MS = 5 * 60 * 1000; // 5 minutes validity
 

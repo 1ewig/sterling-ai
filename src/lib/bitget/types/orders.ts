@@ -1,134 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Bitget Market Ticker
- */
-export interface BitgetTicker {
-  symbol: string;
-  lastPr: string;
-  high24h: string;
-  low24h: string;
-  change24h: string;
-  usdtVolume?: string;
-  baseVolume?: string;
-  quoteVolume?: string;
-  openUtc?: string;
-  ts?: string;
-}
-
-/**
- * Bitget WebSocket Ticker Frame
- */
-export interface BitgetWsTickerData {
-  instId: string;
-  symbol?: string;
-  lastPr: string;
-  lastPrice?: string;
-  open24h?: string;
-  openPrice24h?: string;
-  high24h: string;
-  highPrice24h?: string;
-  low24h: string;
-  lowPrice24h?: string;
-  change24h: string;
-  price24hPcnt?: string;
-  bidPr?: string;
-  bid1Price?: string;
-  askPr?: string;
-  ask1Price?: string;
-  bidSz?: string;
-  bid1Size?: string;
-  askSz?: string;
-  ask1Size?: string;
-  baseVolume?: string;
-  volume24h?: string;
-  quoteVolume?: string;
-  turnover24h?: string;
-  fundingRate?: string;
-  nextFundingTime?: string;
-  markPrice?: string;
-  indexPrice?: string;
-  holdingAmount?: string;
-  openInterest?: string;
-  ts?: string;
-}
-
-
-/**
- * Bitget WebSocket Orderbook Depth Frame
- */
-export interface BitgetWsBookData {
-  asks: [price: string, size: string][];
-  bids: [price: string, size: string][];
-  a?: [price: string, size: string][];
-  b?: [price: string, size: string][];
-  ts?: string;
-}
-
-/**
- * Bitget WebSocket Envelope
- */
-export interface BitgetWsMessage<T> {
-  action?: 'snapshot' | 'update';
-  arg?: {
-    instType?: string;
-    topic?: string;
-    channel?: string;
-    symbol?: string;
-    instId?: string;
-  };
-  data?: T[];
-  event?: string;
-  code?: number;
-  msg?: string;
-  ts?: number;
-}
-
-
-/**
- * Normalized Candlestick (OHLCV) Bar
- */
-export interface KlineCandle {
-  timestamp: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  quoteVolume: number;
-}
-
-/**
- * Funding Rate Data
- */
-export interface FundingRateInfo {
-  symbol: string;
-  fundingRate: string;
-  fundingRateInterval: string;
-  nextUpdate?: string;
-  minFundingRate?: string;
-  maxFundingRate?: string;
-}
-
-/**
- * Open Interest Data
- */
-export interface OpenInterestInfo {
-  symbol: string;
-  size: string;
-  timestamp?: string;
-}
-
-/**
- * Orderbook Depth Snapshot
- */
-export interface OrderbookDepth {
-  symbol: string;
-  asks: [price: string, size: string][];
-  bids: [price: string, size: string][];
-  timestamp?: string;
-}
-
 export type BitgetV3Category = 'SPOT' | 'USDT-FUTURES' | 'COIN-FUTURES' | 'USDC-FUTURES';
 
 export function toV3Category(category?: string): BitgetV3Category {
@@ -175,7 +46,6 @@ export interface BitgetV3OrderInfo {
   feeDetail?: Array<{ feeCoin: string; fee: string }>;
   cTime?: string;
   uTime?: string;
-  // ---- Enriched UTA v3 order fields (from unfilled-orders / order-info responses)
   /** Order amount, quote-coin units (v3 `amount`) */
   amount?: string;
   /** Cumulative executed value, quote-coin units (v3 `cumExecValue`) */
@@ -202,7 +72,6 @@ export interface BitgetV3OrderInfo {
   slOrderType?: string;
   cancelReason?: string;
   execType?: string;
-  /** Verbatim orderStatus string from the response (before normalization) */
   rawStatus?: string;
 }
 
@@ -245,6 +114,35 @@ export interface BitgetV3OrderParams {
   tpOrderType?: 'market';
 }
 
+export interface StagedTradeTicketPayload {
+  ticketId: string;
+  symbol: string;
+  category: string;
+  side: 'buy' | 'sell';
+  orderType: 'limit' | 'market';
+  size: number;
+  price?: number;
+  tradeSide?: 'open' | 'close';
+  leverage?: number;
+  stopLossPrice?: number;
+  takeProfitPrice?: number;
+  clientOid: string;
+  timestamp: number;
+}
+
+export interface StagedActionTicketPayload {
+  actionId: string;
+  action: 'cancel_order' | 'cancel_symbol' | 'close_position';
+  symbol: string;
+  category: string;
+  orderId?: string;
+  clientOid?: string;
+  side?: 'buy' | 'sell';
+  size?: string;
+  posSide?: 'long' | 'short' | 'net';
+  marginMode?: 'crossed' | 'isolated';
+  timestamp: number;
+}
 
 export interface BitgetV3CancelParams {
   symbol: string;
@@ -262,102 +160,6 @@ export interface BitgetV3OrderResponse {
   avgPrice?: string;
   cumExecQty?: string;
   feeDetail?: Array<{ feeCoin: string; fee: string }>;
-}
-
-export interface BitgetV3Position {
-  symbol: string;
-  posSide: 'long' | 'short' | 'net';
-  total: string;
-  available: string;
-  frozen?: string;
-  avgPrice: string;
-  markPrice: string;
-  liquidationPrice: string;
-  leverage: string | number;
-  unrealisedPnl: string;
-  profitRate?: string;
-  mmr: string;
-  breakEvenPrice?: string;
-  marginMode: 'crossed' | 'isolated';
-  holdMode?: 'single_hold' | 'double_hold';
-  positionStatus?: 'normal' | 'liquidation';
-  cTime?: string;
-  uTime?: string;
-  // Compatibility fields for legacy consumers
-  openPriceAvg?: string;
-  unrealizedPL?: string;
-  holdSide?: 'long' | 'short' | 'net';
-  marginCoin?: string;
-  margin?: string;
-  marginRate?: string;
-  locked?: string;
-}
-
-export interface BitgetAccountSource {
-  ok: boolean;
-  error?: BitgetErrorDetails;
-}
-
-export interface BitgetAssetBalance {
-  coin: string;
-  equity: number;
-  usdValue: number;
-  balance: number;
-  available: number;
-  locked: number;
-}
-
-export interface BitgetAccountOverview {
-  totalEquityUsdt: number;
-  /** USDT-denominated equity (assets.usdtEquity) */
-  usdtEquityUsdt?: number;
-  availableEquityUsdt: number;
-  unrealizedPnlUsdt: number;
-  marginRatioPercent: number;
-  /** assets.positionMgnRatio as percent */
-  positionMgnRatioPercent?: number;
-  /** Raw UTA account mode: unified | hybrid | upgrading | switching */
-  accountMode: string;
-  /** Account level: basic | advanced | isolated | delta */
-  accountLevel?: string;
-  /** Holding mode: one_way_mode | hedge_mode — determines posSide/reduceOnly placement rules */
-  holdMode?: 'one_way_mode' | 'hedge_mode';
-  assetMode?: string;
-  stpMode?: string;
-  effEquityUsdt?: number;
-  positionValueUsdt?: number;
-  positions: BitgetV3Position[];
-  positionsByCategory?: Record<string, BitgetV3Position[]>;
-  /** Spot & Collateral coin balances */
-  assets?: BitgetAssetBalance[];
-  /** Per-source diagnostics so partial failures degrade gracefully instead of throwing */
-  sources?: {
-    settings: BitgetAccountSource;
-    assets: BitgetAccountSource;
-    positions: BitgetAccountSource;
-  };
-  warnings?: string[];
-}
-
-export type BitgetErrorCategory =
-  | 'MISSING_CREDENTIALS'
-  | 'AUTH_FAILED'
-  | 'IP_BLOCKED'
-  | 'INSUFFICIENT_FUNDS'
-  | 'ORDER_INVALID'
-  | 'RATE_LIMITED'
-  | 'ORDER_NOT_FOUND'
-  | 'PERMISSION_DENIED'
-  | 'LEVERAGE_EXCEEDED'
-  | 'NETWORK_ERROR'
-  | 'EXCHANGE_ERROR';
-
-export interface BitgetErrorDetails {
-  category: BitgetErrorCategory;
-  code?: string;
-  message: string;
-  actionableGuidance: string;
-  canRetry: boolean;
 }
 
 export const stageTradeOrderParamsSchema = z.object({
@@ -381,11 +183,4 @@ export const stageTradeOrderParamsSchema = z.object({
   stopLossPrice: z.coerce.number().positive().optional().describe('Preset Stop-Loss price level'),
   takeProfitPrice: z.coerce.number().positive().optional().describe('Preset Take-Profit price level'),
   rationale: z.string().optional().describe('Short trading rationale or catalyst for this setup'),
-});
-
-export const accountOverviewParamsSchema = z.object({
-  category: z
-    .enum(['all', 'spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
-    .default('all')
-    .describe('Scope of account overview to query. "all" aggregates USDT/COIN/USDC futures positions; spot holdings are reported via account assets.'),
 });

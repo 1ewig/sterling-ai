@@ -1,21 +1,8 @@
 import { BITGET_REST_BASE } from './rest';
-import type { BitgetWsTickerData, BitgetWsBookData } from './types';
+import type { BitgetWsTickerData, BitgetWsBookData, BitgetWsArg, MicroCandle } from './types';
 import { isRTokenSymbol } from './formatters';
 
-export interface BitgetWsArg {
-  instType: 'spot' | 'usdt-futures' | 'SPOT' | 'USDT-FUTURES';
-  topic?: 'ticker' | 'books' | 'books15' | 'candle1m';
-  channel?: 'ticker' | 'books' | 'books15' | 'candle1m';
-  symbol?: string;
-  instId?: string;
-}
-
-export interface MicroCandle {
-  timestamp: number;
-  close: number;
-  high: number;
-  low: number;
-}
+export type { BitgetWsArg, MicroCandle };
 
 /* -------------------------------------------------------------------------- */
 /*                        1. Subscription Topic Builder                       */
