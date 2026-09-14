@@ -34,71 +34,83 @@ export function useOrdersWorkbench() {
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
 
-  // Helper to merge position updates into active positions
-  const mergePositions = useCallback((incoming: BitgetV3Position[]) => {
-    setData((prev) => {
-      const current = prev?.positions ? [...prev.positions] : [];
-      for (const inc of incoming) {
-        const totalNum = parseFloat(inc.total || '0');
-        const idx = current.findIndex(
-          (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
-        );
+  // RAF Update Batching Buffer (coalesces micro-deltas during high volatility to display refresh rate)
+  const pendingPositionsDeltaRef = useRef<BitgetV3Position[]>([]);
+  const pendingOrdersDeltaRef = useRef<BitgetV3OrderInfo[]>([]);
+  const rafIdRef = useRef<number | null>(null);
 
-        if (totalNum === 0) {
-          // Position was closed, remove from active list
-          if (idx !== -1) {
-            current.splice(idx, 1);
-          }
-        } else {
-          // Position updated or opened
-          if (idx !== -1) {
-            current[idx] = { ...current[idx], ...inc };
+  // Atomic flush of pending deltas once per animation frame
+  const flushBatchUpdates = useCallback(() => {
+    if (!isMountedRef.current) return;
+    const posUpdates = pendingPositionsDeltaRef.current;
+    const ordUpdates = pendingOrdersDeltaRef.current;
+    pendingPositionsDeltaRef.current = [];
+    pendingOrdersDeltaRef.current = [];
+
+    if (posUpdates.length === 0 && ordUpdates.length === 0) return;
+
+    setData((prev) => {
+      let nextPositions = prev?.positions ? [...prev.positions] : [];
+      if (posUpdates.length > 0) {
+        for (const inc of posUpdates) {
+          const totalNum = parseFloat(inc.total || '0');
+          const idx = nextPositions.findIndex(
+            (p) => p.symbol === inc.symbol && (p.posSide === inc.posSide || (!p.posSide && !inc.posSide))
+          );
+
+          if (totalNum === 0) {
+            if (idx !== -1) nextPositions.splice(idx, 1);
           } else {
-            current.unshift(inc);
+            if (idx !== -1) {
+              nextPositions[idx] = { ...nextPositions[idx], ...inc };
+            } else {
+              nextPositions.unshift(inc);
+            }
+          }
+        }
+      }
+
+      let nextOrders = prev?.orders ? [...prev.orders] : [];
+      if (ordUpdates.length > 0) {
+        for (const inc of ordUpdates) {
+          const isTerminal = inc.status === 'filled' || inc.status === 'cancelled';
+          const idx = nextOrders.findIndex(
+            (o) => o.orderId === inc.orderId || (o.clientOid && inc.clientOid && o.clientOid === inc.clientOid)
+          );
+
+          if (isTerminal) {
+            if (idx !== -1) nextOrders.splice(idx, 1);
+          } else {
+            if (idx !== -1) {
+              nextOrders[idx] = { ...nextOrders[idx], ...inc };
+            } else {
+              nextOrders.unshift(inc);
+            }
           }
         }
       }
 
       return {
-        positions: current,
-        orders: prev?.orders || [],
+        positions: nextPositions,
+        orders: nextOrders,
         timestamp: Date.now(),
       };
     });
     setLastUpdated(new Date());
   }, []);
 
-  // Helper to merge order updates into active open orders
-  const mergeOrders = useCallback((incoming: BitgetV3OrderInfo[]) => {
-    setData((prev) => {
-      const current = prev?.orders ? [...prev.orders] : [];
-      for (const inc of incoming) {
-        const isTerminal = inc.status === 'filled' || inc.status === 'cancelled';
-        const idx = current.findIndex(
-          (o) => o.orderId === inc.orderId || (o.clientOid && inc.clientOid && o.clientOid === inc.clientOid)
-        );
-
-        if (isTerminal) {
-          if (idx !== -1) {
-            current.splice(idx, 1);
-          }
-        } else {
-          if (idx !== -1) {
-            current[idx] = { ...current[idx], ...inc };
-          } else {
-            current.unshift(inc);
-          }
-        }
-      }
-
-      return {
-        positions: prev?.positions || [],
-        orders: current,
-        timestamp: Date.now(),
-      };
-    });
-    setLastUpdated(new Date());
-  }, []);
+  const scheduleBatchFlush = useCallback(() => {
+    if (typeof window === 'undefined') {
+      flushBatchUpdates();
+      return;
+    }
+    if (rafIdRef.current === null) {
+      rafIdRef.current = requestAnimationFrame(() => {
+        rafIdRef.current = null;
+        flushBatchUpdates();
+      });
+    }
+  }, [flushBatchUpdates]);
 
   // Background / on-demand REST reconciliation
   const fetchWorkbenchData = useCallback(async () => {
@@ -210,10 +222,12 @@ export function useOrdersWorkbench() {
               ) {
                 // For snapshot acknowledgments, only merge if array has active positions
                 if (eventType === 'positions_update' || parsed.positions.length > 0) {
-                  mergePositions(parsed.positions);
+                  pendingPositionsDeltaRef.current.push(...parsed.positions);
+                  scheduleBatchFlush();
                 }
               } else if (eventType === 'orders_update' && Array.isArray(parsed.orders)) {
-                mergeOrders(parsed.orders);
+                pendingOrdersDeltaRef.current.push(...parsed.orders);
+                scheduleBatchFlush();
               } else if (eventType === 'error') {
                 if (parsed.isMissingConfig) {
                   setIsMissingConfig(true);
@@ -264,6 +278,10 @@ export function useOrdersWorkbench() {
       isMountedRef.current = false;
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
@@ -271,7 +289,7 @@ export function useOrdersWorkbench() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [mergePositions, mergeOrders, fetchWorkbenchData]);
+  }, [scheduleBatchFlush, fetchWorkbenchData]);
 
   // Cancel a single open order
   const cancelOrder = useCallback(
