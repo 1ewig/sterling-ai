@@ -1,12 +1,13 @@
-import { createGroq } from '@ai-sdk/groq';
 import { createFireworks } from '@ai-sdk/fireworks';
+import { createOpenAI } from '@ai-sdk/openai';
 import { wrapLanguageModel, extractReasoningMiddleware } from 'ai';
 import {
   type InferenceProviderType,
-  DEFAULT_GROQ_MODEL,
-  DEFAULT_GROQ_BACKUP_MODEL,
   DEFAULT_FIREWORKS_MODEL,
   DEFAULT_FIREWORKS_BACKUP_MODEL,
+  DEFAULT_BITGET_MODEL,
+  DEFAULT_BITGET_BACKUP_MODEL,
+  DEFAULT_BITGET_BASE_URL,
 } from './config';
 
 /**
@@ -15,14 +16,14 @@ import {
 export function getActiveInferenceProvider(override?: InferenceProviderType): InferenceProviderType {
   if (override) return override;
   const envProvider = process.env.INFERENCE_PROVIDER?.toLowerCase();
-  if (envProvider === 'fireworks') return 'fireworks';
-  return 'groq';
+  if (envProvider === 'bitget') return 'bitget';
+  return 'fireworks';
 }
 
 /**
- * Wraps Fireworks models with reasoning extraction middleware to capture thinking deltas
+ * Wraps models with reasoning extraction middleware to capture thinking deltas
  */
-export function wrapFireworksWithThinking(model: ReturnType<ReturnType<typeof createFireworks>>) {
+export function wrapModelWithThinking<T extends Parameters<typeof wrapLanguageModel>[0]['model']>(model: T) {
   return wrapLanguageModel({
     model,
     middleware: extractReasoningMiddleware({ tagName: 'think' }),
@@ -30,7 +31,12 @@ export function wrapFireworksWithThinking(model: ReturnType<ReturnType<typeof cr
 }
 
 /**
- * Returns a configured model instance (Groq or Fireworks) for agent reasoning and tool dispatch
+ * Alias for Fireworks thinking wrapper for backward compatibility
+ */
+export const wrapFireworksWithThinking = wrapModelWithThinking;
+
+/**
+ * Returns a configured model instance (Bitget AI or Fireworks) for agent reasoning and tool dispatch
  */
 export function getAgentModel(
   modelName?: string,
@@ -39,24 +45,29 @@ export function getAgentModel(
 ) {
   const provider = getActiveInferenceProvider(providerOverride);
 
-  if (provider === 'fireworks') {
-    const resolvedApiKey = apiKey ?? process.env.FIREWORKS_API_KEY;
+  if (provider === 'bitget') {
+    const resolvedApiKey = apiKey ?? process.env.BITGET_AI_API_KEY;
     if (!resolvedApiKey) {
-      throw new Error('FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.');
+      throw new Error('BITGET_AI_API_KEY environment variable is not configured. Please set your Bitget AI API key in .env.local.');
     }
-    const fireworks = createFireworks({ apiKey: resolvedApiKey });
-    const selectedModel = modelName ?? process.env.FIREWORKS_MODEL ?? DEFAULT_FIREWORKS_MODEL;
-    return wrapFireworksWithThinking(fireworks(selectedModel));
+    const baseURL = process.env.BITGET_AI_BASE_URL ?? DEFAULT_BITGET_BASE_URL;
+    const bitget = createOpenAI({
+      name: 'bitget',
+      baseURL,
+      apiKey: resolvedApiKey,
+    });
+    const selectedModel = modelName ?? process.env.BITGET_AI_MODEL ?? DEFAULT_BITGET_MODEL;
+    return wrapModelWithThinking(bitget.chat(selectedModel));
   }
 
-  // Default to Groq
-  const resolvedApiKey = apiKey ?? process.env.GROQ_API_KEY;
+  // Default to Fireworks
+  const resolvedApiKey = apiKey ?? process.env.FIREWORKS_API_KEY;
   if (!resolvedApiKey) {
-    throw new Error('GROQ_API_KEY environment variable is not configured. Please set your Groq API key in .env.local.');
+    throw new Error('FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.');
   }
-  const groq = createGroq({ apiKey: resolvedApiKey });
-  const selectedModel = modelName ?? process.env.GROQ_MODEL ?? DEFAULT_GROQ_MODEL;
-  return groq(selectedModel);
+  const fireworks = createFireworks({ apiKey: resolvedApiKey });
+  const selectedModel = modelName ?? process.env.FIREWORKS_MODEL ?? DEFAULT_FIREWORKS_MODEL;
+  return wrapModelWithThinking(fireworks(selectedModel));
 }
 
 /**
@@ -72,27 +83,36 @@ export function getBackupAgentModel(
 
   let backupProvider: InferenceProviderType = backupProviderOverride ?? configuredBackupProvider ?? primaryProvider;
 
-  // If no explicit backup provider is set, but primary is groq and a fireworks key is present, enable cross-provider failover
-  if (!configuredBackupProvider && primaryProvider === 'groq' && process.env.FIREWORKS_API_KEY) {
-    backupProvider = 'fireworks';
-  }
-
-  if (backupProvider === 'fireworks') {
-    const resolvedApiKey = apiKey ?? process.env.FIREWORKS_API_KEY;
-    if (!resolvedApiKey) {
-      throw new Error('FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.');
+  // Cross-provider failover: if primary is fireworks and bitget key exists (or vice versa), enable automatic failover
+  if (!configuredBackupProvider) {
+    if (primaryProvider === 'fireworks' && process.env.BITGET_AI_API_KEY) {
+      backupProvider = 'bitget';
+    } else if (primaryProvider === 'bitget' && process.env.FIREWORKS_API_KEY) {
+      backupProvider = 'fireworks';
     }
-    const fireworks = createFireworks({ apiKey: resolvedApiKey });
-    const selectedModel = backupModelName ?? process.env.FIREWORKS_BACKUP_MODEL ?? DEFAULT_FIREWORKS_BACKUP_MODEL;
-    return wrapFireworksWithThinking(fireworks(selectedModel));
   }
 
-  // Groq backup
-  const resolvedApiKey = apiKey ?? process.env.GROQ_API_KEY;
-  if (!resolvedApiKey) {
-    throw new Error('GROQ_API_KEY environment variable is not configured. Please set your Groq API key in .env.local.');
+  if (backupProvider === 'bitget') {
+    const resolvedApiKey = apiKey ?? process.env.BITGET_AI_API_KEY;
+    if (!resolvedApiKey) {
+      throw new Error('BITGET_AI_API_KEY environment variable is not configured. Please set your Bitget AI API key in .env.local.');
+    }
+    const baseURL = process.env.BITGET_AI_BASE_URL ?? DEFAULT_BITGET_BASE_URL;
+    const bitget = createOpenAI({
+      name: 'bitget',
+      baseURL,
+      apiKey: resolvedApiKey,
+    });
+    const selectedModel = backupModelName ?? process.env.BITGET_AI_BACKUP_MODEL ?? DEFAULT_BITGET_BACKUP_MODEL;
+    return wrapModelWithThinking(bitget.chat(selectedModel));
   }
-  const groq = createGroq({ apiKey: resolvedApiKey });
-  const selectedModel = backupModelName ?? process.env.GROQ_BACKUP_MODEL ?? DEFAULT_GROQ_BACKUP_MODEL;
-  return groq(selectedModel);
+
+  // Fireworks backup
+  const resolvedApiKey = apiKey ?? process.env.FIREWORKS_API_KEY;
+  if (!resolvedApiKey) {
+    throw new Error('FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.');
+  }
+  const fireworks = createFireworks({ apiKey: resolvedApiKey });
+  const selectedModel = backupModelName ?? process.env.FIREWORKS_BACKUP_MODEL ?? DEFAULT_FIREWORKS_BACKUP_MODEL;
+  return wrapModelWithThinking(fireworks(selectedModel));
 }

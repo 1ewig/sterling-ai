@@ -70,13 +70,16 @@ export async function executeAgentStream(
       chunking: 'word',
     }),
     providerOptions: {
-      groq: { reasoningEffort: reasoningEffort === 'max' ? 'high' : reasoningEffort },
       fireworks: {
         thinking: { type: 'enabled' as const },
         ...(reasoningEffort !== 'none' && reasoningEffort !== 'default'
           ? { reasoningEffort }
           : {}),
       },
+      openai:
+        reasoningEffort !== 'none' && reasoningEffort !== 'default'
+          ? { reasoningEffort }
+          : {},
     },
   });
 

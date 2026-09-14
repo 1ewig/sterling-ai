@@ -82,7 +82,7 @@ export type AgentStreamEvent =
 export interface AgentOptions {
   prompt: string;
   symbol?: string;
-  provider?: 'groq' | 'fireworks';
+  provider?: 'fireworks' | 'bitget';
   modelName?: string;
   backupModelName?: string;
   apiKey?: string;

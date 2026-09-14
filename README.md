@@ -39,7 +39,7 @@ Connected directly to Bitget Unified v3 public WebSocket (`wss://ws.bitget.com/v
 * **`requestAnimationFrame` (RAF) Throttling:** Socket frames buffer in memory and commit once per display refresh cycle (60Hz / 120Hz), guaranteeing silky 60fps scrolling during peak volatility.
 
 ### 2. 🧠 Multi-Tool AI Reasoning Engine (`src/agent/`)
-Powered by Vercel AI SDK v7 with Groq and Fireworks AI, Sterling plans, queries, and synthesizes market intelligence across 12 domain tools with real-time SSE streaming:
+Powered by Vercel AI SDK v7 with Bitget AI and Fireworks AI, Sterling plans, queries, and synthesizes market intelligence across 12 domain tools with real-time SSE streaming:
 
 | Tool | Category | Focus & Analytical Output |
 | :--- | :--- | :--- |
@@ -88,7 +88,7 @@ The agent communication layer in `src/agent/chat/` streams granular lifecycle ev
 * **`session_title`:** Dynamically derives concise conversation titles from initial queries using non-blocking stream filters.
 * **`clear_text` & `transforms`:** Sanitizes model stream output and strips redundant raw tool payloads from user chat view.
 * **`done`:** Finalizes token usage telemetry (`inputTokens`, `outputTokens`, `reasoningTokens`) and commits records to IndexedDB.
-* **`error`:** Employs exponential backoff reconnection strategies with fallback model switches (Groq $\leftrightarrow$ Fireworks).
+* **`error`:** Employs exponential backoff reconnection strategies with fallback model switches (Bitget AI $\leftrightarrow$ Fireworks).
 
 ---
 
@@ -146,7 +146,7 @@ sterling-ai/
 ├── src/
 │   ├── agent/                        # AI Reasoning Engine & Tool Dispatch
 │   │   ├── chat/                     # Stream state machine, stream engine & invocation pipeline
-│   │   ├── providers/                # Groq & Fireworks LLM provider definitions
+│   │   ├── providers/                # Bitget AI & Fireworks LLM provider definitions
 │   │   ├── tools/                    # 12 domain tools (macro, sentiment, technicals, trade, intel)
 │   │   ├── transforms/               # Stream filters, follow-up extractor & sanitizers
 │   │   └── types.ts                  # Centralized agent stream, step, and tool schema types
@@ -194,7 +194,7 @@ Create a `.env.local` file in the root directory:
 
 ```env
 # AI Model Providers (At least one required)
-GROQ_API_KEY=gsk_...
+BITGET_AI_API_KEY=...
 FIREWORKS_API_KEY=fw_...
 
 # Neural Search (Recommended for live news & web research)

@@ -65,11 +65,11 @@ export function prepareAgentInvocation(options: AgentOptions): PreparedAgentInvo
     : undefined;
 
   const reasoningEffort =
+    (process.env.BITGET_AI_REASONING_EFFORT as 'high' | 'medium' | 'low' | 'max' | 'default' | 'none') ||
     (process.env.FIREWORKS_REASONING_EFFORT as 'high' | 'medium' | 'low' | 'max' | 'default' | 'none') ||
-    (process.env.GROQ_REASONING_EFFORT as 'high' | 'medium' | 'low' | 'default' | 'none') ||
     'low';
 
-  const envMaxTokens = Number(process.env.GROQ_MAX_TOKENS);
+  const envMaxTokens = Number(process.env.AGENT_MAX_TOKENS);
   const maxTokens =
     options.maxTokens ??
     (Number.isFinite(envMaxTokens) && envMaxTokens > 0 ? envMaxTokens : 6000);
