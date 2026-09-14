@@ -66,6 +66,19 @@ export function mapOpenOrder(o: RawUnfilledOrder, category: BitgetV3Category): B
   const posSide = o.posSide === 'long' || o.posSide === 'short' ? o.posSide : o.posSide === '' ? '' : undefined;
   const holdMode = o.holdMode === 'one_way_mode' || o.holdMode === 'hedge_mode' ? o.holdMode : undefined;
 
+  let resolvedSize = o.size && o.size !== '0' ? o.size : undefined;
+  if (!resolvedSize) {
+    if (o.qty && o.qty !== '0') {
+      resolvedSize = o.qty;
+    } else if (o.baseVolume && parseFloat(o.baseVolume) > 0) {
+      resolvedSize = o.baseVolume;
+    } else if (o.amount && parseFloat(o.amount) > 0) {
+      resolvedSize = `${o.amount} USDT`;
+    } else {
+      resolvedSize = o.qty || '0';
+    }
+  }
+
   return {
     orderId: o.orderId || '',
     clientOid: o.clientOid,
@@ -74,7 +87,7 @@ export function mapOpenOrder(o: RawUnfilledOrder, category: BitgetV3Category): B
     side: o.side || 'buy',
     orderType: (o.orderType === 'market' ? 'market' : 'limit') as 'limit' | 'market',
     price: o.price,
-    size: o.size || o.qty || '0',
+    size: resolvedSize,
     status: rawStatus as BitgetV3OrderInfo['status'],
     baseVolume: o.baseVolume,
     amount: o.amount,

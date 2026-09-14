@@ -92,6 +92,13 @@ export const OpenOrdersCard = React.memo(function OpenOrdersCard({
             const isCancelling = cancellingId === o.orderId;
             const isBuy = o.side === 'buy';
 
+            const displaySize =
+              o.size && o.size !== '0'
+                ? o.size
+                : o.cumExecQty && o.cumExecQty !== '0'
+                  ? `${o.cumExecQty} (filled)`
+                  : o.size || '0';
+
             return (
               <div
                 key={o.orderId}
@@ -109,7 +116,7 @@ export const OpenOrdersCard = React.memo(function OpenOrdersCard({
                   </span>
                   <span className="font-semibold text-theme-text-primary">{o.symbol}</span>
                   <span className="text-theme-text-secondary">
-                    {o.size} @ ${o.price || 'Market'}
+                    {displaySize} @ ${o.price || 'Market'}
                   </span>
                 </div>
 

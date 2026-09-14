@@ -12,14 +12,37 @@ import type {
   BitgetV3CancelParams,
 } from '../types';
 
+import { toV3Category } from '../types';
+import { fetchBitgetTicker } from '../rest';
+
 /**
  * Submit an order using Bitget UTA (v3)
  */
 export async function placeOrderV3(
   params: BitgetV3OrderParams
 ): Promise<BitgetV3OrderResponse> {
+  const category = toV3Category(params.category);
+  const isSpot = category === 'SPOT';
+
+  let resolvedParams = params;
+  if (
+    isSpot &&
+    resolvedParams.orderType === 'market' &&
+    resolvedParams.side === 'buy' &&
+    (!resolvedParams.price || parseFloat(resolvedParams.price) <= 0)
+  ) {
+    try {
+      const ticker = await fetchBitgetTicker(resolvedParams.symbol, false);
+      if (ticker?.lastPr && parseFloat(ticker.lastPr) > 0) {
+        resolvedParams = { ...resolvedParams, price: ticker.lastPr };
+      }
+    } catch {
+      // Fall back to original params
+    }
+  }
+
   const path = '/api/v3/trade/place-order';
-  const payload = buildPlaceOrderPayload(params);
+  const payload = buildPlaceOrderPayload(resolvedParams);
   const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>);
 
   if (result.ok && result.json) {

@@ -36,6 +36,14 @@ interface AccountOverviewData {
   summary?: string;
 }
 
+function formatCoinBalance(balance: number): string {
+  if (balance === 0) return '0';
+  if (Math.abs(balance) < 0.0001) return balance.toFixed(8).replace(/\.?0+$/, '');
+  if (Math.abs(balance) < 0.01) return balance.toFixed(6).replace(/\.?0+$/, '');
+  if (Math.abs(balance) < 1) return balance.toFixed(4).replace(/\.?0+$/, '');
+  return balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+}
+
 export const AccountOverviewCard = React.memo(function AccountOverviewCard({
   resultObj,
 }: {
@@ -107,10 +115,10 @@ export const AccountOverviewCard = React.memo(function AccountOverviewCard({
                   )}
                 </div>
                 <div className="flex justify-between text-2xs text-theme-text-secondary">
-                  <span>Bal: {asset.balance.toFixed(4)}</span>
+                  <span>Bal: {formatCoinBalance(asset.balance)}</span>
                   {asset.locked > 0 && (
                     <span className="text-theme-status-warning font-semibold">
-                      Locked: {asset.locked.toFixed(2)}
+                      Locked: {formatCoinBalance(asset.locked)}
                     </span>
                   )}
                 </div>

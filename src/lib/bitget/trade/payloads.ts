@@ -72,12 +72,22 @@ export function buildPlaceOrderPayload(params: BitgetV3OrderParams): V3PlaceOrde
     rawReduceOnly === true ||
     (typeof rawReduceOnly === 'string' && rawReduceOnly.toUpperCase() === 'YES');
 
+  let qty = params.size ?? (params as { qty?: string }).qty;
+  if (isSpot && params.orderType === 'market' && params.side === 'buy') {
+    // On Bitget UTA v3 Spot Market Buy, `qty` represents the Quote Currency amount (e.g. USDT) to spend.
+    const rawSize = parseFloat(params.size ?? (params as { qty?: string }).qty ?? '0');
+    const rawPrice = params.price ? parseFloat(params.price) : 0;
+    if (rawSize > 0 && rawPrice > 0) {
+      qty = (rawSize * rawPrice).toFixed(2);
+    }
+  }
+
   const payload: V3PlaceOrderPayload = {
     category,
     symbol,
     side: params.side,
     orderType: params.orderType,
-    qty: params.size ?? (params as { qty?: string }).qty,
+    qty,
     clientOid: params.clientOid || `sterling_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
   };
 

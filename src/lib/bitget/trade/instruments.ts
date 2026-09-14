@@ -216,12 +216,8 @@ export function snapPriceToTick(price: number, instrument: BitgetInstrument): nu
 export function snapQtyToStep(
   qty: number,
   instrument: BitgetInstrument,
-  isSpotMarketBuy = false
+  _isSpotMarketBuy = false
 ): number {
-  if (isSpotMarketBuy) {
-    return Math.max(0, Math.floor(qty * 100) / 100);
-  }
-
   const step = instrument.quantityMultiplier && parseFloat(instrument.quantityMultiplier) > 0
     ? parseFloat(instrument.quantityMultiplier)
     : 0;

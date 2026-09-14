@@ -13,7 +13,7 @@ import {
 
 export const stageTradeOrderTool = tool({
   description:
-    'Stage an institutional trade order ticket for Bitget v3 Unified Trading Account (Spot, USDT-Futures, or tokenized US equity rTokens like RTSLA). Calculates notional value, required margin, estimated liquidation, and risk-reward ratio before user confirmation.',
+    'MANDATORY TRADING TOOL: Construct and stage an institutional HMAC-signed trade ticket for Bitget v3 UTA (Spot, USDT-Futures, or tokenized US equity rTokens like RTSLA). Calculates notional value, required margin, estimated liquidation, and risk-reward ratio. You MUST invoke this tool whenever the user asks to stage, place, enter, open, buy, sell, go long, go short, or set limit/market orders. Never output simulated trade tickets in text without calling this tool.',
   inputSchema: stageTradeOrderParamsSchema,
   execute: async ({
     symbol,
@@ -59,7 +59,7 @@ export const stageTradeOrderTool = tool({
 
       // 3. Snap execution price and size to exchange instrument step constraints
       const executionPrice = snapPriceToTick(rawExecutionPrice, instrument);
-      const executionSize = snapQtyToStep(size, instrument, isSpotMarketBuy);
+      const executionSize = snapQtyToStep(size, instrument);
 
       // 4. Validate order constraints
       const validation = validateOrderConstraints(
@@ -140,7 +140,7 @@ export const stageTradeOrderTool = tool({
         side: normalizedSide,
         orderType,
         size: executionSize,
-        price: orderType === 'limit' ? executionPrice : undefined,
+        price: executionPrice,
         tradeSide,
         leverage: isFutures ? effectiveLeverage : 1,
         stopLossPrice: snappedStopLoss,

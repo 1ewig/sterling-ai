@@ -169,7 +169,7 @@ function buildSummary(orders: Array<{ size: string; cTime?: string }>, symbol?: 
  */
 export const cancelOrderTool = tool({
   description:
-    'Stage a cancellation action ticket for an active open order on Bitget. Requires explicit user confirmation before executing.',
+    'MANDATORY ACTION TOOL: Stage an HMAC-signed cancellation ticket for an active open order or all working orders on a symbol on Bitget. You MUST call this tool whenever the user asks to cancel an order, pull bids/asks, or clear working orders. Never simulate cancellations in text without invoking this tool.',
   inputSchema: cancelOrderParamsSchema,
   execute: async ({ symbol, category = 'usdt-futures', orderId, clientOid, cancelAll = false }) => {
     const sym = normalizeSymbol(symbol);
@@ -217,7 +217,7 @@ export const cancelOrderTool = tool({
  */
 export const closePositionTool = tool({
   description:
-    'Stage an emergency or targeted market close of an active position on Bitget via reduce-only order. Requires user confirmation.',
+    'MANDATORY ACTION TOOL: Stage an emergency or targeted market close ticket (e.g. 50% or 100% de-risk) for an active futures position on Bitget via reduce-only order. You MUST call this tool whenever the user asks to close, exit, de-risk, cut loss, or take profit on an active position. Never simulate position closes in text without invoking this tool.',
   inputSchema: closePositionParamsSchema,
   execute: async ({ symbol, category = 'usdt-futures', posSide = 'net', sizePercent = 100, rationale }) => {
     const sym = normalizeSymbol(symbol);
