@@ -1,23 +1,17 @@
 'use client';
 
 import React, { memo } from 'react';
-import { RefreshCw, ShieldCheck, Layers, ArrowLeftRight } from 'lucide-react';
+import { RefreshCw, ShieldCheck } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
 import { motion } from 'framer-motion';
 
 export interface AssetsHeaderProps {
-  accountMode?: string;
-  holdMode?: string;
-  accountLevel?: string;
   lastUpdated: Date | null;
   isLoading: boolean;
   onRefresh: () => void;
 }
 
 export const AssetsHeader = memo(function AssetsHeader({
-  accountMode = 'unified',
-  holdMode = 'one_way_mode',
-  accountLevel,
   lastUpdated,
   isLoading,
   onRefresh,
@@ -27,7 +21,7 @@ export const AssetsHeader = memo(function AssetsHeader({
     : null;
 
   return (
-    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-spacing-lg border-b border-theme-border-subtle">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-spacing-lg border-b border-theme-border-subtle">
       <div>
         <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-extrabold tracking-tight text-theme-text-primary">
@@ -43,20 +37,7 @@ export const AssetsHeader = memo(function AssetsHeader({
         </p>
       </div>
 
-      <div className="flex items-center flex-wrap gap-2.5 shrink-0">
-        {/* Account Mode Badges */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-theme-bg-elevated border border-theme-border-subtle text-2xs text-theme-text-secondary">
-          <Layers className="size-3 text-theme-text-muted" />
-          <span className="capitalize">{accountMode} Mode</span>
-          {accountLevel && <span className="text-theme-text-muted">({accountLevel})</span>}
-        </div>
-
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-theme-bg-elevated border border-theme-border-subtle text-2xs text-theme-text-secondary">
-          <ArrowLeftRight className="size-3 text-theme-text-muted" />
-          <span>{holdMode === 'hedge_mode' ? 'Hedge Mode' : 'One-Way Mode'}</span>
-        </div>
-
-        {/* Last Refreshed & Refresh Button */}
+      <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
         {formattedTime && (
           <span className="text-2xs text-theme-text-muted font-mono mr-1">
             Updated {formattedTime}

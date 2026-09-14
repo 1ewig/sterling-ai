@@ -59,9 +59,6 @@ export function AssetsPageClient() {
           >
             {/* Header */}
             <AssetsHeader
-              accountMode={data.accountMode}
-              holdMode={data.holdMode}
-              accountLevel={data.accountLevel}
               lastUpdated={lastUpdated}
               isLoading={isRefreshing}
               onRefresh={refetch}
