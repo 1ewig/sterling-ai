@@ -8,6 +8,7 @@ import { useTheme, useSidebar, useChatSessions } from '@/hooks';
 import {
   SidebarHeader,
   SidebarAgentChat,
+  SidebarOrdersButton,
   SidebarAssetsButton,
   SidebarSessionList,
   SidebarThemeToggle,
@@ -114,6 +115,10 @@ export function LeftSidebar() {
           isCollapsed={isSidebarCollapsed}
         />
 
+        <SidebarOrdersButton
+          isCollapsed={isSidebarCollapsed}
+        />
+
         <SidebarSessionList
           conversations={conversations}
           activeConversationId={activeConversationId}
@@ -175,6 +180,11 @@ export function LeftSidebar() {
               />
 
               <SidebarAssetsButton
+                isCollapsed={false}
+                onNavigate={closeMobileSidebar}
+              />
+
+              <SidebarOrdersButton
                 isCollapsed={false}
                 onNavigate={closeMobileSidebar}
               />

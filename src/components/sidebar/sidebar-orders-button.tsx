@@ -4,28 +4,28 @@ import React, { memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Wallet } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { sidebarHorizontalCollapseVariants, tapScalePill } from '@/constants/animation';
 
-export interface SidebarAssetsButtonProps {
+export interface SidebarOrdersButtonProps {
   isCollapsed: boolean;
   onNavigate?: () => void;
 }
 
-export const SidebarAssetsButton = memo(function SidebarAssetsButton({
+export const SidebarOrdersButton = memo(function SidebarOrdersButton({
   isCollapsed,
   onNavigate,
-}: SidebarAssetsButtonProps) {
+}: SidebarOrdersButtonProps) {
   const pathname = usePathname();
-  const isActive = pathname === '/assets' || pathname.startsWith('/assets/');
+  const isActive = pathname === '/orders' || pathname.startsWith('/orders/');
 
   return (
-    <div className="pt-1.5 px-3.5 shrink-0 flex items-center justify-center">
+    <div className="pt-1.5 pb-spacing-sm px-3.5 border-b border-theme-border-subtle shrink-0 flex items-center justify-center">
       <Link
-        href="/assets"
+        href="/orders"
         onClick={onNavigate}
-        title={isCollapsed ? 'Portfolio & Assets' : undefined}
-        aria-label="Portfolio & Assets"
+        title={isCollapsed ? 'Positions & Orders' : undefined}
+        aria-label="Positions & Orders"
         className="w-full"
       >
         <motion.div
@@ -37,7 +37,7 @@ export const SidebarAssetsButton = memo(function SidebarAssetsButton({
           }`}
         >
           <div className="size-10 flex items-center justify-center shrink-0">
-            <Wallet
+            <Activity
               className={`size-4 stroke-[2.25] transition-colors ${
                 isActive
                   ? 'text-theme-bg-overlay'
@@ -51,7 +51,7 @@ export const SidebarAssetsButton = memo(function SidebarAssetsButton({
             animate={isCollapsed ? 'collapsed' : 'expanded'}
             className="whitespace-nowrap overflow-hidden select-none truncate tracking-tight text-left pr-3"
           >
-            Portfolio & Assets
+            Positions & Orders
           </motion.span>
         </motion.div>
       </Link>

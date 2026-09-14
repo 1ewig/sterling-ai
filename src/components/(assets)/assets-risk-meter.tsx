@@ -36,13 +36,13 @@ export const AssetsRiskMeter = memo(function AssetsRiskMeter({
   }
 
   return (
-    <div className="rounded-2xl bg-theme-bg-surface border border-theme-border-subtle p-spacing-md shadow-xs flex flex-col gap-3">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="flex flex-col gap-3 rounded-2xl bg-theme-bg-surface border border-theme-border-subtle p-4 sm:p-5 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-theme-border-subtle/60 pb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-theme-text-primary uppercase tracking-wider">
-            Account Margin Health
-          </span>
-          <span className={`px-2 py-0.5 rounded-full text-2xs font-semibold border ${badgeColorClass} inline-flex items-center gap-1`}>
+          <h2 className="text-sm font-bold text-theme-text-primary">
+            Account Margin Health (MMR)
+          </h2>
+          <span className={`px-2 py-0.5 rounded-full text-2xs font-mono font-semibold border ${badgeColorClass} inline-flex items-center gap-1`}>
             {marginRatioPercent >= 50 ? <AlertTriangle className="size-3" /> : <ShieldCheck className="size-3" />}
             {statusText}
           </span>
@@ -56,17 +56,17 @@ export const AssetsRiskMeter = memo(function AssetsRiskMeter({
       </div>
 
       {/* Progress Bar with 50% and 80% Threshold Markers */}
-      <div className="relative w-full h-2.5 rounded-full bg-theme-bg-elevated border border-theme-border-subtle overflow-hidden">
+      <div className="relative w-full h-2 rounded-full bg-theme-bg-elevated border border-theme-border-subtle overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ease-out ${barColorClass}`}
           style={{ width: `${clampedMMR}%` }}
         />
       </div>
 
-      <div className="flex items-center justify-between text-2xs text-theme-text-muted">
+      <div className="flex items-center justify-between text-2xs text-theme-text-muted font-mono">
         <span>0% (Zero Margin)</span>
-        <span className="text-theme-text-muted">50% Caution</span>
-        <span className="text-theme-status-danger/80 font-medium">80% Liquidation Alert</span>
+        <span>50% Caution</span>
+        <span className="text-theme-status-danger font-medium">80% Liquidation Alert</span>
         <span>100% (Call)</span>
       </div>
     </div>

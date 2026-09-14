@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo } from 'react';
-import { RefreshCw, ShieldCheck } from 'lucide-react';
+import { RefreshCw, ShieldCheck, Clock } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
 import { motion } from 'framer-motion';
 
@@ -17,31 +17,32 @@ export const AssetsHeader = memo(function AssetsHeader({
   onRefresh,
 }: AssetsHeaderProps) {
   const formattedTime = lastUpdated
-    ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? lastUpdated.toLocaleTimeString()
     : null;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-spacing-lg border-b border-theme-border-subtle">
-      <div>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-theme-border-subtle pb-4">
+      <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-extrabold tracking-tight text-theme-text-primary">
-            Portfolio & Balances
+          <h1 className="text-xl sm:text-2xl font-black text-theme-text-primary tracking-tight">
+            Portfolio & Balances Desk
           </h1>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-semibold bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20">
+          <span className="text-2xs font-bold px-2 py-0.5 rounded-full bg-theme-brand-primary/10 text-theme-brand-primary border border-theme-brand-primary/20 flex items-center gap-1">
             <ShieldCheck className="size-3" />
-            Bitget UTA v3
+            UTA v3 Live
           </span>
         </div>
-        <p className="text-xs text-theme-text-secondary mt-1 max-w-xl">
+        <p className="text-xs text-theme-text-secondary">
           Real-time Unified Trading Account balances, cross-margin collateral capacity, and spot asset holdings.
         </p>
       </div>
 
-      <div className="flex items-center gap-2.5 shrink-0 self-start sm:self-auto">
+      <div className="flex items-center gap-3">
         {formattedTime && (
-          <span className="text-2xs text-theme-text-muted font-mono mr-1">
-            Updated {formattedTime}
-          </span>
+          <div className="flex items-center gap-1.5 text-2xs text-theme-text-muted font-mono">
+            <Clock className="size-3" />
+            <span>Synced: {formattedTime}</span>
+          </div>
         )}
 
         <motion.button
@@ -49,13 +50,16 @@ export const AssetsHeader = memo(function AssetsHeader({
           whileTap={tapScalePill}
           onClick={onRefresh}
           disabled={isLoading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-theme-bg-elevated hover:bg-theme-bg-elevated/80 active:bg-theme-bg-surface border border-theme-border-subtle text-xs font-semibold text-theme-text-primary cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs"
+          className={`h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 border transition-colors cursor-pointer select-none ${
+            isLoading
+              ? 'bg-theme-bg-elevated border-theme-border-subtle text-theme-text-muted cursor-not-allowed'
+              : 'bg-theme-bg-surface hover:bg-theme-bg-elevated border-theme-border-subtle hover:border-theme-border-strong text-theme-text-primary shadow-2xs'
+          }`}
           title="Refresh balances"
+          aria-label="Refresh balances"
         >
           <RefreshCw
-            className={`size-3.5 text-theme-text-secondary transition-transform ${
-              isLoading ? 'animate-spin text-theme-brand-primary' : ''
-            }`}
+            className={`size-3.5 ${isLoading ? 'animate-spin text-theme-brand-primary' : 'text-theme-text-secondary'}`}
           />
           <span>Refresh</span>
         </motion.button>
