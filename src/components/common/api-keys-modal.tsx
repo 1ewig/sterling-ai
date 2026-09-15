@@ -15,14 +15,12 @@ interface ApiKeysModalContentProps {
   credentials: BitgetApiCredentials | null;
   onClose: () => void;
   setCredentials: (creds: BitgetApiCredentials) => void;
-  clearCredentials: () => void;
 }
 
 function ApiKeysModalContent({
   credentials,
   onClose,
   setCredentials,
-  clearCredentials,
 }: ApiKeysModalContentProps) {
   const [apiKey, setApiKey] = useState(() => credentials?.apiKey || '');
   const [apiSecret, setApiSecret] = useState(() => credentials?.apiSecret || '');
@@ -81,17 +79,6 @@ function ApiKeysModalContent({
       setIsVerifying(false);
     }
   }, [apiKey, apiSecret, passphrase, isDemo, setCredentials, onClose]);
-
-  const handleDisconnect = useCallback(() => {
-    clearCredentials();
-    setStatusMessage({
-      type: 'success',
-      text: 'Keys cleared. Reverted to Sandbox Mode.',
-    });
-    setTimeout(() => {
-      onClose();
-    }, 400);
-  }, [clearCredentials, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -252,25 +239,15 @@ function ApiKeysModalContent({
 
         {/* Actions Footer */}
         <div className="p-5 pt-2 flex items-center justify-between gap-2 border-t border-theme-border-subtle/50 bg-theme-bg-elevated/20">
-          {credentials ? (
-            <button
-              type="button"
-              onClick={handleDisconnect}
-              className="px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 transition-colors cursor-pointer"
-            >
-              Disconnect & Use Sandbox
-            </button>
-          ) : (
-            <a
-              href="https://www.bitget.com/account/api"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-2xs text-theme-text-muted hover:text-theme-text-primary transition-colors"
-            >
-              <span>Get Bitget API Keys</span>
-              <ExternalLink className="size-3" />
-            </a>
-          )}
+          <a
+            href="https://www.bitget.com/account/api"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-2xs text-theme-text-muted hover:text-theme-text-primary transition-colors"
+          >
+            <span>Get Bitget API Keys</span>
+            <ExternalLink className="size-3" />
+          </a>
 
           <div className="flex items-center gap-2">
             <button
@@ -314,7 +291,6 @@ export const ApiKeysModal = React.memo(function ApiKeysModal({
   const storeClose = useTradingModeStore((s) => s.closeKeysModal);
   const credentials = useTradingModeStore((s) => s.credentials);
   const setCredentials = useTradingModeStore((s) => s.setCredentials);
-  const clearCredentials = useTradingModeStore((s) => s.clearCredentials);
 
   const isOpen = propIsOpen !== undefined ? propIsOpen : storeIsOpen;
   const onClose = propOnClose || storeClose;
@@ -326,7 +302,6 @@ export const ApiKeysModal = React.memo(function ApiKeysModal({
           credentials={credentials}
           onClose={onClose}
           setCredentials={setCredentials}
-          clearCredentials={clearCredentials}
         />
       )}
     </AnimatePresence>
