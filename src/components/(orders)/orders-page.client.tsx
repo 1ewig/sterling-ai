@@ -4,6 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { pageEntranceVariants } from '@/constants/animation';
 import { AgentLoader } from '@/components/common/agent-loader';
+import { MobileTopBar } from '@/components/common/mobile-top-bar';
 import { PortfolioUnconfigured } from '@/components/(portfolio)';
 import { useOrdersWorkbench } from '@/hooks/orders/use-orders-workbench';
 import { OrdersHeader } from './orders-header';
@@ -30,6 +31,7 @@ export function OrdersPageClient() {
 
   return (
     <div className="flex-1 min-h-0 w-full flex flex-col overflow-y-auto bg-theme-bg-base select-text">
+      <MobileTopBar title="Positions & Orders" />
       <div className="max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
         {/* Loading Initial State */}
         {isLoading && !data && !isMissingConfig && (
