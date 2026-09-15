@@ -6,131 +6,119 @@
   <img src="https://img.shields.io/badge/Next.js-16.3%20App%20Router-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
   <img src="https://img.shields.io/badge/AI%20SDK-Vercel%20AI%20v7-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel AI SDK" />
   <img src="https://img.shields.io/badge/Exchange-Bitget%20Unified%20v3-00F0FF?style=for-the-badge" alt="Bitget Unified v3" />
-  <img src="https://img.shields.io/badge/Database-Dexie%20IndexedDB%20v6-10B981?style=for-the-badge" alt="Dexie" />
+  <img src="https://img.shields.io/badge/Storage-Dexie%20IndexedDB-10B981?style=for-the-badge" alt="Dexie" />
   <img src="https://img.shields.io/badge/Linter-Oxlint%20v1.81%2B-F59E0B?style=for-the-badge" alt="Oxlint" />
   <img src="https://img.shields.io/badge/Search-Exa%20AI-4F46E5?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Exa AI" />
 </p>
 
-Sterling is an **institutional-grade AI trading desk and cross-asset intelligence workbench** engineered for modern market participants. Built on Next.js 16 (App Router), Bun, Vercel AI SDK v7, and Bitget Unified Trading Account (UTA v3), it unifies cryptocurrency derivatives with tokenized US equities (rTokens).
+Traditional markets have opening bells and closing bells, but tokenized US stocks (rTokens) never shut down. Macro events break over the weekend while prices keep moving on-chain — turning the global trading window into a 24/7 landscape.
 
-Most trading tools force a compromise: either stare at dozens of fragmented terminal windows with noisy feeds, or interact with superficial chatbots reciting stale summaries. Sterling bridges this gap—combining live quantitative sensory instruments, sub-50ms market feeds, and cryptographic execution safety into an agile desktop trading partner.
+Most trading setups force a painful trade-off: either juggling a dozen noisy terminal windows, or chatting with generic AI bots that hallucinate stale data. 
 
----
-
-## The Philosophy: True Sensory Intelligence
-
-Rather than treating AI as a conversational novelty, Sterling equips its reasoning engine with live quantitative and structural market tools:
-
-* **Live Market Perception:** Queries live Bitget L2 order books, funding rate skews, and open interest shifts in real time.
-* **In-Process Quantitative Engine:** Calculates multi-timeframe indicators (EMAs, RSI, MACD, Bollinger Bands, Fibonacci levels) in TypeScript without external microservice latency.
-* **Macro & Flow Grounding:** Automatically contextualizes single-asset price action against 10Y-2Y Treasury yield spreads, Fed target rate expectations, DXY dynamics, and DeFi liquidity reserves.
-* **Cryptographic Human-in-the-Loop Execution:** Staged orders are sealed into tamper-proof HMAC trade tickets with tick-precision snapping, requiring explicit user confirmation before hitting Bitget UTA v3 endpoints.
+**Sterling bridges this gap.** Built on Next.js 16, Bun, and Bitget Unified Trading Account (UTA v3), Sterling is a high-conviction AI trading desk and research workbench. It pairs live market perception and quantitative sensory tools with cryptographic execution safety — giving traders a calm, capable partner right at the desk.
 
 ---
 
-## Core Architecture Pillars
+## A Visual Tour of the Desk
 
-### 1. ⚡ Sub-50ms Bitget V3 WebSocket Streamer (`src/components/(market-streamer)/`)
-Connected directly to Bitget Unified v3 public WebSocket (`wss://ws.bitget.com/v3/ws/public`):
-* **Multiplexed Market Streams:** Subscribes concurrently to Spot `ticker`, L2 order book depth (`books15`), and 1-minute trend candles (`candle1m`), while multiplexing Perpetual Futures funding rates, mark prices, and open interest over a single socket connection.
-* **In-Memory L2 Order Book State Machine:** An independent `L2Orderbook` state machine processes delta packets, tracks depth snapshots, and prunes zero-size levels for a rock-solid top-8 order ladder without DOM flashes.
-* **Cross-Market Synthetic Equity Multiplexing:** Bridges tokenized spot equities (e.g. `RTSLAUSDT`, `RNVDAUSDT`, `RAAPLUSDT`) with perpetual futures (`TSLAUSDT`, `NVDAUSDT`), inspecting spot depth alongside 8-hour funding rates, open interest, and contango/discount basis.
-* **0ms Cold-Start REST Seeding:** Automatically pre-seeds initial 1-minute trend candles and order book snapshots via REST on mount, ensuring immediate rendering even during equity weekend closures.
-* **`requestAnimationFrame` (RAF) Throttling:** Socket frames buffer in memory and commit once per display refresh cycle (60Hz / 120Hz), guaranteeing silky 60fps scrolling during peak volatility.
+### 1. The Modern Trading Stage
+A focused, distraction-free environment built for institutional clarity. Jump straight into cross-asset research, explore macro catalysts, or begin structuring trades with zero friction.
 
-### 2. 🧠 Multi-Tool AI Reasoning Engine (`src/agent/`)
-Powered by Vercel AI SDK v7 with Bitget AI and Fireworks AI, Sterling plans, queries, and synthesizes market intelligence across 12 domain tools with real-time SSE streaming:
+![Sterling Home Screen](./public/images/01-home-screen.webp)
 
-| Tool | Category | Focus & Analytical Output |
+---
+
+### 2. Sub-50ms Live Market Streamer
+Slide out the real-time market drawer to monitor live Level-2 order books, tick-by-tick depth, 24-hour volume, open interest, and funding rate skews. Multiplexes crypto perpetuals alongside tokenized spot equities (`RNVDA`, `RTSLA`, `RAAPL`) over a single high-performance WebSocket.
+
+![Live Market Streamer Drawer](./public/images/02-live-market-drawer.webp)
+
+---
+
+### 3. Specialized Research & Navigation
+Easily switch between historical intelligence sessions, portfolio overviews, and dedicated 24/7 research tools — including the **Premarket Gap Gauge**, **Weekend Event Monitor**, and **RToken Basis Ticker**.
+
+![Sidebar Navigation & Research Tools](./public/images/03-sidebar-navigation.webp)
+
+---
+
+### 4. Deep AI Desk Perspective
+Sterling evaluates markets like an experienced senior analyst. It queries technical indicators, macro yield curves, and neural news catalysts simultaneously to deliver clear probabilistic scenarios, pivot levels, and invalidation points.
+
+![AI Desk Analysis & Scenarios](./public/images/04-ai-desk-analysis.webp)
+
+---
+
+### 5. Cryptographic Staged Execution (Human-in-the-Loop)
+Sterling never places blind orders. Instead, it constructs a cryptographically signed HMAC trade ticket with exact tick-precision snapping, required margin, estimated liquidation levels, and risk/reward ratios. You review the terms on an interactive modal before a single satoshi hits the exchange.
+
+![Order Confirmation & Risk Ladder Modal](./public/images/05-confirm-order-modal.webp)
+
+---
+
+### 6. Unified Portfolio & Margin Balances
+Stay grounded with real-time Unified Trading Account (UTA v3) visibility. Inspect total equity, available margin, maintenance margin health (MMR%), and multi-currency collateral allocations with zero guesswork.
+
+![Portfolio & Balance Breakdown](./public/images/06-portfolio-balances.webp)
+
+---
+
+### 7. Active Position Management & Order Flow
+Monitor live open positions across Hedge and One-Way modes. Inspect unrealized PnL in real time, review working limit and trigger orders, and execute partial de-risking or emergency market exits with a single click.
+
+![Positions & Working Orders](./public/images/07-positions-and-orders.webp)
+
+---
+
+## How It Works (The Trader's Workflow)
+
+```
+1. Conversational Query   "Analyze NVDAUSDT tokenized futures with RSI, 4h EMAs, and recent catalysts."
+         │
+         ▼
+2. Multi-Tool Dispatch    Sterling queries live market data, technical indicators, and news in parallel.
+         │
+         ▼
+3. Desk Perspective       Renders bias, key price pivots, quantitative tables, and invalidation levels.
+         │
+         ▼
+4. Staged Action Ticket   "Looks solid. Stage a 5x long order for 2 units with a 2% stop loss."
+         │
+         ▼
+5. Trader Confirmation    Trader reviews the risk ladder in the modal and clicks [Confirm Order] on Bitget UTA v3.
+```
+
+---
+
+## Technical Architecture & Capabilities
+
+### The 12 Sensory Domain Tools
+Powered by Vercel AI SDK v7 with Fireworks AI and Bitget AI models, Sterling's reasoning engine coordinates 12 specialized tools:
+
+| Tool | Category | Analytical Capability |
 | :--- | :--- | :--- |
-| **`market_data`** | Live Pricing | Real-time Bitget V3 spot and perpetual tickers, 24h stats, funding rates, open interest, and order book depth. |
-| **`technical_analysis`** | Quantitative | Multi-timeframe trend structure, 20/50/200 EMAs, RSI 14, MACD histograms, Bollinger Bands, and Fibonacci zones. |
+| **`market_data`** | Live Pricing | Real-time Bitget V3 spot and perpetual tickers, funding rates, open interest, and L2 depth. |
+| **`technical_analysis`** | Quantitative | Multi-timeframe trend structure, 20/50/200 EMAs, RSI 14, MACD histograms, Bollinger Bands, and Fibonacci levels. |
 | **`macro_analyst`** | Macro Regime | 10Y-2Y Treasury yield spreads, Fed target rate outlook, CPI/PCE inflation, DXY, and cross-asset correlations. |
-| **`sentiment_analyst`** | Crowd & Flow | Fear & Greed indexing, Top-Trader vs Retail Long/Short divergence ratios, and squeeze risk alerts. |
-| **`market_intel`** | On-Chain / DeFi | Live DeFiLlama multi-chain TVL rankings (ETH, SOL, TRX, ARB, Base), stablecoin supplies, and gas metrics. |
+| **`sentiment_analyst`** | Crowd & Flow | Fear & Greed index, Top-Trader vs Retail Long/Short ratios, and short squeeze risk alerts. |
+| **`market_intel`** | On-Chain / DeFi | Multi-chain TVL rankings (ETH, SOL, Base, Arbitrum), stablecoin liquidity, and gas metrics. |
 | **`news_briefing`** | Neural Intel | Exa AI neural search (`bitget-signal` standard): breaking headlines, ETF flows, and protocol catalysts. |
-| **`web_search`** | Deep Search | Exa AI semantic search for regulatory filings, exchange announcements, and protocol governance proposals. |
-| **`stage_trade_order`** | Execution | Snaps tick/step precision to live exchange rules, validates price bands, computes tiered MMR, and stages tickets. |
-| **`get_account_overview`** | Portfolio | Real-time UTA equity balance, available margin, maintenance margin ratio (MMR%), and active cross-market positions. |
-| **`get_open_orders`** | Order Flow | Cursor-paginated working orders across Spot and Futures with hedge-mode flags and conditional order detection. |
-| **`cancel_order`** | Order Flow | Stages an HMAC-signed cancellation ticket for specific orders or symbol-wide cancellations. |
-| **`close_position`** | Risk Management | Stages emergency or target market close (full 100% or partial % de-risk) via reduce-only order. |
-
-### 3. 🛡️ Cryptographic Human-in-the-Loop Execution (`src/components/(chat)/staged-actions/`)
-* **No Autonomous Blind Orders:** The AI model never directly places live exchange orders without user interaction. It constructs a formal trade ticket containing symbol, size, order type, price, and TP/SL levels.
-* **Tamper-Proof HMAC Tokens:** Staged trade tickets and cancel actions are signed with a 5-minute TTL token (`base64url(payload).expiresAt.signature`). If parameters are tampered with, signature verification fails immediately.
-* **UTA v3 Instrument Precision & Tick Snapping:** Accurately maps Bitget metadata (`pricePrecision`, `quantityPrecision`, `priceMultiplier`, `quantityMultiplier`, `minOrderQty`). Snaps limit prices directly to valid multiples to prevent exchange error `45115`.
-* **Direct TP/SL Root Presets:** Integrates attached Stop Loss (`stopLoss`, `slTriggerBy`, `slOrderType`) and Take Profit (`takeProfit`, `tpTriggerBy`, `tpOrderType`) root parameters directly on order placement.
-* **Hedge & One-Way Mode Isolation:** Correctly handles position sides in Hedge Mode while enforcing Bitget UTA Constraint 25238 (preventing illegal `reduceOnly` alongside `posSide`).
-* **Server Clock Drift Auto-Healing:** Employs dynamic server-time synchronization (`syncBitgetServerTime`) within authenticated fetch pipelines to automatically prevent 40008/40017 timestamp errors.
-
-### 4. 📊 Pure TypeScript Quantitative Indicator Suite (`src/lib/bitget/indicators.ts`)
-A zero-dependency quantitative mathematics library calculated directly in TypeScript:
-* **Trend & Structure:** 20, 50, and 200 Exponential Moving Averages (EMA), Simple Moving Averages (SMA), and SuperTrend ATR multiplier bands.
-* **Momentum & Oscillation:** Relative Strength Index (RSI 14 with adaptive history fallback), MACD (12/26/9 with histogram cross detection), Stochastic RSI.
-* **Volatility & Range:** Bollinger Bands (Upper, Middle, Lower, Bandwidth, %B) and Average True Range (ATR 14).
-* **Key Levels:** Fibonacci Retracement Zones (23.6%, 38.2%, 50.0%, 61.8% Golden Pocket, 78.6%) and Classical Pivot Points.
-
-### 5. 💾 Local-First Persistence & UI State (`src/lib/db/` & `src/stores/`)
-* **Dexie IndexedDB v6:** Multi-thread conversations, reasoning steps, tool execution traces, and staged trade tickets persist locally in browser storage, surviving browser restarts and page reloads.
-* **Zero Barrier Cold-Start:** Full market streaming, indicator analysis, symbol search, and macro intelligence work out-of-the-box without requiring API keys or exchange logins.
-* **Persisted UI State (Zustand):** Manages active session selection, sidebar collapse status, and market streamer drawer states across navigation.
+| **`web_search`** | Deep Search | Semantic web search for regulatory filings, exchange announcements, and governance proposals. |
+| **`stage_trade_order`** | Execution | Validates exchange constraints, snaps tick/step sizes, calculates margin/liquidation, and generates HMAC tickets. |
+| **`get_account_overview`** | Portfolio | Real-time UTA equity balance, available margin, maintenance margin ratio (MMR%), and active positions. |
+| **`get_open_orders`** | Order Flow | Working orders across Spot and Futures with hedge-mode flags and trigger detection. |
+| **`cancel_order`** | Order Flow | HMAC-signed cancellation ticket for specific orders or symbol-wide cancellations. |
+| **`close_position`** | Risk Management | Stages emergency or target market close (full or partial % de-risk) via reduce-only order. |
 
 ---
 
-## Real-Time SSE Streaming State Machine
+### Engineering Highlights
 
-The agent communication layer in `src/agent/chat/` streams granular lifecycle events over Server-Sent Events (SSE):
-
-* **`step_start` & `step_update`:** Dispatches real-time thinking progress, tool parameters, and execution telemetry to the accordion UI.
-* **`reasoning_delta`:** Streams live internal chain-of-thought tokens before tool invocation.
-* **`text_delta`:** Streams finalized markdown analytical perspectives to the message feed with smooth stream buffer flushing.
-* **`session_title`:** Dynamically derives concise conversation titles from initial queries using non-blocking stream filters.
-* **`clear_text` & `transforms`:** Sanitizes model stream output and strips redundant raw tool payloads from user chat view.
-* **`done`:** Finalizes token usage telemetry (`inputTokens`, `outputTokens`, `reasoningTokens`) and commits records to IndexedDB.
-* **`error`:** Employs exponential backoff reconnection strategies with fallback model switches (Bitget AI $\leftrightarrow$ Fireworks).
-
----
-
-## Cross-Asset Scope & Tokenized Equities (rTokens)
-
-Sterling provides unified analytics across three major asset classes on Bitget UTA v3:
-
-* **Cryptocurrency Spot & Derivatives:** High-liquidity majors (`BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `SUIUSDT`) with real-time order books, funding rate differentials, and open interest spikes.
-* **Tokenized US Equities (rTokens):** Dual-market spot tokens (`RTSLAUSDT`, `RNVDAUSDT`, `RAAPLUSDT`, `RMSFTUSDT`) multiplexed with equity perpetual futures for round-the-clock macro positioning.
-* **Precious Metals & Commodities:** Direct Tether-settled synthetic commodity contracts including Gold (`XAUUSDT`) and Silver (`XAGUSDT`).
-* **Neural News & Protocol Catalysts:** Powered by Exa AI neural search (`bitget-signal` standard) for instant narrative shifts, ETF flow updates, and regulatory filings.
-
----
-
-## Diagnostic & Validation Probes
-
-The repository includes dedicated diagnostic scripts in `scripts/` to verify live exchange endpoints and execution safety:
-
-* **`scripts/orders-placement-probe.ts`:** Tests Spot limit orders, Futures limit buy/sell in Hedge Mode, attached TP/SL, and tick snapping constraints (`45111`, `25238`).
-* **`scripts/orders-open-probe.ts`:** Validates unfilled orders queries, cursor pagination, and order lifecycle reconciliation.
-* **`scripts/positions-close-probe.ts`:** Tests position queries, market close payloads, and partial de-risking (25%/50%/100%).
-* **`scripts/bitget-account-probe.ts`:** Audits Bitget UTA v3 account settings, multi-asset equity balances, and portfolio margin ratios.
-
----
-
-## Typical Trader Workflow
-
-```
-1. Market Query         "Give me a perception briefing on TSLAUSDT tokenized stock with RSI and macro risk."
-       │
-       ▼
-2. Multi-Tool Dispatch  Sterling dispatches market_data + technical_analysis + macro_analyst in parallel.
-       │
-       ▼
-3. Desk Perspective     Renders a structured briefing with bias, pivot levels, indicator tables, and scenario paths.
-       │
-       ▼
-4. Staged Trade Ticket  "Let's stage a long entry with a 3% stop loss." -> Generates signed HMAC ticket card.
-       │
-       ▼
-5. User Confirmation    Trader reviews parameters, clicks [Confirm Order], and executes securely on Bitget UTA v3.
-```
+* **Sub-50ms WebSocket Architecture:** Multiplexes L2 order book deltas, ticker ticks, and 1-minute candle feeds with `requestAnimationFrame` render throttling.
+* **Pure TypeScript Quant Suite:** Zero-dependency mathematical calculations for RSI, MACD, Bollinger Bands, SuperTrend, and Fibonacci zones directly in runtime.
+* **Cryptographic HMAC Signing:** Staged tickets are signed with a 5-minute TTL token (`base64url(payload).expiresAt.signature`) to eliminate parameter tampering.
+* **Local-First Dexie IndexedDB:** Chat history, reasoning steps, tool telemetry, and staged tickets persist client-side in IndexedDB across reloads.
+* **Built-In $100K Sandbox Broker:** Test, demo, and experiment safely with a local in-memory paper broker when live exchange credentials are not configured.
 
 ---
 
@@ -138,50 +126,26 @@ The repository includes dedicated diagnostic scripts in `scripts/` to verify liv
 
 ```
 sterling-ai/
+├── public/images/                    # UI walkthrough captures & screenshots
 ├── scripts/                          # Live exchange diagnostic & validation probes
-│   ├── orders-placement-probe.ts     # Place-order, tick-snapping & TP/SL verification
-│   ├── orders-open-probe.ts          # Working orders & cursor pagination probe
-│   ├── positions-close-probe.ts      # Position closing & de-risking probe
-│   └── bitget-account-probe.ts       # Account settings & portfolio equity probe
 ├── src/
-│   ├── agent/                        # AI Reasoning Engine & Tool Dispatch
-│   │   ├── chat/                     # Stream state machine, stream engine & invocation pipeline
-│   │   ├── providers/                # Bitget AI & Fireworks LLM provider definitions
-│   │   ├── tools/                    # 12 domain tools (macro, sentiment, technicals, trade, intel)
-│   │   ├── transforms/               # Stream filters, follow-up extractor & sanitizers
-│   │   └── types.ts                  # Centralized agent stream, step, and tool schema types
-│   ├── app/                          # Next.js 16 App Router
-│   │   ├── api/                      # API routes (chat streaming, symbol cache, trade execution)
-│   │   ├── chat/                     # Main trading desk interface route
-│   │   ├── orders/                   # Live positions & working orders desk route
-│   │   ├── portfolio/                # Portfolio & assets overview route
-│   │   └── globals.css               # Semantic design tokens & Tailwind utilities
-│   ├── components/                   # Modular presentation components
-│   │   ├── (chat)/                   # Chat client, message list, input bar, and staged-actions modals
-│   │   ├── (portfolio)/              # Portfolio metric cards, risk meter, and holdings table
-│   │   ├── (orders)/                 # Working orders, positions, and trade workbench
-│   │   ├── (market-streamer)/        # WebSocket ticker, L2 depth ladder, and sparkline charts
-│   │   └── common/                   # Modal dialogs, loaders, and tool badges
-│   ├── constants/                    # Architectural design tokens & constants
-│   │   ├── animation.ts              # Framer Motion animation variants & spring curves
-│   │   ├── storage.ts                # Canonical localStorage and session storage keys
-│   │   └── theme.ts                  # System chrome & manifest brand color hexes
-│   ├── hooks/                        # Specialized reactive hooks
-│   │   ├── chat/                     # useAgentChat, useChatSessions, useStagedActions, useExecuteTrade
-│   │   ├── orders/                   # useOrdersWorkbench
-│   │   ├── portfolio/                # usePortfolioOverview
-│   │   ├── market/                   # useBitgetWebSocket, useMarketSymbols
-│   │   └── ui/                       # useTheme, useSidebar, useIsMobile, timers
-│   ├── lib/                          # Core infrastructure & API clients
-│   │   ├── bitget/                   # Bitget V3 UTA client, quant engine, L2 book & WebSocket
-│   │   │   ├── auth/                 # Request signer, error classifier & HMAC ticket builders
-│   │   │   ├── trade/                # Orders, queries, positions, accounts & instrument precisions
-│   │   │   ├── types/                # Domain-scoped types (market, orders, account, errors)
-│   │   │   ├── analysts/             # Dedicated macro, sentiment, and technical engines
-│   │   │   └── constants.ts          # Exchange endpoints, WebSocket URLs & market defaults
-│   │   ├── db/                       # Dexie IndexedDB v6 schemas and persistence
-│   │   └── exa/                      # Exa AI neural search client
-│   └── stores/                       # Zustand persisted global UI state (app-store.ts)
+│   ├── agent/                        # AI reasoning engine, prompt assembly & tool dispatch
+│   │   ├── chat/                     # SSE stream state machine & invocation pipeline
+│   │   ├── providers/                # Fireworks & Bitget AI provider configurations
+│   │   ├── tools/                    # 12 domain sensory & trading tools
+│   │   ├── transforms/               # Stream filters & follow-up question extractors
+│   │   ├── instructions.ts           # System prompt assembly
+│   │   └── types.ts                  # Stream step and tool schema types
+│   ├── app/                          # Next.js 16 App Router pages & API routes
+│   ├── components/                   # Presentation components ((chat), (portfolio), (orders), (research))
+│   ├── constants/                    # Framer Motion animations, tokens, and theme configs
+│   ├── hooks/                        # Reactive hooks for streaming, market feeds, and state
+│   ├── lib/
+│   │   ├── bitget/                   # Bitget V3 UTA client, auth, WebSocket, indicators & L2 book
+│   │   ├── db/                       # Dexie IndexedDB schemas & persistence
+│   │   ├── exa/                      # Exa AI neural search client
+│   │   └── sandbox/                  # Paper-trading broker & routing
+│   └── stores/                       # Zustand persisted UI state
 ```
 
 ---
@@ -189,16 +153,16 @@ sterling-ai/
 ## Getting Started
 
 ### Prerequisites
-* **Bun (`bun@1.4.0+`):** Sterling strictly utilizes the Bun runtime and package manager.
+* **Bun (`bun@1.4.0+`):** Sterling strictly uses the Bun runtime and package manager.
 
-### 1. Installation
+### 1. Clone & Install
 ```bash
 git clone https://github.com/your-username/sterling-ai.git
 cd sterling-ai
 bun install
 ```
 
-### 2. Environment Configuration
+### 2. Configure Environment
 Create a `.env.local` file in the root directory:
 
 ```env
@@ -206,18 +170,20 @@ Create a `.env.local` file in the root directory:
 BITGET_AI_API_KEY=...
 FIREWORKS_API_KEY=fw_...
 
-# Neural Search (Recommended for live news & web research)
+# Neural Search (Recommended for live news & research)
 EXA_API_KEY=...
 
-# Bitget V3 Trading Account (Optional — needed for live execution & portfolio overview)
+# Bitget V3 Trading Account (Optional — needed for live execution & account sync)
 BITGET_API_KEY=...
 BITGET_API_SECRET=...
 BITGET_PASSPHRASE=...
 BITGET_DEMO_TRADING=false
 
 # Trade Ticket Cryptographic Signing Secret
-TRADE_TICKET_SECRET=sterling_desk_internal_signing_key_2026
+TRADE_TICKET_SECRET=...
 ```
+
+*(If Bitget API keys are not supplied, Sterling automatically routes all trade execution and balances to the safe in-memory paper broker).*
 
 ### 3. Launch Development Server
 ```bash
@@ -227,41 +193,20 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## Design Tokens & Theming
+## Verification & Code Quality
 
-Sterling strictly adheres to semantic design tokens defined in `src/app/globals.css` rather than hardcoded raw hex colors:
-* **Surfaces:** `bg-theme-bg-base`, `bg-theme-bg-surface`, `bg-theme-bg-elevated`
-* **Typography:** `text-theme-text-primary`, `text-theme-text-secondary`, `text-theme-text-muted`
-* **Borders:** `border-theme-border-subtle`, `border-theme-border-strong`
-* **Brand Accents:** `text-theme-brand-primary`, `bg-theme-brand-primary`
-
----
-
-## Engineering Standards & Quality Assurance
- 
 ```bash
 # Run repository linter (Zero warnings policy)
 bun run lint
 
-# Strict TypeScript type-checking (TS7)
+# Run strict TypeScript type check
 bun x tsc --noEmit
 
-# Production build verification
+# Run production build
 bun run build
-
-# Run live order placement diagnostic probe
-bun run scripts/orders-placement-probe.ts
-
-# Run working orders & pagination audit
-bun run scripts/orders-open-probe.ts
 ```
-
-* **Design Tokens:** Strictly adhere to semantic CSS tokens in `src/app/globals.css` (`bg-theme-bg-surface`, `text-theme-brand-primary`, `p-spacing-md`). Never hardcode raw hex codes.
-* **TypeScript 7 & Oxlint:** Strict typing with zero untyped `any` escapes and 0 linter warnings across all modules.
-* **Live Market Grounding:** Query live exchange endpoints & Exa AI neural search; no synthetic fallback data.
-* **Parallel Tool Execution:** Group independent operations simultaneously to minimize API latency.
 
 ---
 
 ## License
-MIT License. Crafted for the next generation of algorithmic and autonomous traders.
+MIT License. Built for the next generation of algorithmic and autonomous traders.
