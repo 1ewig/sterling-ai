@@ -153,6 +153,7 @@ sterling-ai/
 │   ├── app/                          # Next.js 16 App Router
 │   │   ├── api/                      # API routes (chat streaming, symbol cache, trade execution)
 │   │   ├── chat/                     # Main trading desk interface route
+│   │   ├── orders/                   # Live positions & working orders desk route
 │   │   ├── portfolio/                # Portfolio & assets overview route
 │   │   └── globals.css               # Semantic design tokens & Tailwind utilities
 │   ├── components/                   # Modular presentation components
@@ -161,6 +162,10 @@ sterling-ai/
 │   │   ├── (orders)/                 # Working orders, positions, and trade workbench
 │   │   ├── (market-streamer)/        # WebSocket ticker, L2 depth ladder, and sparkline charts
 │   │   └── common/                   # Modal dialogs, loaders, and tool badges
+│   ├── constants/                    # Architectural design tokens & constants
+│   │   ├── animation.ts              # Framer Motion animation variants & spring curves
+│   │   ├── storage.ts                # Canonical localStorage and session storage keys
+│   │   └── theme.ts                  # System chrome & manifest brand color hexes
 │   ├── hooks/                        # Specialized reactive hooks
 │   │   ├── chat/                     # useAgentChat, useChatSessions, useStagedActions, useExecuteTrade
 │   │   ├── orders/                   # useOrdersWorkbench
@@ -172,7 +177,8 @@ sterling-ai/
 │   │   │   ├── auth/                 # Request signer, error classifier & HMAC ticket builders
 │   │   │   ├── trade/                # Orders, queries, positions, accounts & instrument precisions
 │   │   │   ├── types/                # Domain-scoped types (market, orders, account, errors)
-│   │   │   └── analysts/             # Dedicated macro, sentiment, and technical engines
+│   │   │   ├── analysts/             # Dedicated macro, sentiment, and technical engines
+│   │   │   └── constants.ts          # Exchange endpoints, WebSocket URLs & market defaults
 │   │   ├── db/                       # Dexie IndexedDB v6 schemas and persistence
 │   │   └── exa/                      # Exa AI neural search client
 │   └── stores/                       # Zustand persisted global UI state (app-store.ts)
