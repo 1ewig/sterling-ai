@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { pageEntranceVariants } from '@/constants/animation';
 import { AgentLoader } from '@/components/common/agent-loader';
 import { PortfolioUnconfigured } from '@/components/(portfolio)';
 import { useOrdersWorkbench } from '@/hooks/orders/use-orders-workbench';
@@ -57,9 +58,9 @@ export function OrdersPageClient() {
         {/* Populated Orders & Positions View */}
         {data && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
+            variants={pageEntranceVariants}
+            initial="hidden"
+            animate="visible"
             className="flex flex-col gap-6"
           >
             {/* Header & KPI Summary */}

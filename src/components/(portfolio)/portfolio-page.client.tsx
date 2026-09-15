@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { pageEntranceVariants } from '@/constants/animation';
 import { AgentLoader } from '@/components/common/agent-loader';
 import { usePortfolioOverview } from '@/hooks';
 import { PortfolioHeader } from './portfolio-header';
@@ -49,9 +50,9 @@ export function PortfolioPageClient() {
         {/* Populated Portfolio View */}
         {data && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
+            variants={pageEntranceVariants}
+            initial="hidden"
+            animate="visible"
             className="flex flex-col gap-6"
           >
             {/* Header */}

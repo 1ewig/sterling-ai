@@ -105,14 +105,16 @@ export const metadata: Metadata = {
   category: "finance",
 };
 
+import { STORAGE_KEYS } from '@/constants/storage';
+
 const PRE_HYDRATION_SCRIPT = `
 (function() {
   try {
-    var storedTheme = localStorage.getItem('sterling-theme');
+    var storedTheme = localStorage.getItem('${STORAGE_KEYS.THEME}');
     var theme = storedTheme === 'light' ? 'light' : 'dark';
     document.documentElement.classList.add(theme);
 
-    var storedSidebar = localStorage.getItem('sterling-sidebar-collapsed');
+    var storedSidebar = localStorage.getItem('${STORAGE_KEYS.SIDEBAR_COLLAPSED}');
     if (storedSidebar === 'true') {
       document.documentElement.classList.add('sidebar-collapsed');
     }

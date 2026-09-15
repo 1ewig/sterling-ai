@@ -3,6 +3,7 @@
 import React, { memo, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, TrendingUp } from 'lucide-react';
+import { EASING_ARCHITECTURAL } from '@/constants/animation';
 import { useMarketSymbols } from '@/hooks/market';
 import { AgentLoader } from '@/components/common';
 import type { MarketSymbolRecord } from '@/lib/db';
@@ -125,7 +126,7 @@ const SymbolSearchModalContent = memo(function SymbolSearchModalContent({
         initial={{ opacity: 0, scale: 0.96, y: -8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: -8 }}
-        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.18, ease: EASING_ARCHITECTURAL }}
         className="fixed inset-x-3 top-16 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[400px] max-h-[440px] bg-theme-bg-surface border border-theme-border-strong/70 rounded-xl shadow-2xl shadow-black/80 z-50 flex flex-col overflow-hidden select-none"
         onKeyDown={handleKeyDown}
       >

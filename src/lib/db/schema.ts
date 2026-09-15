@@ -125,6 +125,12 @@ export const DEFAULT_CONVERSATION_TITLE = 'New Chat';
 /**
  * Institutional Dexie IndexedDB Database for Sterling multi-session chat history, market symbols, and staged actions.
  */
+const CONVERSATION_INDEX = 'id, createdAt, updatedAt';
+const MESSAGE_INDEX = 'id, conversationId, timestamp, role, status';
+const MARKET_SYMBOL_INDEX = 'symbol, baseAsset, volume24h, updatedAt';
+const INSTRUMENT_INDEX = 'symbol, category, status, updatedAt';
+const STAGED_ACTION_INDEX = 'id, conversationId, messageId, actionType, symbol, status, expiresAt, createdAt, [conversationId+status]';
+
 export class SterlingDatabase extends Dexie {
   conversations!: EntityTable<ConversationRecord, 'id'>;
   messages!: EntityTable<ChatMessageRecord, 'id'>;
@@ -142,8 +148,8 @@ export class SterlingDatabase extends Dexie {
 
     // Schema v2: Multi-conversation threads
     this.version(2).stores({
-      conversations: 'id, createdAt, updatedAt',
-      messages: 'id, conversationId, timestamp, role, status',
+      conversations: CONVERSATION_INDEX,
+      messages: MESSAGE_INDEX,
     }).upgrade(async (tx) => {
       const messagesTable = tx.table('messages');
       await messagesTable.toCollection().modify((msg) => {
@@ -158,32 +164,32 @@ export class SterlingDatabase extends Dexie {
 
     // Schema v3: Multi-conversation threads stable schema
     this.version(3).stores({
-      conversations: 'id, createdAt, updatedAt',
-      messages: 'id, conversationId, timestamp, role, status',
+      conversations: CONVERSATION_INDEX,
+      messages: MESSAGE_INDEX,
     });
 
     // Schema v4: Cached market symbols
     this.version(4).stores({
-      conversations: 'id, createdAt, updatedAt',
-      messages: 'id, conversationId, timestamp, role, status',
-      market_symbols: 'symbol, baseAsset, volume24h, updatedAt',
+      conversations: CONVERSATION_INDEX,
+      messages: MESSAGE_INDEX,
+      market_symbols: MARKET_SYMBOL_INDEX,
     });
 
     // Schema v5: Cached trading instruments & precision rules
     this.version(5).stores({
-      conversations: 'id, createdAt, updatedAt',
-      messages: 'id, conversationId, timestamp, role, status',
-      market_symbols: 'symbol, baseAsset, volume24h, updatedAt',
-      instruments: 'symbol, category, status, updatedAt',
+      conversations: CONVERSATION_INDEX,
+      messages: MESSAGE_INDEX,
+      market_symbols: MARKET_SYMBOL_INDEX,
+      instruments: INSTRUMENT_INDEX,
     });
 
     // Schema v6: Staged trade tickets and action lifecycle persistence
     this.version(6).stores({
-      conversations: 'id, createdAt, updatedAt',
-      messages: 'id, conversationId, timestamp, role, status',
-      market_symbols: 'symbol, baseAsset, volume24h, updatedAt',
-      instruments: 'symbol, category, status, updatedAt',
-      staged_actions: 'id, conversationId, messageId, actionType, symbol, status, expiresAt, createdAt, [conversationId+status]',
+      conversations: CONVERSATION_INDEX,
+      messages: MESSAGE_INDEX,
+      market_symbols: MARKET_SYMBOL_INDEX,
+      instruments: INSTRUMENT_INDEX,
+      staged_actions: STAGED_ACTION_INDEX,
     });
   }
 }

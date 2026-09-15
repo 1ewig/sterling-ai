@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { normalizeSymbol } from '@/lib/bitget/symbols';
 import { createActionTicketToken } from '@/lib/bitget/auth';
+import { marketCategorySchema } from '@/lib/bitget/types';
 import {
   fetchOpenOrdersV3,
   getPositionsV3,
@@ -19,8 +20,7 @@ export const getOpenOrdersParamsSchema = z.object({
 
 export const cancelOrderParamsSchema = z.object({
   symbol: z.string().describe('Trading pair symbol of the order to cancel (e.g. BTCUSDT)'),
-  category: z
-    .enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
+  category: marketCategorySchema
     .default('usdt-futures')
     .describe('Market category'),
   orderId: z.string().optional().describe('Exchange order ID to cancel'),
@@ -30,8 +30,7 @@ export const cancelOrderParamsSchema = z.object({
 
 export const closePositionParamsSchema = z.object({
   symbol: z.string().describe('Symbol of the open position to market close (e.g. BTCUSDT, RTSLAUSDT)'),
-  category: z
-    .enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
+  category: marketCategorySchema
     .default('usdt-futures')
     .describe('Market category of the position'),
   posSide: z.enum(['long', 'short', 'net']).default('net').optional().describe('Position side to close. "net" (default) resolves the side from the live position; required explicitly when both long and short are open on the same symbol (hedge mode)'),

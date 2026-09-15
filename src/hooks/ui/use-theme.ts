@@ -1,10 +1,9 @@
 'use client';
 
 import { useSyncExternalStore, useCallback } from 'react';
+import { THEME_STORAGE_KEY } from '@/constants/storage';
 
 export type Theme = 'dark' | 'light';
-
-const THEME_STORAGE_KEY = 'sterling-theme';
 
 function applyThemeClass(newTheme: Theme) {
   if (typeof document === 'undefined') return;

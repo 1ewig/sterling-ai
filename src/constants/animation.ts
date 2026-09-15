@@ -328,4 +328,17 @@ export const iconSwapVariants: Variants = {
   exit: { scale: 0.6, opacity: 0, transition: { duration: 0.15 } },
 };
 
+/**
+ * Smooth, soft entrance animation for high-level page views (Portfolio, Orders).
+ */
+export const pageEntranceVariants: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: EASING_ARCHITECTURAL },
+  },
+};
+
+
 

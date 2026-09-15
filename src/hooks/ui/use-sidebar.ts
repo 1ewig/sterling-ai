@@ -2,8 +2,7 @@
 
 import { useSyncExternalStore, useCallback } from 'react';
 import { useAppStore } from '@/stores/app-store';
-
-const SIDEBAR_STORAGE_KEY = 'sterling-sidebar-collapsed';
+import { SIDEBAR_STORAGE_KEY } from '@/constants/storage';
 
 function getSidebarSnapshot(): boolean {
   if (typeof window === 'undefined') return false;

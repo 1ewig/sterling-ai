@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULT_SYMBOL } from '@/lib/bitget/constants';
+import { SESSION_STORAGE_KEY } from '@/constants/storage';
 import type { ChatMessageRecord } from '@/lib/db';
 import { DEFAULT_CONVERSATION_ID } from '@/lib/db';
 
@@ -79,7 +80,7 @@ export const useAppStore = create<AppState>()(
       setHasHydrated: (_hasHydrated) => set({ _hasHydrated }),
     }),
     {
-      name: 'sterling-session-store',
+      name: SESSION_STORAGE_KEY,
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

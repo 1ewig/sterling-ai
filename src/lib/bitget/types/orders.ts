@@ -10,6 +10,9 @@ import {
 
 export type { BitgetV3Category };
 
+export const marketCategorySchema = z.enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures']);
+export type MarketCategory = z.infer<typeof marketCategorySchema>;
+
 export function toV3Category(category?: string): BitgetV3Category {
   if (!category) return USDT_FUTURES_CATEGORY;
   const upper = category.toUpperCase().trim();
@@ -152,9 +155,29 @@ export interface StagedActionTicketPayload {
   timestamp: number;
 }
 
+export interface BitgetV3OrderState {
+  orderId: string;
+  clientOid?: string;
+  symbol: string;
+  category: MarketCategory | BitgetV3Category;
+  side: 'buy' | 'sell';
+  orderType: 'limit' | 'market';
+  price: string;
+  size: string;
+  status: 'init' | 'live' | 'new' | 'partially_filled' | 'filled' | 'cancelled';
+  filledQty?: string;
+  avgPrice?: string;
+  fee?: string;
+  reduceOnly?: boolean;
+  tradeSide?: 'open' | 'close';
+  posSide?: 'long' | 'short' | 'net';
+  marginMode?: 'crossed' | 'isolated';
+  timestamp: number;
+}
+
 export interface BitgetV3CancelParams {
   symbol: string;
-  category: 'spot' | 'usdt-futures' | 'coin-futures' | 'usdc-futures' | BitgetV3Category;
+  category: MarketCategory | BitgetV3Category;
   orderId?: string;
   clientOid?: string;
 }
@@ -172,8 +195,7 @@ export interface BitgetV3OrderResponse {
 
 export const stageTradeOrderParamsSchema = z.object({
   symbol: z.string().describe('Trading pair symbol (e.g. BTCUSDT, ETHUSDT, RTSLAUSDT, SOLUSDT)'),
-  category: z
-    .enum(['spot', 'usdt-futures', 'coin-futures', 'usdc-futures'])
+  category: marketCategorySchema
     .default('usdt-futures')
     .describe('Market category'),
   side: z

@@ -2,6 +2,7 @@
 
 import React, { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { EASING_ARCHITECTURAL } from '@/constants/animation';
 import { useAppStore } from '@/stores/app-store';
 import { useBitgetWebSocket } from '@/hooks/market';
 import type { MarketStreamState } from '@/hooks/market';
@@ -114,7 +115,7 @@ export const MarketStreamerPanel = memo(function MarketStreamerPanel() {
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: '40%', opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.26, ease: EASING_ARCHITECTURAL }}
             className="flex flex-col h-full bg-transparent shrink-0 select-none overflow-hidden relative z-20"
           >
             <div className="w-full min-w-0 flex flex-col h-full overflow-hidden">
