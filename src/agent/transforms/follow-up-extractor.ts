@@ -10,7 +10,7 @@ export interface ExtractedFollowUpsResult {
 const FALLBACK_FOLLOW_UPS = [
   'Analyze current market sentiment and funding rates',
   'Check key support, resistance, and invalidation levels',
-  'What are the primary macro catalysts to watch this week?',
+  'Cross-reference macro catalysts and Treasury yield curve impact',
 ];
 
 /**
