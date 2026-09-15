@@ -208,5 +208,11 @@ bun run build
 
 ---
 
+## 📖 Deep-Dive Architecture & Specifications
+
+For comprehensive technical documentation covering the SSE streaming state machine, Level-2 orderbook heaps, HMAC ticket cryptographic contracts, and Dexie IndexedDB schemas, check out the complete **[Technical Project Summary](docs/summary.md)**.
+
+---
+
 ## License
 MIT License. Built for the next generation of algorithmic and autonomous traders.
