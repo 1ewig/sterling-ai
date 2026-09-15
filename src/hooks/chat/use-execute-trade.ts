@@ -18,7 +18,7 @@ export function useExecuteTrade({
   remainingSeconds,
   updateActionStatus,
   onClose,
-  autoCloseDelayMs = 2000,
+  autoCloseDelayMs = 600,
 }: UseExecuteTradeOptions) {
   const [localExecutionState, setLocalExecutionState] = useState<ExecutionState>('idle');
   const [localResponseMessage, setLocalResponseMessage] = useState<string | null>(null);

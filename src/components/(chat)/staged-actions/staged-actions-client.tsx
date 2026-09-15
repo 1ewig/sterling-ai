@@ -31,6 +31,7 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
   const {
     counts,
     activeActions,
+    allActions,
     orders,
     cancels,
     closes,
@@ -49,11 +50,11 @@ export const StagedActionsClient = React.memo(function StagedActionsClient({
     () => false
   );
 
-  // Find currently active popup item
+  // Find currently active popup item from allActions to support smooth execution & dismissal
   const activeTrade = useMemo(() => {
     if (!activePopupId) return null;
-    return activeActions.find((t) => t.id === activePopupId) || null;
-  }, [activePopupId, activeActions]);
+    return allActions.find((t) => t.id === activePopupId) || null;
+  }, [activePopupId, allActions]);
 
   // Remaining seconds calculation
   const remainingSeconds = activeTrade
