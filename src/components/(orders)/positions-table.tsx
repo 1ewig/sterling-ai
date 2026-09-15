@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, TrendingDown, ShieldAlert, XCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, TrendingDown, ShieldAlert, XCircle, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 import { tapScalePill } from '@/constants/animation';
 import type { BitgetV3Position } from '@/lib/bitget/types';
 
@@ -14,7 +14,8 @@ export interface PositionsTableProps {
     category: string,
     side: 'buy' | 'sell',
     size?: string,
-    posSide?: 'long' | 'short' | 'net'
+    posSide?: 'long' | 'short' | 'net',
+    marginMode?: 'crossed' | 'isolated'
   ) => Promise<{ success: boolean; message?: string }>;
 }
 
@@ -24,18 +25,28 @@ export const PositionsTable = React.memo(function PositionsTable({
   onClosePosition,
 }: PositionsTableProps) {
   const [closingKey, setClosingKey] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleClose = async (p: BitgetV3Position) => {
     const key = `${p.symbol}-${p.posSide}`;
     setClosingKey(key);
+    setActionError(null);
 
     const isLong = p.posSide === 'long' || (p.posSide === 'net' && parseFloat(p.total) > 0);
     const executionSide: 'buy' | 'sell' = isLong ? 'sell' : 'buy';
+    const closeSize = parseFloat(p.available || '0') > 0 ? p.available : p.total;
 
     try {
-      await onClosePosition(p.symbol, 'usdt-futures', executionSide, undefined, p.posSide);
-    } catch {
-      // Error handled by hook
+      await onClosePosition(
+        p.symbol,
+        'usdt-futures',
+        executionSide,
+        closeSize,
+        p.posSide,
+        p.marginMode
+      );
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to close position');
     } finally {
       setClosingKey(null);
     }
@@ -57,6 +68,23 @@ export const PositionsTable = React.memo(function PositionsTable({
           </span>
         </div>
       </div>
+
+      {actionError && (
+        <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-theme-status-error/10 border border-theme-status-error/20 text-xs text-theme-status-error">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="size-4 shrink-0 text-theme-status-error" />
+            <span className="font-medium">{actionError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActionError(null)}
+            className="text-theme-status-error hover:opacity-80 p-0.5 cursor-pointer"
+            title="Dismiss"
+          >
+            <XCircle className="size-3.5" />
+          </button>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[760px]">
@@ -184,17 +212,27 @@ export const PositionsTable = React.memo(function PositionsTable({
 
                   {/* Action Button */}
                   <td className="py-3 px-3 text-center">
-                    <motion.button
-                      type="button"
-                      whileTap={tapScalePill}
-                      onClick={() => handleClose(p)}
-                      disabled={isPending || closingKey !== null}
-                      className="h-7 px-2.5 text-2xs font-bold rounded bg-theme-status-error/10 hover:bg-theme-status-error/20 text-theme-status-error border border-theme-status-error/30 inline-flex items-center gap-1 cursor-pointer disabled:opacity-40 select-none"
-                      title="Close position at market"
-                    >
-                      <XCircle className="size-3" />
-                      <span>Close</span>
-                    </motion.button>
+                    {(() => {
+                      const rowKey = `${p.symbol}-${p.posSide}`;
+                      const isClosingThis = closingKey === rowKey;
+                      return (
+                        <motion.button
+                          type="button"
+                          whileTap={tapScalePill}
+                          onClick={() => handleClose(p)}
+                          disabled={isPending || closingKey !== null}
+                          className="h-7 px-2.5 text-2xs font-bold rounded bg-theme-status-error/10 hover:bg-theme-status-error/20 text-theme-status-error border border-theme-status-error/30 inline-flex items-center gap-1 cursor-pointer disabled:opacity-40 select-none"
+                          title="Close position at market"
+                        >
+                          {isClosingThis ? (
+                            <Loader2 className="size-3 animate-spin" />
+                          ) : (
+                            <XCircle className="size-3" />
+                          )}
+                          <span>{isClosingThis ? 'Closing...' : 'Close'}</span>
+                        </motion.button>
+                      );
+                    })()}
                   </td>
                 </tr>
               );

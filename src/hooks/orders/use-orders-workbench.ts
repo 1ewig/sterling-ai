@@ -281,8 +281,9 @@ export function useOrdersWorkbench() {
       category: string,
       side: 'buy' | 'sell',
       size?: string,
-      posSide?: 'long' | 'short' | 'net'
-    ) => executeTradeAction({ action: 'close_position', symbol, category, side, size, posSide }),
+      posSide?: 'long' | 'short' | 'net',
+      marginMode?: 'crossed' | 'isolated'
+    ) => executeTradeAction({ action: 'close_position', symbol, category, side, size, posSide, marginMode }),
     [executeTradeAction]
   );
 

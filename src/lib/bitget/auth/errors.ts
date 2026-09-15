@@ -29,7 +29,7 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
   }
 
   // Timestamp drift / clock sync
-  if (cleanCode === '40017' || cleanCode === '40008' || lowerMsg.includes('timestamp')) {
+  if ((cleanCode === '40017' && !lowerMsg.includes('parameter')) || cleanCode === '40008' || lowerMsg.includes('timestamp')) {
     return {
       category: 'AUTH_FAILED',
       code: cleanCode,
@@ -138,6 +138,8 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
 
   // Order Parameter or Size Limits
   if (
+    cleanCode === '40019' ||
+    cleanCode === '40017' ||
     cleanCode === '43025' ||
     cleanCode === '43026' ||
     cleanCode === '43004' ||
@@ -145,6 +147,8 @@ export function classifyBitgetError(code: string, rawMsg = ''): BitgetErrorDetai
     cleanCode === '40808' ||
     lowerMsg.includes('size') ||
     lowerMsg.includes('quantity') ||
+    lowerMsg.includes('qty') ||
+    lowerMsg.includes('parameter') ||
     lowerMsg.includes('leverage') ||
     lowerMsg.includes('min notional')
   ) {

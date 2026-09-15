@@ -14,6 +14,9 @@ import type {
 
 import { toV3Category } from '../types';
 import { fetchBitgetTicker } from '../rest';
+import { normalizeSymbol } from '../symbols';
+import { getPositionsV3 } from './positions';
+import { getInstrument, snapQtyToStep } from './instruments';
 
 /**
  * Submit an order using Bitget UTA (v3)
@@ -93,7 +96,7 @@ export async function cancelOrderV3(
 }
 
 /**
- * Batch cancel all open orders for a specific trading pair
+ * Batch cancel all open orders for a specific symbol
  */
 export async function cancelSymbolOrdersV3(
   symbol: string,
@@ -114,7 +117,9 @@ export async function cancelSymbolOrdersV3(
 }
 
 /**
- * Market close a position via reduce-only order
+ * Market close a position via reduce-only order.
+ * If size is omitted, automatically inspects active positions, resolves tradable size,
+ * and snaps quantity to the instrument's step size.
  */
 export async function closePositionsV3(
   symbol: string,
@@ -124,7 +129,60 @@ export async function closePositionsV3(
   posSide: 'long' | 'short' | 'net' = 'net',
   marginMode?: 'crossed' | 'isolated'
 ): Promise<BitgetV3OrderResponse> {
-  const payload = buildClosePositionsPayload(symbol, categoryInput, side, size, posSide, marginMode);
+  let resolvedSize = size;
+  let resolvedPosSide = posSide;
+  let resolvedMarginMode = marginMode;
+
+  // Defensive resolution: if size is omitted or empty, resolve from active position
+  if (!resolvedSize || parseFloat(resolvedSize) <= 0) {
+    try {
+      const positions = await getPositionsV3(categoryInput);
+      const normSym = normalizeSymbol(symbol);
+      const targetPos = positions.find(
+        (p) =>
+          normalizeSymbol(p.symbol) === normSym &&
+          (posSide === 'net' || !p.posSide || p.posSide === posSide)
+      );
+
+      if (targetPos) {
+        if (!resolvedMarginMode && targetPos.marginMode) {
+          resolvedMarginMode = targetPos.marginMode;
+        }
+        if (resolvedPosSide === 'net' && targetPos.posSide) {
+          resolvedPosSide = targetPos.posSide;
+        }
+        const tradableQty =
+          parseFloat(targetPos.available || '0') > 0
+            ? targetPos.available
+            : targetPos.total;
+
+        if (tradableQty && parseFloat(tradableQty) > 0) {
+          try {
+            const inst = await getInstrument(symbol, categoryInput);
+            resolvedSize = snapQtyToStep(parseFloat(tradableQty), inst).toString();
+          } catch {
+            resolvedSize = tradableQty;
+          }
+        }
+      }
+    } catch {
+      // Fall back to original params if live position lookup fails
+    }
+  }
+
+  if (!resolvedSize || parseFloat(resolvedSize) <= 0) {
+    throw new Error(
+      `Cannot close position for ${symbol}: no active or tradable position found to close.`
+    );
+  }
+
+  const payload = buildClosePositionsPayload(
+    symbol,
+    categoryInput,
+    side,
+    resolvedSize,
+    resolvedPosSide,
+    resolvedMarginMode
+  );
   return placeOrderV3(payload as unknown as BitgetV3OrderParams);
 }
-
