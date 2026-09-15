@@ -13,6 +13,7 @@ interface OpenOrderItem {
   size: string;
   status: string;
   cumExecQty?: string;
+  amount?: string;
   cTime?: string;
 }
 
@@ -95,8 +96,8 @@ export const OpenOrdersCard = React.memo(function OpenOrdersCard({
             const displaySize =
               o.size && o.size !== '0'
                 ? o.size
-                : o.cumExecQty && o.cumExecQty !== '0'
-                  ? `${o.cumExecQty} (filled)`
+                : o.amount
+                  ? `${Number(o.amount).toLocaleString(undefined, { maximumFractionDigits: 4 })} USDT`
                   : o.size || '0';
 
             return (
@@ -116,7 +117,7 @@ export const OpenOrdersCard = React.memo(function OpenOrdersCard({
                   </span>
                   <span className="font-semibold text-theme-text-primary">{o.symbol}</span>
                   <span className="text-theme-text-secondary">
-                    {displaySize} @ ${o.price || 'Market'}
+                    {displaySize} @ {o.price && o.price !== '0' ? `$${o.price}` : 'Market'}
                   </span>
                 </div>
 

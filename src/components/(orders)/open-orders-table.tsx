@@ -104,9 +104,21 @@ export const OpenOrdersTable = React.memo(function OpenOrdersTable({
           <tbody className="divide-y divide-theme-border-subtle/40 text-xs">
             {orders.map((o) => {
               const isBuy = o.side === 'buy';
-              const sizeNum = parseFloat(o.size || o.amount || '0');
+              // Spot market BUY is quote-denominated (USDT); Bitget reports base qty as "0"
+              // and the USDT spend in `amount`. Fall back to amount so Quantity never shows 0.
+              const isQuoteDenominated = o.category === 'SPOT' && o.side === 'buy' && o.orderType === 'market';
+              const sizeStr = o.size && o.size !== '0'
+                ? o.size.replace(/\s*USDT$/i, '')
+                : isQuoteDenominated && o.amount
+                  ? o.amount
+                  : '0';
+              const sizeNum = parseFloat(sizeStr || '0');
               const execNum = parseFloat(o.cumExecQty || '0');
-              const fillPct = sizeNum > 0 ? (execNum / sizeNum) * 100 : 0;
+              const fillPct = isQuoteDenominated
+                ? (parseFloat(o.cumExecValue || '0') / (parseFloat(o.amount || '0') || 1)) * 100
+                : sizeNum > 0
+                  ? (execNum / sizeNum) * 100
+                  : 0;
               const priceNum = parseFloat(o.price || '0');
               const timestampNum = o.cTime ? parseInt(o.cTime, 10) : NaN;
 
@@ -150,7 +162,10 @@ export const OpenOrdersTable = React.memo(function OpenOrdersTable({
 
                   {/* Size */}
                   <td className="py-3 px-3 text-right font-mono text-theme-text-primary">
-                    {sizeNum.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                    <span className={isQuoteDenominated ? 'inline-flex items-center gap-0.5' : undefined}>
+                      {sizeNum.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                      {isQuoteDenominated && <span className="text-3xs text-theme-text-muted">USDT</span>}
+                    </span>
                   </td>
 
                   {/* Filled % */}
