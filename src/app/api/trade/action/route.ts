@@ -5,6 +5,7 @@ import {
   closePositionsV3,
 } from '@/lib/bitget/trade';
 import { verifyActionTicketToken } from '@/lib/bitget/auth';
+import { resolveTradingMode } from '@/lib/sandbox/trading-mode';
 import { toV3Category } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';
@@ -62,10 +63,7 @@ export async function POST(req: Request) {
     }
 
     // Check trading mode (Sandbox vs Live)
-    const reqMode = req.headers.get('x-trading-mode');
-    const isSandbox =
-      reqMode === 'sandbox' ||
-      (!process.env.BITGET_API_KEY && !req.headers.get('x-bitget-api-key'));
+    const isSandbox = resolveTradingMode(req) === 'sandbox';
 
     if (isSandbox) {
       const { closeSandboxPosition, cancelSandboxOrder } = await import(

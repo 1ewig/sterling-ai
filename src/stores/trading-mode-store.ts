@@ -1,15 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { TRADING_MODE_STORAGE_KEY } from '@/constants/storage';
+import type { BitgetApiCredentials } from '@/lib/bitget/auth/signer';
 
 export type TradingMode = 'sandbox' | 'live';
 
-export interface BitgetApiCredentials {
-  apiKey: string;
-  apiSecret: string;
-  passphrase: string;
-  isDemo: boolean;
-}
+export type { BitgetApiCredentials };
 
 export interface TradingModeState {
   mode: TradingMode;
@@ -59,3 +55,11 @@ export const useTradingModeStore = create<TradingModeState>()(
     }
   )
 );
+
+/**
+ * Synchronous, non-reactive access to the currently active trading mode.
+ * Preferred inside event/callback bodies where the subscribed value would be stale.
+ */
+export function getTradingMode(): TradingMode {
+  return useTradingModeStore.getState().mode;
+}

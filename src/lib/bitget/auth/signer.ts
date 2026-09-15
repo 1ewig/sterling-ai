@@ -89,6 +89,19 @@ export interface BitgetCredentials {
   isDemo?: boolean;
 }
 
+/** Fully-specified credentials as persisted/configured by the UI. */
+export type BitgetApiCredentials = Required<BitgetCredentials>;
+
+/**
+ * Resolves the demo/paper-trading flag from UI credentials when provided,
+ * falling back to the BITGET_DEMO_TRADING environment variable.
+ */
+export function resolveDemoMode(credentials?: BitgetCredentials): boolean {
+  return credentials?.isDemo !== undefined
+    ? credentials.isDemo
+    : process.env.BITGET_DEMO_TRADING === 'true';
+}
+
 /**
  * Builds standard Bitget authenticated request headers.
  */
@@ -102,10 +115,7 @@ export function getAuthHeaders(
   const apiKey = credentials?.apiKey || process.env.BITGET_API_KEY;
   const apiSecret = credentials?.apiSecret || process.env.BITGET_API_SECRET;
   const passphrase = credentials?.passphrase || process.env.BITGET_PASSPHRASE;
-  const isDemo =
-    credentials?.isDemo !== undefined
-      ? credentials.isDemo
-      : process.env.BITGET_DEMO_TRADING === 'true';
+  const isDemo = resolveDemoMode(credentials);
 
   if (!apiKey || !apiSecret || !passphrase) {
     throw new Error(

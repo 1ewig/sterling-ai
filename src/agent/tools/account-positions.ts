@@ -1,6 +1,7 @@
 import { tool } from 'ai';
 import { accountOverviewParamsSchema } from '@/lib/bitget/types';
 import { getAccountOverviewV3 } from '@/lib/bitget/trade';
+import { isMissingConfigError } from '@/lib/sandbox/trading-mode';
 
 export const accountOverviewTool = tool({
   description:
@@ -52,7 +53,7 @@ export const accountOverviewTool = tool({
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to query account balance.';
-      const isMissingConfig = message.includes('BITGET_API_KEY') || message.includes('credentials not configured');
+      const isMissingConfig = isMissingConfigError(message);
 
       return {
         success: false,

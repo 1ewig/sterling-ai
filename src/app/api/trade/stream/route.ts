@@ -1,7 +1,6 @@
 import { fetchPositionsV3 } from '@/lib/bitget/trade/positions';
 import { fetchOpenOrdersV3 } from '@/lib/bitget/trade/queries';
-import { privateWsHub } from '@/lib/bitget/trade/private-ws';
-import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
+import { createSseStream, missingConfigSseResponse } from '@/lib/bitget/trade/sse';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -14,147 +13,23 @@ export async function GET(req: Request) {
   const isMissingConfig = !apiKey || !apiSecret || !passphrase;
 
   if (isMissingConfig) {
-    const errorPayload = JSON.stringify({
-      isMissingConfig: true,
-      error: 'Bitget API credentials not configured in .env.local',
-    });
-    return new Response(`event: error\ndata: ${errorPayload}\n\n`, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-transform',
-        Connection: 'keep-alive',
-      },
-    });
+    return missingConfigSseResponse();
   }
 
-  const encoder = new TextEncoder();
+  const fetchSnapshot = async () => {
+    const [positionsRes, ordersRes] = await Promise.allSettled([
+      fetchPositionsV3('USDT-FUTURES'),
+      fetchOpenOrdersV3({ categoryInput: 'all' }),
+    ]);
 
-  const stream = new ReadableStream({
-    async start(controller) {
-      let isStreamClosed = false;
+    return {
+      positions:
+        positionsRes.status === 'fulfilled' && positionsRes.value.ok
+          ? positionsRes.value.positions
+          : [],
+      orders: ordersRes.status === 'fulfilled' ? ordersRes.value.orders || [] : [],
+    };
+  };
 
-      const sendEvent = (event: string, data: unknown) => {
-        if (isStreamClosed) return;
-        try {
-          const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-          controller.enqueue(encoder.encode(payload));
-        } catch {
-          isStreamClosed = true;
-        }
-      };
-
-      const sendComment = (comment: string) => {
-        if (isStreamClosed) return;
-        try {
-          controller.enqueue(encoder.encode(`: ${comment}\n\n`));
-        } catch {
-          isStreamClosed = true;
-        }
-      };
-
-      // 1. Initial 0ms Cold-Start REST Seed Snapshot
-      try {
-        const [positionsRes, ordersRes] = await Promise.allSettled([
-          fetchPositionsV3('USDT-FUTURES'),
-          fetchOpenOrdersV3({ categoryInput: 'all' }),
-        ]);
-
-        const positions: BitgetV3Position[] =
-          positionsRes.status === 'fulfilled' && positionsRes.value.ok
-            ? positionsRes.value.positions
-            : [];
-
-        const orders: BitgetV3OrderInfo[] =
-          ordersRes.status === 'fulfilled' ? ordersRes.value.orders || [] : [];
-
-        sendEvent('snapshot', {
-          positions,
-          orders,
-          timestamp: Date.now(),
-        });
-      } catch (err) {
-        sendEvent('snapshot_error', {
-          error: err instanceof Error ? err.message : 'Failed to seed initial snapshot',
-        });
-      }
-
-      // 2. Subscribe to Shared Upstream Private WebSocket Hub (1 connection for all tabs)
-      const clientId = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-      const unsubscribeFromHub = privateWsHub.subscribe({
-        id: clientId,
-        onEvent: (event, data) => {
-          sendEvent(event, data);
-        },
-        onComment: (comment) => {
-          sendComment(comment);
-        },
-      });
-
-      // 3. Continuous Server-Side Stream Synchronization (every 2.5 seconds)
-      // Streams live positions mark prices, floating PnL, and resting orders over this persistent SSE pipe
-      let isSyncing = false;
-      const syncInterval = setInterval(async () => {
-        if (isStreamClosed) {
-          clearInterval(syncInterval);
-          return;
-        }
-        if (isSyncing) return;
-        isSyncing = true;
-        try {
-          const [positionsRes, ordersRes] = await Promise.allSettled([
-            fetchPositionsV3('USDT-FUTURES'),
-            fetchOpenOrdersV3({ categoryInput: 'all' }),
-          ]);
-
-          const positions: BitgetV3Position[] =
-            positionsRes.status === 'fulfilled' && positionsRes.value.ok
-              ? positionsRes.value.positions
-              : [];
-
-          const orders: BitgetV3OrderInfo[] =
-            ordersRes.status === 'fulfilled' ? ordersRes.value.orders || [] : [];
-
-          sendEvent('snapshot', {
-            positions,
-            orders,
-            timestamp: Date.now(),
-          });
-        } catch {
-          // Ignore transient errors
-        } finally {
-          isSyncing = false;
-        }
-      }, 2500);
-
-      // 4. Keep-alive heartbeat interval (every 15 seconds)
-      const heartbeatInterval = setInterval(() => {
-        if (isStreamClosed) {
-          clearInterval(heartbeatInterval);
-          return;
-        }
-        sendComment('heartbeat');
-      }, 15000);
-
-      // Clean up resources when the client disconnects or aborts
-      req.signal.addEventListener('abort', () => {
-        isStreamClosed = true;
-        clearInterval(syncInterval);
-        clearInterval(heartbeatInterval);
-        unsubscribeFromHub();
-        try {
-          controller.close();
-        } catch {
-          // Stream already closed
-        }
-      });
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
-    },
-  });
+  return createSseStream('tab', fetchSnapshot, req.signal);
 }

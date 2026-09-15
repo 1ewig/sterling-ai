@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { placeOrderV3, getOrderInfoV3 } from '@/lib/bitget/trade';
 import { verifyTradeTicketToken } from '@/lib/bitget/auth';
+import { resolveTradingMode } from '@/lib/sandbox/trading-mode';
 import type { BitgetV3OrderParams } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';
@@ -71,10 +72,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Check trading mode (Sandbox vs Live)
-    const reqMode = req.headers.get('x-trading-mode');
-    const isSandbox =
-      reqMode === 'sandbox' ||
-      (!process.env.BITGET_API_KEY && !req.headers.get('x-bitget-api-key'));
+    const isSandbox = resolveTradingMode(req) === 'sandbox';
 
     if (isSandbox) {
       const { executeSandboxOrder } = await import('@/lib/sandbox/sandbox-broker');

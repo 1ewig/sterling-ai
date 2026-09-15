@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
 import { applyPositionDelta } from '@/lib/bitget/trade';
-import { useTradingModeStore } from '@/stores/trading-mode-store';
+import { useTradingModeStore, getTradingMode } from '@/stores/trading-mode-store';
 
 export interface OrdersWorkbenchData {
   positions: BitgetV3Position[];
@@ -97,7 +97,7 @@ export function useOrdersWorkbench() {
   const fetchWorkbenchData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const mode = (await import('@/stores/trading-mode-store')).useTradingModeStore.getState().mode;
+      const mode = getTradingMode();
       const res = await fetch('/api/trade/orders', {
         method: 'GET',
         cache: 'no-store',

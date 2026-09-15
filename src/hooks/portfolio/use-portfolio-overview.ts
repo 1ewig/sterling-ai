@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { BitgetAccountOverview, BitgetV3Position } from '@/lib/bitget/types';
 import { applyPositionDelta } from '@/lib/bitget/trade';
-import { useTradingModeStore } from '@/stores/trading-mode-store';
+import { useTradingModeStore, getTradingMode } from '@/stores/trading-mode-store';
 
 export interface UsePortfolioOverviewReturn {
   data: BitgetAccountOverview | null;
@@ -95,7 +95,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     }
 
     try {
-      const mode = (await import('@/stores/trading-mode-store')).useTradingModeStore.getState().mode;
+      const mode = getTradingMode();
       const res = await fetch('/api/account/overview', {
         method: 'GET',
         cache: 'no-store',

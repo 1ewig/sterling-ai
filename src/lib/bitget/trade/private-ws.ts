@@ -5,6 +5,7 @@ import {
   BITGET_WS_PRIVATE_DEMO_URL,
 } from '../constants';
 import { mapOpenOrder, type RawUnfilledOrder } from './queries';
+import { resolveDemoMode } from '../auth/signer';
 
 export interface BitgetPrivateWsCallbacks {
   onPositionsSnapshot?: (positions: BitgetV3Position[]) => void;
@@ -65,7 +66,7 @@ export function createBitgetPrivateWsSession(
   const apiKey = process.env.BITGET_API_KEY;
   const apiSecret = process.env.BITGET_API_SECRET;
   const passphrase = process.env.BITGET_PASSPHRASE;
-  const isDemo = process.env.BITGET_DEMO_TRADING === 'true';
+  const isDemo = resolveDemoMode();
 
   if (!apiKey || !apiSecret || !passphrase) {
     throw new Error('Bitget API credentials not configured');
