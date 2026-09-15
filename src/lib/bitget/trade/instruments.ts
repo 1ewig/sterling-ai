@@ -1,6 +1,7 @@
 import { BITGET_REST_BASE } from '../rest';
 import { normalizeSymbol } from '../symbols';
 import { toV3Category, type BitgetV3Category, type BitgetInstrument } from '../types';
+import { USDT_FUTURES_CATEGORY, SPOT_CATEGORY } from '../constants';
 
 export type { BitgetInstrument };
 
@@ -11,7 +12,7 @@ const instrumentsMemoryCache = new Map<string, BitgetInstrument>();
 const DEFAULT_INSTRUMENTS: Record<string, Partial<BitgetInstrument>> = {
   BTCUSDT: {
     symbol: 'BTCUSDT',
-    category: 'USDT-FUTURES',
+    category: USDT_FUTURES_CATEGORY,
     baseCoin: 'BTC',
     quoteCoin: 'USDT',
     minTradeNum: '0.001',
@@ -24,7 +25,7 @@ const DEFAULT_INSTRUMENTS: Record<string, Partial<BitgetInstrument>> = {
   },
   ETHUSDT: {
     symbol: 'ETHUSDT',
-    category: 'USDT-FUTURES',
+    category: USDT_FUTURES_CATEGORY,
     baseCoin: 'ETH',
     quoteCoin: 'USDT',
     minTradeNum: '0.01',
@@ -37,7 +38,7 @@ const DEFAULT_INSTRUMENTS: Record<string, Partial<BitgetInstrument>> = {
   },
   SOLUSDT: {
     symbol: 'SOLUSDT',
-    category: 'USDT-FUTURES',
+    category: USDT_FUTURES_CATEGORY,
     baseCoin: 'SOL',
     quoteCoin: 'USDT',
     minTradeNum: '0.1',
@@ -50,7 +51,7 @@ const DEFAULT_INSTRUMENTS: Record<string, Partial<BitgetInstrument>> = {
   },
   RTSLAUSDT: {
     symbol: 'RTSLAUSDT',
-    category: 'SPOT',
+    category: SPOT_CATEGORY,
     baseCoin: 'RTSLA',
     quoteCoin: 'USDT',
     minTradeNum: '0.01',
@@ -67,7 +68,7 @@ const DEFAULT_INSTRUMENTS: Record<string, Partial<BitgetInstrument>> = {
  * Fetch and cache instruments catalog from Bitget v3 public API
  */
 export async function fetchInstrumentsV3(
-  category: BitgetV3Category = 'USDT-FUTURES'
+  category: BitgetV3Category = USDT_FUTURES_CATEGORY
 ): Promise<BitgetInstrument[]> {
   try {
     const url = `${BITGET_REST_BASE}/api/v3/market/instruments?category=${category}`;

@@ -6,8 +6,14 @@ import type {
   OrderbookDepth,
 } from './types';
 import { normalizeSymbol, normalizeGranularity } from './symbols';
+import {
+  BITGET_REST_BASE,
+  FETCH_TIMEOUT_MS,
+  USDT_FUTURES_CATEGORY,
+  SPOT_CATEGORY,
+} from './constants';
 
-export const BITGET_REST_BASE = 'https://api.bitget.com';
+export { BITGET_REST_BASE, FETCH_TIMEOUT_MS, USDT_FUTURES_CATEGORY, SPOT_CATEGORY };
 
 function mapTickerItem(item: Record<string, string>, sym: string): BitgetTicker {
   return {
@@ -46,9 +52,9 @@ export async function fetchBitgetTicker(symbol: string, isFutures = true): Promi
   // 1. Try V3 Futures ticker first if requested
   if (isFutures) {
     try {
-      const endpoint = `${BITGET_REST_BASE}/api/v3/market/tickers?category=USDT-FUTURES&symbol=${sym}`;
+      const endpoint = `${BITGET_REST_BASE}/api/v3/market/tickers?category=${USDT_FUTURES_CATEGORY}&symbol=${sym}`;
       const res = await fetch(endpoint, {
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         next: { revalidate: 10 },
       });
       if (res.ok) {
@@ -65,9 +71,9 @@ export async function fetchBitgetTicker(symbol: string, isFutures = true): Promi
 
   // 2. V3 Spot market query / fallback
   try {
-    const spotEndpoint = `${BITGET_REST_BASE}/api/v3/market/tickers?category=SPOT&symbol=${sym}`;
+    const spotEndpoint = `${BITGET_REST_BASE}/api/v3/market/tickers?category=${SPOT_CATEGORY}&symbol=${sym}`;
     const spotRes = await fetch(spotEndpoint, {
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       next: { revalidate: 10 },
     });
     if (spotRes.ok) {
@@ -102,9 +108,9 @@ export async function fetchBitgetCandles(
   // 1. Try V3 Futures Candlesticks
   if (isFutures) {
     try {
-      const endpoint = `${BITGET_REST_BASE}/api/v3/market/candles?category=USDT-FUTURES&symbol=${sym}&interval=${interval}&limit=${safeLimit}`;
+      const endpoint = `${BITGET_REST_BASE}/api/v3/market/candles?category=${USDT_FUTURES_CATEGORY}&symbol=${sym}&interval=${interval}&limit=${safeLimit}`;
       const res = await fetch(endpoint, {
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         next: { revalidate: 30 },
       });
       if (res.ok) {
@@ -120,9 +126,9 @@ export async function fetchBitgetCandles(
 
   // 2. Try V3 Spot Candlesticks Fallback
   try {
-    const spotEndpoint = `${BITGET_REST_BASE}/api/v3/market/candles?category=SPOT&symbol=${sym}&interval=${interval}&limit=${safeLimit}`;
+    const spotEndpoint = `${BITGET_REST_BASE}/api/v3/market/candles?category=${SPOT_CATEGORY}&symbol=${sym}&interval=${interval}&limit=${safeLimit}`;
     const spotRes = await fetch(spotEndpoint, {
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       next: { revalidate: 30 },
     });
     if (spotRes.ok) {
@@ -147,9 +153,9 @@ export async function fetchFundingRate(symbol: string): Promise<FundingRateInfo 
   const sym = normalizeSymbol(symbol);
   try {
     const res = await fetch(
-      `${BITGET_REST_BASE}/api/v3/market/current-fund-rate?symbol=${sym}&category=USDT-FUTURES`,
+      `${BITGET_REST_BASE}/api/v3/market/current-fund-rate?symbol=${sym}&category=${USDT_FUTURES_CATEGORY}`,
       {
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         next: { revalidate: 60 },
       }
     );
@@ -168,9 +174,9 @@ export async function fetchOpenInterest(symbol: string): Promise<OpenInterestInf
   const sym = normalizeSymbol(symbol);
   try {
     const res = await fetch(
-      `${BITGET_REST_BASE}/api/v3/market/open-interest?symbol=${sym}&category=USDT-FUTURES`,
+      `${BITGET_REST_BASE}/api/v3/market/open-interest?symbol=${sym}&category=${USDT_FUTURES_CATEGORY}`,
       {
-        signal: AbortSignal.timeout(6000),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         next: { revalidate: 60 },
       }
     );
@@ -196,11 +202,11 @@ export async function fetchOrderbook(
 ): Promise<OrderbookDepth | null> {
   const sym = normalizeSymbol(symbol);
   try {
-    const category = isFutures ? 'USDT-FUTURES' : 'SPOT';
+    const category = isFutures ? USDT_FUTURES_CATEGORY : SPOT_CATEGORY;
     const endpoint = `${BITGET_REST_BASE}/api/v3/market/orderbook?category=${category}&symbol=${sym}&limit=${limit}`;
 
     const res = await fetch(endpoint, {
-      signal: AbortSignal.timeout(6000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       next: { revalidate: 5 },
     });
     if (!res.ok) return null;

@@ -1,7 +1,6 @@
 import { db } from './schema';
 import type { StagedActionRecord, StagedActionStatus } from './schema';
-
-const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes standard HMAC TTL
+import { TICKET_TTL_MS } from '@/lib/bitget/constants';
 
 /**
  * Extracts authoritative expiresAt timestamp directly from an HMAC token (payload.expiresAt.sig).
@@ -10,7 +9,7 @@ const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes standard HMAC TTL
 export function extractExpiresAtFromToken(
   token?: string,
   fallbackCreatedAt?: number,
-  ttlMs = DEFAULT_TTL_MS
+  ttlMs = TICKET_TTL_MS
 ): number {
   const baseTime = fallbackCreatedAt ?? Date.now();
   if (!token || typeof token !== 'string') {

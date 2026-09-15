@@ -12,23 +12,12 @@ import {
 } from '@/constants/animation';
 import { MarkdownView } from '../markdown-view';
 import { AgentWorkGroup, AgentProcessTimeline } from '../reasoning';
-import { normalizeMessageSteps, type ChatMessageStatus } from '@/lib/db';
+import { normalizeMessageSteps, type ChatMessageRecord } from '@/lib/db';
 import { useActiveTimer } from '@/hooks';
 import { stripIntermediateTextPrefix } from '@/agent/transforms';
-import type { ExecutedToolCall, AgentExecutionStep, MessageRole } from '@/agent/types';
+import type { AgentExecutionStep } from '@/agent/types';
 
-export interface ChatMessageData {
-  id: string;
-  role: MessageRole;
-  content: string;
-  status?: ChatMessageStatus;
-  followUpQuestions?: string[];
-  toolCalls?: ExecutedToolCall[];
-  steps?: AgentExecutionStep[];
-  stepCount?: number;
-  workedDurationMs?: number;
-  timestamp: number;
-}
+export type ChatMessageData = Omit<ChatMessageRecord, 'conversationId'>;
 
 interface ChatMessageProps {
   message: ChatMessageData;

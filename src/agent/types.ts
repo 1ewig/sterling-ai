@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DEFAULT_SYMBOL } from '@/lib/bitget/constants';
 import type { InferenceProviderType } from './providers/config';
 
 export type MessageRole = 'user' | 'assistant';
@@ -298,7 +299,7 @@ export const marketDataParamsSchema = z.object({
 });
 
 export const technicalAnalysisParamsSchema = z.object({
-  symbol: z.string().default('BTCUSDT').describe('Trading pair symbol (e.g. BTCUSDT, ETHUSDT, TSLAUSDT)'),
+  symbol: z.string().default(DEFAULT_SYMBOL).describe('Trading pair symbol (e.g. BTCUSDT, ETHUSDT, TSLAUSDT)'),
   granularity: z.enum(['15min', '1h', '4h', '1d', '1w']).default('4h').describe('Candlestick timeframe'),
   limit: z.number().min(30).max(200).default(100).describe('Number of candlestick bars to analyze (default 100)'),
 });
@@ -308,7 +309,7 @@ export const macroAnalystParamsSchema = z.object({
 });
 
 export const sentimentAnalystParamsSchema = z.object({
-  symbol: z.string().default('BTCUSDT').describe('Trading pair symbol for derivatives positioning (e.g. BTCUSDT, ETHUSDT, SOLUSDT)'),
+  symbol: z.string().default(DEFAULT_SYMBOL).describe('Trading pair symbol for derivatives positioning (e.g. BTCUSDT, ETHUSDT, SOLUSDT)'),
   timeframe: z.enum(['1h', '4h', '1d']).default('4h').describe('Lookback window for Long/Short and Taker ratios'),
 });
 

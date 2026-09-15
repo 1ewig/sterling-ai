@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULT_SYMBOL } from '@/lib/bitget/constants';
 import type { ChatMessageRecord } from '@/lib/db';
 import { DEFAULT_CONVERSATION_ID } from '@/lib/db';
 
@@ -71,7 +72,7 @@ export const useAppStore = create<AppState>()(
       isMarketPanelOpen: false,
       setIsMarketPanelOpen: (isMarketPanelOpen) => set({ isMarketPanelOpen }),
       toggleMarketPanel: () => set((state) => ({ isMarketPanelOpen: !state.isMarketPanelOpen })),
-      selectedMarketSymbol: 'BTCUSDT',
+      selectedMarketSymbol: DEFAULT_SYMBOL,
       setSelectedMarketSymbol: (selectedMarketSymbol) => set({ selectedMarketSymbol }),
 
       _hasHydrated: false,

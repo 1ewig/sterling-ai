@@ -1,4 +1,8 @@
-import { BITGET_REST_BASE } from './rest';
+import {
+  BITGET_REST_BASE,
+  USDT_FUTURES_CATEGORY,
+  SPOT_CATEGORY,
+} from './constants';
 import type { BitgetWsTickerData, BitgetWsBookData, BitgetWsArg, MicroCandle } from './types';
 import { isRTokenSymbol } from './formatters';
 
@@ -90,10 +94,10 @@ export async function seedCandlesSnapshot(
     }));
   };
 
-  const futCandles = await fetchCandidate('USDT-FUTURES', 'candles', 'interval=1m&limit=30', futCandidates, parseCandles);
+  const futCandles = await fetchCandidate(USDT_FUTURES_CATEGORY, 'candles', 'interval=1m&limit=30', futCandidates, parseCandles);
   if (futCandles) return { candles: futCandles, isFutures: true };
 
-  const spotCandles = await fetchCandidate('SPOT', 'candles', 'interval=1m&limit=30', spotCandidates, parseCandles);
+  const spotCandles = await fetchCandidate(SPOT_CATEGORY, 'candles', 'interval=1m&limit=30', spotCandidates, parseCandles);
   if (spotCandles) return { candles: spotCandles, isFutures: false };
 
   return { candles: [], isFutures: false };
@@ -129,10 +133,10 @@ export async function seedOrderbookSnapshot(
     };
   };
 
-  const futBook = await fetchCandidate('USDT-FUTURES', 'orderbook', 'limit=15', futCandidates, parseOrderbook);
+  const futBook = await fetchCandidate(USDT_FUTURES_CATEGORY, 'orderbook', 'limit=15', futCandidates, parseOrderbook);
   if (futBook) return { book: futBook, isFutures: true };
 
-  const spotBook = await fetchCandidate('SPOT', 'orderbook', 'limit=15', spotCandidates, parseOrderbook);
+  const spotBook = await fetchCandidate(SPOT_CATEGORY, 'orderbook', 'limit=15', spotCandidates, parseOrderbook);
   if (spotBook) return { book: spotBook, isFutures: false };
 
   return { book: null, isFutures: false };
@@ -160,8 +164,8 @@ export async function seedTickerSnapshot(
   };
 
   const [futRes, spotRes] = await Promise.allSettled([
-    fetchCandidate('USDT-FUTURES', 'tickers', '', futCandidates, parseTicker),
-    fetchCandidate('SPOT', 'tickers', '', spotCandidates, parseTicker),
+    fetchCandidate(USDT_FUTURES_CATEGORY, 'tickers', '', futCandidates, parseTicker),
+    fetchCandidate(SPOT_CATEGORY, 'tickers', '', spotCandidates, parseTicker),
   ]);
 
   return {

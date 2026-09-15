@@ -1,15 +1,23 @@
 import { z } from 'zod';
+import {
+  type BitgetV3Category,
+  USDT_FUTURES_CATEGORY,
+  SPOT_CATEGORY,
+  COIN_FUTURES_CATEGORY,
+  USDC_FUTURES_CATEGORY,
+  DEFAULT_LEVERAGE,
+} from '../constants';
 
-export type BitgetV3Category = 'SPOT' | 'USDT-FUTURES' | 'COIN-FUTURES' | 'USDC-FUTURES';
+export type { BitgetV3Category };
 
 export function toV3Category(category?: string): BitgetV3Category {
-  if (!category) return 'USDT-FUTURES';
+  if (!category) return USDT_FUTURES_CATEGORY;
   const upper = category.toUpperCase().trim();
-  if (upper === 'SPOT') return 'SPOT';
-  if (upper === 'USDT-FUTURES' || upper === 'FUTURES') return 'USDT-FUTURES';
-  if (upper === 'COIN-FUTURES') return 'COIN-FUTURES';
-  if (upper === 'USDC-FUTURES') return 'USDC-FUTURES';
-  return 'USDT-FUTURES';
+  if (upper === 'SPOT') return SPOT_CATEGORY;
+  if (upper === 'USDT-FUTURES' || upper === 'FUTURES') return USDT_FUTURES_CATEGORY;
+  if (upper === 'COIN-FUTURES') return COIN_FUTURES_CATEGORY;
+  if (upper === 'USDC-FUTURES') return USDC_FUTURES_CATEGORY;
+  return USDT_FUTURES_CATEGORY;
 }
 
 export interface BitgetInstrument {
@@ -179,7 +187,7 @@ export const stageTradeOrderParamsSchema = z.object({
     .describe('Order size / quantity in base asset units (e.g. 0.05 BTC or 2.0 TSLA)'),
   price: z.coerce.number().positive().optional().describe('Limit price (required for limit orders)'),
   tradeSide: z.enum(['open', 'close']).default('open').describe('Position intent: open new position or close existing'),
-  leverage: z.coerce.number().min(1).max(50).default(5).optional().describe('Leverage multiple (for futures)'),
+  leverage: z.coerce.number().min(1).max(50).default(DEFAULT_LEVERAGE).optional().describe('Leverage multiple (for futures)'),
   stopLossPrice: z.coerce.number().positive().optional().describe('Preset Stop-Loss price level'),
   takeProfitPrice: z.coerce.number().positive().optional().describe('Preset Take-Profit price level'),
   rationale: z.string().optional().describe('Short trading rationale or catalyst for this setup'),

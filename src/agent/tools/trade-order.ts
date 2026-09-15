@@ -3,6 +3,7 @@ import { stageTradeOrderParamsSchema } from '@/lib/bitget/types';
 import { fetchBitgetTicker } from '@/lib/bitget/rest';
 import { normalizeSymbol } from '@/lib/bitget/symbols';
 import { createTradeTicketToken } from '@/lib/bitget/auth';
+import { DEFAULT_LEVERAGE } from '@/lib/bitget/constants';
 import {
   getInstrument,
   snapPriceToTick,
@@ -23,7 +24,7 @@ export const stageTradeOrderTool = tool({
     size,
     price,
     tradeSide,
-    leverage = 5,
+    leverage = DEFAULT_LEVERAGE,
     stopLossPrice,
     takeProfitPrice,
     rationale,

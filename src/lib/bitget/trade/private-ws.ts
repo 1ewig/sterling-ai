@@ -1,5 +1,9 @@
 import crypto from 'node:crypto';
 import type { BitgetV3Position, BitgetV3OrderInfo, BitgetV3Category } from '../types';
+import {
+  BITGET_WS_PRIVATE_URL,
+  BITGET_WS_PRIVATE_DEMO_URL,
+} from '../constants';
 import { mapOpenOrder, type RawUnfilledOrder } from './queries';
 
 export interface BitgetPrivateWsCallbacks {
@@ -67,9 +71,7 @@ export function createBitgetPrivateWsSession(
     throw new Error('Bitget API credentials not configured');
   }
 
-  const wsUrl = isDemo
-    ? 'wss://wspap.bitget.com/v2/ws/private'
-    : 'wss://ws.bitget.com/v2/ws/private';
+  const wsUrl = isDemo ? BITGET_WS_PRIVATE_DEMO_URL : BITGET_WS_PRIVATE_URL;
 
   let isClosed = false;
   let pingTimer: ReturnType<typeof setInterval> | null = null;

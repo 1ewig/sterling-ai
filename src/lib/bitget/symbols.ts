@@ -1,9 +1,13 @@
+import { DEFAULT_SYMBOL } from './constants';
+
+export { DEFAULT_SYMBOL };
+
 /**
  * Normalizes user and agent symbol strings into standard Bitget trading pairs.
  * Handles suffixes (-PERP, .P, /USDT), lowercase tickers, and non-alphanumeric chars.
  */
 export function normalizeSymbol(raw: string): string {
-  if (!raw || typeof raw !== 'string') return 'BTCUSDT';
+  if (!raw || typeof raw !== 'string') return DEFAULT_SYMBOL;
   let clean = raw.trim().toUpperCase();
 
   // Strip common derivatives and punctuation suffixes
@@ -13,7 +17,7 @@ export function normalizeSymbol(raw: string): string {
     .replace(/\.D$/i, '')
     .replace(/[^A-Z0-9]/g, '');
 
-  if (!clean) return 'BTCUSDT';
+  if (!clean) return DEFAULT_SYMBOL;
 
   return `${clean}USDT`;
 }

@@ -1,13 +1,14 @@
 import type { SentimentAnalystData } from '@/agent/types';
 import { normalizeSymbol } from '../symbols';
 import { fetchFundingRate, fetchOpenInterest } from '../rest';
+import { DEFAULT_SYMBOL } from '../constants';
 import { callMcpTool } from '@/lib/datahub';
 
 /**
  * Domain Tool: Sentiment Analyst
  */
 export async function getSentimentAnalysis(
-  symbol = 'BTCUSDT',
+  symbol = DEFAULT_SYMBOL,
   timeframe = '4h'
 ): Promise<SentimentAnalystData> {
   const sym = normalizeSymbol(symbol);

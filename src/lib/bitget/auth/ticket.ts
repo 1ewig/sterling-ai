@@ -1,9 +1,9 @@
 import crypto from 'node:crypto';
 import type { StagedTradeTicketPayload, StagedActionTicketPayload } from '../types';
+import { TICKET_TTL_MS } from '../constants';
 
 export type { StagedTradeTicketPayload, StagedActionTicketPayload };
-
-const TICKET_TTL_MS = 5 * 60 * 1000; // 5 minutes validity
+export { TICKET_TTL_MS };
 
 function getTicketSecret(): string {
   return (

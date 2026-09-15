@@ -17,6 +17,7 @@ import {
   type StagedTradeItem,
   type StagedActionItem,
 } from '@/stores/staged-trades-store';
+import { USDT_FUTURES_CATEGORY } from '@/lib/bitget/constants';
 
 export type { StagedTradeItem, StagedActionItem };
 export type { StagedActionType, StagedActionStatus, StagedActionRecord };
@@ -84,7 +85,7 @@ export async function stageFromToolResult(
       actionType: 'order',
       ticketToken,
       symbol: String(res.symbol),
-      category: typeof res.category === 'string' ? res.category : 'USDT-FUTURES',
+      category: typeof res.category === 'string' ? res.category : USDT_FUTURES_CATEGORY,
       side: (res.side as 'buy' | 'sell') || 'buy',
       orderType: (res.orderType as 'limit' | 'market') || 'limit',
       size: typeof res.size === 'number' ? res.size : 0,
@@ -119,7 +120,7 @@ export async function stageFromToolResult(
       actionToken,
       action: (res.action as 'cancel_order' | 'cancel_symbol') || 'cancel_order',
       symbol: String(res.symbol),
-      category: typeof res.category === 'string' ? res.category : 'USDT-FUTURES',
+      category: typeof res.category === 'string' ? res.category : USDT_FUTURES_CATEGORY,
       orderId: typeof res.orderId === 'string' ? res.orderId : undefined,
       clientOid: typeof res.clientOid === 'string' ? res.clientOid : undefined,
       cancelAll: Boolean(res.cancelAll),
@@ -146,7 +147,7 @@ export async function stageFromToolResult(
       actionToken,
       action: 'close_position',
       symbol: String(res.symbol),
-      category: typeof res.category === 'string' ? res.category : 'USDT-FUTURES',
+      category: typeof res.category === 'string' ? res.category : USDT_FUTURES_CATEGORY,
       closeSide: (res.closeSide as 'buy' | 'sell') || 'sell',
       closeSize: typeof res.closeSize === 'string' ? res.closeSize : undefined,
       totalPositionSize: typeof res.totalPositionSize === 'number' ? res.totalPositionSize : undefined,

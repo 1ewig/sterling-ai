@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { BITGET_TIME_URL, SERVER_TIME_SYNC_EXPIRY_MS } from '../constants';
 
 /**
  * Sorts query string keys alphabetically according to Bitget signing specifications
@@ -31,15 +32,13 @@ let serverTimeOffsetMs = 0;
 let lastSyncTimestampMs = 0;
 let syncPromise: Promise<number> | null = null;
 
-const SYNC_EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
-
 /**
  * Synchronizes local system clock with Bitget's live server time.
  * Calculates network latency to maintain sub-second synchronization.
  */
 export async function syncBitgetServerTime(force = false): Promise<number> {
   const now = Date.now();
-  if (!force && lastSyncTimestampMs > 0 && now - lastSyncTimestampMs < SYNC_EXPIRY_MS) {
+  if (!force && lastSyncTimestampMs > 0 && now - lastSyncTimestampMs < SERVER_TIME_SYNC_EXPIRY_MS) {
     return serverTimeOffsetMs;
   }
 
@@ -50,7 +49,7 @@ export async function syncBitgetServerTime(force = false): Promise<number> {
   syncPromise = (async () => {
     try {
       const t0 = Date.now();
-      const res = await fetch('https://api.bitget.com/api/v2/public/time', {
+      const res = await fetch(BITGET_TIME_URL, {
         signal: AbortSignal.timeout(4000),
       });
       const t1 = Date.now();

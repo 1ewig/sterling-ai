@@ -27,6 +27,8 @@ export interface UseBitgetWebSocketOptions {
   enabled?: boolean;
 }
 
+import { BITGET_WS_PUBLIC_URL } from '@/lib/bitget/constants';
+
 export interface UseBitgetWebSocketReturn {
   ticker: BitgetWsTickerData | null;
   futuresTicker: BitgetWsTickerData | null;
@@ -42,7 +44,7 @@ export interface MarketStreamState extends UseBitgetWebSocketReturn {
   isConnecting: boolean;
 }
 
-const WS_URL = 'wss://ws.bitget.com/v3/ws/public';
+const WS_URL = BITGET_WS_PUBLIC_URL;
 const PING_INTERVAL_MS = 20000;
 const RECONNECT_BASE_DELAY_MS = 1500;
 const RECONNECT_MAX_DELAY_MS = 10000;
