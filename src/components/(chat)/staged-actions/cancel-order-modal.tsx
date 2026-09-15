@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Ban } from 'lucide-react';
-import type { StagedTradeItem } from '@/hooks/chat';
+import type { StagedTradeItem, ExecutionState } from '@/hooks/chat';
 import { TradeModalShell } from './trade-modal-shell';
 
 /* -------------------------------------------------------------------------- */
@@ -13,7 +13,7 @@ export interface CancelOrderModalProps {
   isOpen: boolean;
   activeTrade: StagedTradeItem | null;
   remainingSeconds: number;
-  executionState: 'idle' | 'executing' | 'success' | 'error';
+  executionState: ExecutionState;
   responseMessage?: string | null;
   onClose: () => void;
   onConfirm: () => void;

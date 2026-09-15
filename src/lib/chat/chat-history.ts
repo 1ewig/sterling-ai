@@ -1,7 +1,8 @@
 import type { ChatMessageRecord } from '@/lib/db';
+import type { MessageRole } from '@/agent/types';
 
 export interface ChatHistoryMessage {
-  role: 'user' | 'assistant';
+  role: MessageRole;
   content: string;
 }
 

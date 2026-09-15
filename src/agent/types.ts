@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import type { InferenceProviderType } from './providers/config';
+
+export type MessageRole = 'user' | 'assistant';
+
+export type { InferenceProviderType };
 
 /**
  * Chat history message for multi-turn conversational context
@@ -82,7 +87,7 @@ export type AgentStreamEvent =
 export interface AgentOptions {
   prompt: string;
   symbol?: string;
-  provider?: 'fireworks' | 'bitget';
+  provider?: InferenceProviderType;
   modelName?: string;
   backupModelName?: string;
   apiKey?: string;

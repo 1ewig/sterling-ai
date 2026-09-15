@@ -2,7 +2,10 @@ import Dexie, { type EntityTable } from 'dexie';
 import type {
   ExecutedToolCall,
   AgentExecutionStep,
+  MessageRole,
 } from '@/agent/types';
+
+export type ChatMessageStatus = 'success' | 'error' | 'pending';
 
 export interface ConversationRecord {
   id: string;
@@ -14,9 +17,9 @@ export interface ConversationRecord {
 export interface ChatMessageRecord {
   id: string;
   conversationId: string;
-  role: 'user' | 'assistant';
+  role: MessageRole;
   content: string;
-  status?: 'success' | 'error' | 'pending';
+  status?: ChatMessageStatus;
   followUpQuestions?: string[];
   toolCalls?: ExecutedToolCall[];
   steps?: AgentExecutionStep[];

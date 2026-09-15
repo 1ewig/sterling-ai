@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import type { StagedTradeItem } from '@/hooks/chat';
+import type { StagedTradeItem, ExecutionState } from '@/hooks/chat';
 import { formatUSD } from '@/lib/bitget/formatters';
 import { TradeModalShell } from './trade-modal-shell';
 
@@ -14,7 +14,7 @@ export interface OrderConfirmationModalProps {
   isOpen: boolean;
   activeTrade: StagedTradeItem | null;
   remainingSeconds: number;
-  executionState: 'idle' | 'executing' | 'success' | 'error';
+  executionState: ExecutionState;
   responseMessage?: string | null;
   onClose: () => void;
   onConfirm: () => void;

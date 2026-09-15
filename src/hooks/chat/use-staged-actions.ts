@@ -12,10 +12,13 @@ import {
   type StagedActionType,
   type StagedActionStatus,
 } from '@/lib/db';
-import { useStagedTradesStore } from '@/stores/staged-trades-store';
+import {
+  useStagedTradesStore,
+  type StagedTradeItem,
+  type StagedActionItem,
+} from '@/stores/staged-trades-store';
 
-export type StagedTradeItem = StagedActionRecord;
-export type StagedActionItem = StagedActionRecord;
+export type { StagedTradeItem, StagedActionItem };
 export type { StagedActionType, StagedActionStatus, StagedActionRecord };
 
 export interface StagedActionCounts {

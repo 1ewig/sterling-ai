@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
-import type { StagedTradeItem } from '@/hooks/chat';
+import type { StagedTradeItem, ExecutionState } from '@/hooks/chat';
 import { EASING_ARCHITECTURAL } from '@/constants/animation';
 import { formatCountdown } from '@/lib/bitget/formatters';
 
@@ -11,7 +11,7 @@ export interface TradeModalShellProps {
   isOpen: boolean;
   activeTrade: StagedTradeItem | null;
   remainingSeconds: number;
-  executionState: 'idle' | 'executing' | 'success' | 'error';
+  executionState: ExecutionState;
   responseMessage?: string | null;
   title: string;
   indicatorColor?: string;

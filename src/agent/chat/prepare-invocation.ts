@@ -4,7 +4,7 @@ import {
   STERLING_INSTRUCTIONS,
   FIRST_TURN_SESSION_TITLE_DIRECTIVE,
 } from '../instructions';
-import type { AgentOptions } from '../types';
+import type { AgentOptions, MessageRole } from '../types';
 
 export interface PreparedAgentInvocation {
   model: ReturnType<typeof getAgentModel>;
@@ -12,7 +12,7 @@ export interface PreparedAgentInvocation {
   tools: AgentTools;
   effectiveSystemPrompt: string;
   currentUserPrompt: string;
-  messages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  messages?: Array<{ role: MessageRole; content: string }>;
   reasoningEffort: 'high' | 'medium' | 'low' | 'max' | 'default' | 'none';
   maxTokens: number;
 }

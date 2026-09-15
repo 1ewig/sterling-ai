@@ -10,6 +10,11 @@ import {
   DEFAULT_BITGET_BASE_URL,
 } from './config';
 
+const ERR_MISSING_BITGET_KEY =
+  'BITGET_AI_API_KEY environment variable is not configured. Please set your Bitget AI API key in .env.local.';
+const ERR_MISSING_FIREWORKS_KEY =
+  'FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.';
+
 /**
  * Resolves the active inference provider from options or environment variables
  */
@@ -48,7 +53,7 @@ export function getAgentModel(
   if (provider === 'bitget') {
     const resolvedApiKey = apiKey ?? process.env.BITGET_AI_API_KEY;
     if (!resolvedApiKey) {
-      throw new Error('BITGET_AI_API_KEY environment variable is not configured. Please set your Bitget AI API key in .env.local.');
+      throw new Error(ERR_MISSING_BITGET_KEY);
     }
     const baseURL = process.env.BITGET_AI_BASE_URL ?? DEFAULT_BITGET_BASE_URL;
     const bitget = createOpenAI({
@@ -63,7 +68,7 @@ export function getAgentModel(
   // Default to Fireworks
   const resolvedApiKey = apiKey ?? process.env.FIREWORKS_API_KEY;
   if (!resolvedApiKey) {
-    throw new Error('FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.');
+    throw new Error(ERR_MISSING_FIREWORKS_KEY);
   }
   const fireworks = createFireworks({ apiKey: resolvedApiKey });
   const selectedModel = modelName ?? process.env.FIREWORKS_MODEL ?? DEFAULT_FIREWORKS_MODEL;
@@ -95,7 +100,7 @@ export function getBackupAgentModel(
   if (backupProvider === 'bitget') {
     const resolvedApiKey = apiKey ?? process.env.BITGET_AI_API_KEY;
     if (!resolvedApiKey) {
-      throw new Error('BITGET_AI_API_KEY environment variable is not configured. Please set your Bitget AI API key in .env.local.');
+      throw new Error(ERR_MISSING_BITGET_KEY);
     }
     const baseURL = process.env.BITGET_AI_BASE_URL ?? DEFAULT_BITGET_BASE_URL;
     const bitget = createOpenAI({
@@ -110,7 +115,7 @@ export function getBackupAgentModel(
   // Fireworks backup
   const resolvedApiKey = apiKey ?? process.env.FIREWORKS_API_KEY;
   if (!resolvedApiKey) {
-    throw new Error('FIREWORKS_API_KEY environment variable is not configured. Please set your Fireworks API key in .env.local.');
+    throw new Error(ERR_MISSING_FIREWORKS_KEY);
   }
   const fireworks = createFireworks({ apiKey: resolvedApiKey });
   const selectedModel = backupModelName ?? process.env.FIREWORKS_BACKUP_MODEL ?? DEFAULT_FIREWORKS_BACKUP_MODEL;
