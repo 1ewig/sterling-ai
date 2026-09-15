@@ -12,6 +12,10 @@ export const OrdersHeader = React.memo(function OrdersHeader({
   summary,
 }: OrdersHeaderProps) {
   const isPnlPositive = summary.totalUnrealizedPnl >= 0;
+  const formattedPnl = (isPnlPositive ? '+' : '') + summary.totalUnrealizedPnl.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -54,16 +58,15 @@ export const OrdersHeader = React.memo(function OrdersHeader({
             {isPnlPositive ? (
               <TrendingUp className="size-4 text-theme-status-success" />
             ) : (
-              <TrendingDown className="size-4 text-theme-status-error" />
+              <TrendingDown className="size-4 text-theme-status-danger" />
             )}
           </div>
           <div
             className={`text-lg sm:text-xl font-mono font-bold truncate ${
-              isPnlPositive ? 'text-theme-status-success' : 'text-theme-status-error'
+              isPnlPositive ? 'text-theme-status-success' : 'text-theme-status-danger'
             }`}
           >
-            {isPnlPositive ? '+' : ''}
-            ${summary.totalUnrealizedPnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            ${formattedPnl}
           </div>
           <span className="text-2xs text-theme-text-muted">
             Live mark-to-market settlement
