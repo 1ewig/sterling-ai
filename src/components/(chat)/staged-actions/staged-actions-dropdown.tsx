@@ -129,48 +129,60 @@ export const StagedActionsDropdown = React.memo(function StagedActionsDropdown({
       {/* Overflow Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            variants={dropdownMenuVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="absolute right-0 top-full mt-1.5 w-80 sm:w-96 rounded-xl bg-theme-bg-surface border border-theme-border-subtle shadow-2xl overflow-hidden z-40 flex flex-col"
-          >
-            {/* Menu Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-theme-border-subtle/50 bg-theme-bg-elevated/30">
-              <div className="flex items-center gap-1.5">
-                <Layers className="size-3.5 text-theme-brand-accent" />
-                <span className="text-2xs font-bold uppercase tracking-wider text-theme-text-primary">
-                  Staged Actions ({counts.total})
-                </span>
-              </div>
-              <span className="text-2xs text-theme-text-muted">Click to review ticket</span>
-            </div>
+          <>
+            {/* Mobile Backdrop Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 z-30 bg-black/40 backdrop-blur-2xs sm:hidden"
+              aria-hidden="true"
+            />
 
-            {/* Category Filter Tabs */}
-            <div className="flex items-center gap-1 p-1.5 border-b border-theme-border-subtle/40 bg-theme-bg-base/50 text-2xs font-mono">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                const tabCount = counts[tab.countKey];
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex-1 py-1 px-2 rounded-md transition-colors flex items-center justify-center gap-1 cursor-pointer ${
-                      isActive
-                        ? 'bg-theme-bg-elevated text-theme-text-primary font-bold border border-theme-border-subtle'
-                        : 'text-theme-text-muted hover:text-theme-text-primary'
-                    }`}
-                  >
-                    {Icon && <Icon className={`size-3 ${tab.iconColor || ''}`} />}
-                    <span>{tab.label}</span>
-                    <span className="text-2xs opacity-80">({tabCount})</span>
-                  </button>
-                );
-              })}
-            </div>
+            <motion.div
+              variants={dropdownMenuVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-x-3 top-16 sm:inset-x-auto sm:absolute sm:right-0 sm:top-full sm:mt-1.5 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-xl bg-theme-bg-surface border border-theme-border-subtle shadow-2xl overflow-hidden z-40 flex flex-col"
+            >
+              {/* Menu Header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-theme-border-subtle/50 bg-theme-bg-elevated/30">
+                <div className="flex items-center gap-1.5">
+                  <Layers className="size-3.5 text-theme-brand-accent" />
+                  <span className="text-2xs font-bold uppercase tracking-wider text-theme-text-primary">
+                    Staged Actions ({counts.total})
+                  </span>
+                </div>
+                <span className="text-2xs text-theme-text-muted">Click to review ticket</span>
+              </div>
+
+              {/* Category Filter Tabs */}
+              <div className="flex items-center gap-1 p-1.5 border-b border-theme-border-subtle/40 bg-theme-bg-base/50 text-2xs font-mono">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  const tabCount = counts[tab.countKey];
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex-1 py-1 px-1.5 sm:px-2 rounded-md transition-colors flex items-center justify-center gap-1 cursor-pointer select-none ${
+                        isActive
+                          ? 'bg-theme-bg-elevated text-theme-text-primary font-bold border border-theme-border-subtle'
+                          : 'text-theme-text-muted hover:text-theme-text-primary'
+                      }`}
+                    >
+                      {Icon && <Icon className={`size-3 shrink-0 hidden xs:inline ${tab.iconColor || ''}`} />}
+                      <span className="truncate">{tab.label}</span>
+                      <span className="text-2xs opacity-80 shrink-0">({tabCount})</span>
+                    </button>
+                  );
+                })}
+              </div>
 
             {/* List of Staged Actions */}
             <div className="flex flex-col max-h-72 overflow-y-auto divide-y divide-theme-border-subtle/30">
@@ -215,8 +227,9 @@ export const StagedActionsDropdown = React.memo(function StagedActionsDropdown({
               )}
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </>
+      )}
+    </AnimatePresence>
     </div>
   );
 });

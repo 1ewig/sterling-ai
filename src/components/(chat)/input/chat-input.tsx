@@ -46,7 +46,7 @@ export const ChatInput = memo(
       isLoading,
       onSend,
       onStop,
-      placeholder = 'Ask a question, research a topic, or search the web...',
+      placeholder = 'Ask anything or search...',
       className,
       containerClassName,
       autoFocus = false,

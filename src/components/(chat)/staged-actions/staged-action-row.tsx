@@ -119,9 +119,10 @@ export const StagedActionRow = React.memo(function StagedActionRow({
           type="button"
           onClick={(e) => onDiscard(e, item.id)}
           title="Discard this action"
-          className="size-6 rounded flex items-center justify-center text-theme-text-muted hover:text-theme-status-danger hover:bg-theme-status-danger/10 transition-colors cursor-pointer"
+          aria-label={`Discard ${item.symbol} staged action`}
+          className="size-7 sm:size-6 rounded-md flex items-center justify-center text-theme-text-muted hover:text-theme-status-danger hover:bg-theme-status-danger/10 active:scale-95 transition-all cursor-pointer touch-manipulation"
         >
-          <X className="size-3" />
+          <X className="size-3.5 sm:size-3" />
         </button>
 
         <ChevronRight className="size-3.5 text-theme-text-muted group-hover:text-theme-text-primary transition-colors" />
