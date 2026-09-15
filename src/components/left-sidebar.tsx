@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
+import { ApiKeysModal } from '@/components/common/api-keys-modal';
 import { sidebarSpringTransition } from '@/constants/animation';
 import { useTheme, useSidebar, useChatSessions } from '@/hooks';
 import {
@@ -12,6 +13,7 @@ import {
   SidebarPortfolioButton,
   SidebarSessionList,
   SidebarThemeToggle,
+  SidebarTradingModeSwitch,
 } from './sidebar';
 
 const noopSubscribe = () => () => {};
@@ -133,11 +135,17 @@ export function LeftSidebar() {
           onOpenDelete={handleOpenDeleteDialog}
         />
 
-        <SidebarThemeToggle
-          isCollapsed={isSidebarCollapsed}
-          isDark={isDark}
-          onToggle={toggleTheme}
-        />
+        <div className="flex flex-col border-t border-theme-border-subtle shrink-0">
+          <SidebarTradingModeSwitch
+            isCollapsed={isSidebarCollapsed}
+          />
+
+          <SidebarThemeToggle
+            isCollapsed={isSidebarCollapsed}
+            isDark={isDark}
+            onToggle={toggleTheme}
+          />
+        </div>
       </motion.aside>
 
       {/* Mobile Slide-Over Drawer */}
@@ -203,11 +211,17 @@ export function LeftSidebar() {
                 onOpenDelete={handleOpenDeleteDialog}
               />
 
-              <SidebarThemeToggle
-                isCollapsed={false}
-                isDark={isDark}
-                onToggle={toggleTheme}
-              />
+              <div className="flex flex-col border-t border-theme-border-subtle shrink-0">
+                <SidebarTradingModeSwitch
+                  isCollapsed={false}
+                />
+
+                <SidebarThemeToggle
+                  isCollapsed={false}
+                  isDark={isDark}
+                  onToggle={toggleTheme}
+                />
+              </div>
             </motion.aside>
           </>
         )}
@@ -228,6 +242,9 @@ export function LeftSidebar() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+
+      {/* Bitget API Keys Configuration Modal */}
+      <ApiKeysModal />
     </>
   );
 }

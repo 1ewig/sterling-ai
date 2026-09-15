@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server';
 import { fetchPositionsV3 } from '@/lib/bitget/trade/positions';
 import { fetchOpenOrdersV3 } from '@/lib/bitget/trade/queries';
+import { getSandboxOrdersAndPositions } from '@/lib/sandbox/sandbox-broker';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(req: Request) {
+  const tradingMode = req.headers.get('x-trading-mode') || 'sandbox';
+
+  if (tradingMode === 'sandbox') {
+    const sandboxData = getSandboxOrdersAndPositions();
+    return NextResponse.json({
+      success: true,
+      data: sandboxData,
+      isSandbox: true,
+    });
+  }
+
   try {
     const [positionsRes, ordersRes] = await Promise.allSettled([
       fetchPositionsV3('USDT-FUTURES'),
@@ -43,6 +55,16 @@ export async function GET() {
       firstError?.includes('MISSING_CREDENTIALS') ||
       false;
 
+    if (isMissingConfig) {
+      const sandboxData = getSandboxOrdersAndPositions();
+      return NextResponse.json({
+        success: true,
+        data: sandboxData,
+        isSandbox: true,
+        isMissingConfig: true,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -59,6 +81,16 @@ export async function GET() {
       message.includes('BITGET_API_KEY') ||
       message.includes('credentials not configured') ||
       message.includes('MISSING_CREDENTIALS');
+
+    if (isMissingConfig) {
+      const sandboxData = getSandboxOrdersAndPositions();
+      return NextResponse.json({
+        success: true,
+        data: sandboxData,
+        isSandbox: true,
+        isMissingConfig: true,
+      });
+    }
 
     return NextResponse.json(
       {

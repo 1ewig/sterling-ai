@@ -5,3 +5,4 @@ export { SidebarPortfolioButton, SidebarAssetsButton } from './sidebar-portfolio
 export { SidebarSessionList } from './sidebar-session-list';
 export { SidebarSessionItem } from './sidebar-session-item';
 export { SidebarThemeToggle } from './sidebar-theme-toggle';
+export { SidebarTradingModeSwitch } from './sidebar-trading-mode-switch';

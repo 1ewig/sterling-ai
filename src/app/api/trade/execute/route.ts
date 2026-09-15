@@ -70,7 +70,29 @@ export async function POST(req: Request) {
       };
     }
 
-    // 2. Submit order to Bitget v3 UTA
+    // 2. Check trading mode (Sandbox vs Live)
+    const reqMode = req.headers.get('x-trading-mode');
+    const isSandbox =
+      reqMode === 'sandbox' ||
+      (!process.env.BITGET_API_KEY && !req.headers.get('x-bitget-api-key'));
+
+    if (isSandbox) {
+      const { executeSandboxOrder } = await import('@/lib/sandbox/sandbox-broker');
+      const sbResult = executeSandboxOrder(orderParams);
+      return NextResponse.json({
+        success: true,
+        orderId: sbResult.orderId,
+        clientOid: sbResult.clientOid,
+        symbol: sbResult.symbol,
+        category: sbResult.category,
+        status: sbResult.status,
+        avgPrice: sbResult.avgPrice,
+        message: sbResult.message,
+        isSandbox: true,
+      });
+    }
+
+    // 3. Submit order to Bitget v3 UTA
     const result = await placeOrderV3(orderParams);
 
     // 3. Short polling (up to 1.5s) to capture instant market fills or limit acceptances

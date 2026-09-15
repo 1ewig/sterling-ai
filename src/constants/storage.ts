@@ -5,8 +5,12 @@ export const STORAGE_KEYS = {
   THEME: 'sterling-theme',
   SIDEBAR_COLLAPSED: 'sterling-sidebar-collapsed',
   SESSION_STORE: 'sterling-session-store',
+  TRADING_MODE: 'sterling-trading-mode',
+  API_CREDENTIALS: 'sterling-api-credentials',
 } as const;
 
 export const THEME_STORAGE_KEY = STORAGE_KEYS.THEME;
 export const SIDEBAR_STORAGE_KEY = STORAGE_KEYS.SIDEBAR_COLLAPSED;
 export const SESSION_STORAGE_KEY = STORAGE_KEYS.SESSION_STORE;
+export const TRADING_MODE_STORAGE_KEY = STORAGE_KEYS.TRADING_MODE;
+export const API_CREDENTIALS_STORAGE_KEY = STORAGE_KEYS.API_CREDENTIALS;

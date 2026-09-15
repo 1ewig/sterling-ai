@@ -82,6 +82,13 @@ export function getSyncedBitgetTimestamp(): string {
   return (Date.now() + serverTimeOffsetMs).toString();
 }
 
+export interface BitgetCredentials {
+  apiKey?: string;
+  apiSecret?: string;
+  passphrase?: string;
+  isDemo?: boolean;
+}
+
 /**
  * Builds standard Bitget authenticated request headers.
  */
@@ -89,16 +96,20 @@ export function getAuthHeaders(
   method: string,
   requestPath: string,
   queryString = '',
-  bodyObj?: Record<string, unknown>
+  bodyObj?: Record<string, unknown>,
+  credentials?: BitgetCredentials
 ): Record<string, string> {
-  const apiKey = process.env.BITGET_API_KEY;
-  const apiSecret = process.env.BITGET_API_SECRET;
-  const passphrase = process.env.BITGET_PASSPHRASE;
-  const isDemo = process.env.BITGET_DEMO_TRADING === 'true';
+  const apiKey = credentials?.apiKey || process.env.BITGET_API_KEY;
+  const apiSecret = credentials?.apiSecret || process.env.BITGET_API_SECRET;
+  const passphrase = credentials?.passphrase || process.env.BITGET_PASSPHRASE;
+  const isDemo =
+    credentials?.isDemo !== undefined
+      ? credentials.isDemo
+      : process.env.BITGET_DEMO_TRADING === 'true';
 
   if (!apiKey || !apiSecret || !passphrase) {
     throw new Error(
-      'Bitget credentials not configured. Please set BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE in .env.local.'
+      'Bitget credentials not configured. Please set BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE in .env.local or configure them in Settings.'
     );
   }
 

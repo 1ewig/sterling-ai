@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { BitgetAccountOverview, BitgetV3Position } from '@/lib/bitget/types';
 import { applyPositionDelta } from '@/lib/bitget/trade';
+import { useTradingModeStore } from '@/stores/trading-mode-store';
 
 export interface UsePortfolioOverviewReturn {
   data: BitgetAccountOverview | null;
@@ -22,6 +23,7 @@ export type UseAccountOverviewReturn = UsePortfolioOverviewReturn;
  * Employs continuous SSE streaming from private WebSocket hub with in-memory RAF delta updates.
  */
 export function usePortfolioOverview(): UsePortfolioOverviewReturn {
+  const tradingMode = useTradingModeStore((s) => s.mode);
   const [data, setData] = useState<BitgetAccountOverview | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -93,9 +95,13 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     }
 
     try {
+      const mode = (await import('@/stores/trading-mode-store')).useTradingModeStore.getState().mode;
       const res = await fetch('/api/account/overview', {
         method: 'GET',
         cache: 'no-store',
+        headers: {
+          'x-trading-mode': mode,
+        },
       });
 
       const json = await res.json();
@@ -122,10 +128,21 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     }
   }, []);
 
-  // Real-time SSE Stream Listener
+  // Reconcile overview and manage private SSE stream when in Live mode
   useEffect(() => {
     isMountedRef.current = true;
     let retryDelay = 2000;
+
+    const initFetch = async () => {
+      await fetchOverview(false);
+    };
+    void initFetch();
+
+    if (tradingMode === 'sandbox') {
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
 
     const connectStream = async () => {
       if (!isMountedRef.current) return;
@@ -264,7 +281,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [scheduleBatchFlush, fetchOverview]);
+  }, [scheduleBatchFlush, fetchOverview, tradingMode]);
 
   const refetch = useCallback(async () => {
     await fetchOverview(true);

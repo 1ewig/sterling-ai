@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
 import { applyPositionDelta } from '@/lib/bitget/trade';
+import { useTradingModeStore } from '@/stores/trading-mode-store';
 
 export interface OrdersWorkbenchData {
   positions: BitgetV3Position[];
@@ -42,6 +43,7 @@ function applyOrderDelta(current: BitgetV3OrderInfo[], updates: BitgetV3OrderInf
 }
 
 export function useOrdersWorkbench() {
+  const tradingMode = useTradingModeStore((s) => s.mode);
   const [data, setData] = useState<OrdersWorkbenchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -95,7 +97,14 @@ export function useOrdersWorkbench() {
   const fetchWorkbenchData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const res = await fetch('/api/trade/orders', { method: 'GET', cache: 'no-store' });
+      const mode = (await import('@/stores/trading-mode-store')).useTradingModeStore.getState().mode;
+      const res = await fetch('/api/trade/orders', {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          'x-trading-mode': mode,
+        },
+      });
       const json = await res.json();
 
       if (json.isMissingConfig) {
@@ -117,10 +126,21 @@ export function useOrdersWorkbench() {
     }
   }, []);
 
-  // Real-Time SSE Stream Listener
+  // Reconcile workbench data and manage private SSE stream when in Live mode
   useEffect(() => {
     isMountedRef.current = true;
     let retryDelay = 2000;
+
+    const initFetch = async () => {
+      await fetchWorkbenchData();
+    };
+    void initFetch();
+
+    if (tradingMode === 'sandbox') {
+      return () => {
+        isMountedRef.current = false;
+      };
+    }
 
     const connectStream = async () => {
       if (!isMountedRef.current) return;
@@ -238,7 +258,7 @@ export function useOrdersWorkbench() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [scheduleBatchFlush, fetchWorkbenchData]);
+  }, [scheduleBatchFlush, fetchWorkbenchData, tradingMode]);
 
   // Unified Trade Action Dispatcher
   const executeTradeAction = useCallback(

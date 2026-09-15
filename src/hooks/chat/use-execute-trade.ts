@@ -80,9 +80,13 @@ export function useExecuteTrade({
       abortControllerRef.current = new AbortController();
 
       try {
+        const mode = (await import('@/stores/trading-mode-store')).useTradingModeStore.getState().mode;
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'x-trading-mode': mode,
+          },
           signal: abortControllerRef.current.signal,
           body: JSON.stringify(payload),
         });

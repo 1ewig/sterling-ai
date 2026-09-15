@@ -61,6 +61,46 @@ export async function POST(req: Request) {
       );
     }
 
+    // Check trading mode (Sandbox vs Live)
+    const reqMode = req.headers.get('x-trading-mode');
+    const isSandbox =
+      reqMode === 'sandbox' ||
+      (!process.env.BITGET_API_KEY && !req.headers.get('x-bitget-api-key'));
+
+    if (isSandbox) {
+      const { closeSandboxPosition, cancelSandboxOrder } = await import(
+        '@/lib/sandbox/sandbox-broker'
+      );
+
+      if (action === 'close_position') {
+        const sbClose = closeSandboxPosition(
+          symbol,
+          (side as 'buy' | 'sell') || 'sell',
+          size
+        );
+        return NextResponse.json({
+          success: true,
+          action: 'close_position',
+          symbol,
+          orderId: sbClose.orderId,
+          message: sbClose.message,
+          isSandbox: true,
+        });
+      }
+
+      if (action === 'cancel_order' || action === 'cancel_symbol') {
+        const sbCancel = cancelSandboxOrder(orderId, symbol);
+        return NextResponse.json({
+          success: true,
+          action,
+          symbol,
+          orderId,
+          message: sbCancel.message,
+          isSandbox: true,
+        });
+      }
+    }
+
     if (action === 'cancel_order') {
       if (!orderId && !clientOid) {
         return NextResponse.json(
