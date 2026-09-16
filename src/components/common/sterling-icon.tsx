@@ -30,7 +30,3 @@ export function SterlingIcon({
     </svg>
   );
 }
-
-// Backward-compatible alias
-export const ArgusIcon = SterlingIcon;
-export type ArgusIconProps = SterlingIconProps;
