@@ -1,5 +1,5 @@
 import { getAccountOverviewV3 } from '@/lib/bitget/trade/account';
-import { createSseStream, missingConfigSseResponse } from '@/lib/bitget/trade/sse';
+import { createSseStream } from '@/lib/bitget/trade/sse';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -12,7 +12,12 @@ export async function GET(req: Request) {
   const isMissingConfig = !apiKey || !apiSecret || !passphrase;
 
   if (isMissingConfig) {
-    return missingConfigSseResponse();
+    const { getSandboxAccountOverview } = await import('@/lib/sandbox/sandbox-broker');
+    return createSseStream(
+      'tab_acc_sb',
+      async () => ({ overview: getSandboxAccountOverview() }),
+      req.signal
+    );
   }
 
   return createSseStream(

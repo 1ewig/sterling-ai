@@ -9,6 +9,8 @@ import {
   getInstrument,
   snapQtyToStep,
 } from '@/lib/bitget/trade';
+import { getSandboxOrdersAndPositions } from '@/lib/sandbox/sandbox-broker';
+import { isMissingConfigError } from '@/lib/sandbox/trading-mode';
 
 export const getOpenOrdersParamsSchema = z.object({
   symbol: z.string().optional().describe('Optional symbol to filter open orders (e.g. BTCUSDT, RTSLAUSDT)'),
@@ -43,9 +45,50 @@ export const closePositionParamsSchema = z.object({
  */
 export const getOpenOrdersTool = tool({
   description:
-    'Query working unfilled orders on Bitget. Supports all categories (default USDT-FUTURES; use category="all" to aggregate USDT-FUTURES + SPOT + COIN-FUTURES + USDC-FUTURES). Returns order IDs, prices, sizes, hedge-mode position side (posSide/holdMode), conditional/plan order detection via delegateType, reduce-only flag, margin mode, and order age. The result carries a success flag and per-category sources/warnings — always check success before concluding there are no open orders.',
+    'Query working unfilled orders on Bitget. Supports all categories (default USDT-FUTURES; use category="all" to aggregate USDT-FUTURES + SPOT + COIN-FUTURES + USDC-FUTURES). If credentials are missing, seamlessly queries the active Sandbox Paper Trading broker.',
   inputSchema: getOpenOrdersParamsSchema,
   execute: async ({ symbol, category = 'usdt-futures' }) => {
+    const hasLiveCredentials = Boolean(
+      process.env.BITGET_API_KEY &&
+      process.env.BITGET_API_SECRET &&
+      process.env.BITGET_PASSPHRASE
+    );
+
+    if (!hasLiveCredentials) {
+      const sandbox = getSandboxOrdersAndPositions();
+      const filtered = symbol
+        ? sandbox.orders.filter((o) => normalizeSymbol(o.symbol) === normalizeSymbol(symbol))
+        : sandbox.orders;
+
+      return {
+        success: true,
+        isSandbox: true,
+        symbol: symbol ? normalizeSymbol(symbol) : undefined,
+        category,
+        orderCount: filtered.length,
+        orders: filtered.map((o) => ({
+          orderId: o.orderId,
+          clientOid: o.clientOid,
+          symbol: o.symbol,
+          category: o.category,
+          side: o.side,
+          orderType: o.orderType,
+          price: o.price,
+          size: o.size,
+          status: o.status,
+          statusLabel: statusLabel(o.status),
+          posSide: o.posSide || undefined,
+          holdMode: o.holdMode || undefined,
+          reduceOnly: o.reduceOnly || undefined,
+          avgPrice: o.avgPrice,
+          cTime: o.cTime,
+          ageSeconds: o.cTime ? ageSeconds(o.cTime) : undefined,
+        })),
+        warnings: ['Operating in Sandbox Paper Trading mode.'],
+        summary: buildSummary(filtered, symbol, category),
+      };
+    }
+
     try {
       const result = await fetchOpenOrdersV3({ symbol, categoryInput: category });
       const orders = result.orders;
@@ -234,8 +277,29 @@ export const closePositionTool = tool({
         };
       }
 
-      // 1. Inspect live position to determine existing direction and available size
-      const positions = await getPositionsV3(category);
+      // 1. Inspect live or sandbox position to determine existing direction and available size
+      const hasLiveCredentials = Boolean(
+        process.env.BITGET_API_KEY &&
+        process.env.BITGET_API_SECRET &&
+        process.env.BITGET_PASSPHRASE
+      );
+
+      let positions: import('@/lib/bitget/types').BitgetV3Position[] = [];
+      if (hasLiveCredentials) {
+        try {
+          positions = await getPositionsV3(category);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : '';
+          if (isMissingConfigError(msg)) {
+            positions = getSandboxOrdersAndPositions().positions;
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        positions = getSandboxOrdersAndPositions().positions;
+      }
+
       const candidates = positions.filter((p) => normalizeSymbol(p.symbol) === sym);
 
       if (candidates.length === 0) {

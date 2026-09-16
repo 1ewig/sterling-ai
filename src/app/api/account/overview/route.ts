@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     // Fall back to sandbox overview if credentials not configured
     if (isMissingConfigError(message)) {
       return NextResponse.json(
-        sandboxResponse(getSandboxAccountOverview(), { isMissingConfig: true })
+        sandboxResponse(getSandboxAccountOverview(), { isMissingConfig: false, isPaperFallback: true })
       );
     }
 

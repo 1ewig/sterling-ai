@@ -48,7 +48,7 @@ export async function GET(req: Request) {
 
     if (isMissingConfigError(errors[0])) {
       return NextResponse.json(
-        sandboxResponse(getSandboxOrdersAndPositions(), { isMissingConfig: true })
+        sandboxResponse(getSandboxOrdersAndPositions(), { isMissingConfig: false, isPaperFallback: true })
       );
     }
 
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
 
     if (isMissingConfigError(message)) {
       return NextResponse.json(
-        sandboxResponse(getSandboxOrdersAndPositions(), { isMissingConfig: true })
+        sandboxResponse(getSandboxOrdersAndPositions(), { isMissingConfig: false, isPaperFallback: true })
       );
     }
 

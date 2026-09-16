@@ -1,8 +1,9 @@
 'use client';
 
-import React, { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import Link from 'next/link';
-import { KeyRound, ShieldAlert, ArrowRight, Bot } from 'lucide-react';
+import { KeyRound, ShieldAlert, ArrowRight, Bot, FlaskConical, Plus } from 'lucide-react';
+import { useTradingModeStore } from '@/stores/trading-mode-store';
 
 export interface PortfolioUnconfiguredProps {
   errorMessage?: string;
@@ -11,6 +12,13 @@ export interface PortfolioUnconfiguredProps {
 export const PortfolioUnconfigured = memo(function PortfolioUnconfigured({
   errorMessage,
 }: PortfolioUnconfiguredProps) {
+  const openKeysModal = useTradingModeStore((s) => s.openKeysModal);
+  const setTradingMode = useTradingModeStore((s) => s.setTradingMode);
+
+  const handleSwitchToSandbox = useCallback(() => {
+    setTradingMode('sandbox');
+  }, [setTradingMode]);
+
   return (
     <div className="rounded-2xl bg-theme-bg-surface border border-theme-border-subtle p-spacing-lg sm:p-spacing-xl flex flex-col items-center justify-center text-center max-w-2xl mx-auto shadow-sm my-auto">
       <div className="size-14 rounded-2xl bg-theme-bg-elevated border border-theme-border-subtle flex items-center justify-center text-theme-brand-primary mb-4 shadow-2xs">
@@ -18,11 +26,11 @@ export const PortfolioUnconfigured = memo(function PortfolioUnconfigured({
       </div>
 
       <h2 className="text-lg sm:text-xl font-extrabold text-theme-text-primary tracking-tight">
-        Bitget UTA v3 Connection Required
+        Bitget UTA v3 Live Connection
       </h2>
 
       <p className="text-xs sm:text-sm text-theme-text-secondary mt-2 max-w-md">
-        To view your live portfolio balance, effective collateral margin, and active derivative positions, configure your Bitget API credentials.
+        Connect your Bitget API keys to sync your live portfolio, Unified margin balances, and active positions—or trade immediately with the built-in $100,000 Sandbox Paper Broker.
       </p>
 
       {errorMessage && (
@@ -32,25 +40,31 @@ export const PortfolioUnconfigured = memo(function PortfolioUnconfigured({
         </div>
       )}
 
-      <div className="mt-6 w-full text-left bg-theme-bg-elevated border border-theme-border-subtle rounded-xl p-3.5 text-xs text-theme-text-secondary">
-        <div className="text-2xs font-bold uppercase tracking-wider text-theme-text-primary mb-2">
-          Setup Instructions in <code className="text-theme-brand-primary">.env.local</code>:
-        </div>
-        <pre className="font-mono text-2xs text-theme-text-muted overflow-x-auto p-2 rounded bg-theme-bg-base border border-theme-border-subtle">
-{`BITGET_API_KEY=your_api_key
-BITGET_API_SECRET=your_api_secret
-BITGET_PASSPHRASE=your_api_passphrase
-BITGET_DEMO_TRADING=false`}
-        </pre>
-      </div>
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3 w-full">
+        <button
+          type="button"
+          onClick={openKeysModal}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-theme-brand-primary text-theme-bg-overlay font-bold text-xs hover:brightness-105 transition-all shadow-xs cursor-pointer"
+        >
+          <Plus className="size-4" />
+          <span>Connect Bitget API Keys</span>
+        </button>
 
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={handleSwitchToSandbox}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-theme-bg-elevated border border-theme-border-subtle text-theme-text-primary font-bold text-xs hover:bg-theme-bg-base transition-all shadow-2xs cursor-pointer"
+        >
+          <FlaskConical className="size-4 text-amber-400" />
+          <span>Switch to $100K Sandbox</span>
+        </button>
+
         <Link
           href="/chat"
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-theme-brand-primary text-theme-bg-overlay font-bold text-xs hover:brightness-105 transition-all shadow-xs"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-theme-bg-elevated border border-theme-border-subtle text-theme-text-secondary hover:text-theme-text-primary font-bold text-xs hover:bg-theme-bg-base transition-all shadow-2xs"
         >
           <Bot className="size-4" />
-          <span>Return to Desk Chat</span>
+          <span>Desk Chat</span>
           <ArrowRight className="size-3.5" />
         </Link>
       </div>
@@ -60,3 +74,4 @@ BITGET_DEMO_TRADING=false`}
 
 export const AssetsUnconfigured = PortfolioUnconfigured;
 export type AssetsUnconfiguredProps = PortfolioUnconfiguredProps;
+

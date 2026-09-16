@@ -1,6 +1,6 @@
 import { fetchPositionsV3 } from '@/lib/bitget/trade/positions';
 import { fetchOpenOrdersV3 } from '@/lib/bitget/trade/queries';
-import { createSseStream, missingConfigSseResponse } from '@/lib/bitget/trade/sse';
+import { createSseStream } from '@/lib/bitget/trade/sse';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,7 +13,8 @@ export async function GET(req: Request) {
   const isMissingConfig = !apiKey || !apiSecret || !passphrase;
 
   if (isMissingConfig) {
-    return missingConfigSseResponse();
+    const { getSandboxOrdersAndPositions } = await import('@/lib/sandbox/sandbox-broker');
+    return createSseStream('tab_trade_sb', async () => getSandboxOrdersAndPositions(), req.signal);
   }
 
   const fetchSnapshot = async () => {
