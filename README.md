@@ -1,6 +1,12 @@
 # Sterling — Institutional AI Trading Desk & Cross-Asset Intelligence Workbench
 
 <p align="left">
+  <a href="https://sterling-ai-navy.vercel.app/" target="_blank">
+    <img src="https://img.shields.io/badge/Live%20Demo-sterling--ai--navy.vercel.app-00F0FF?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo" />
+  </a>
+  <a href="https://github.com/1ewig/sterling-ai" target="_blank">
+    <img src="https://img.shields.io/badge/GitHub-1ewig%2Fsterling--ai-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub" />
+  </a>
   <img src="https://img.shields.io/badge/Runtime-Bun%201.4%2B-FBF0DF?style=for-the-badge&logo=bun&logoColor=000000" alt="Bun" />
   <img src="https://img.shields.io/badge/TypeScript-Strict%207-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Next.js-16.3%20App%20Router-000000?style=for-the-badge&logo=nextdotjs&logoColor=white" alt="Next.js" />
@@ -10,6 +16,9 @@
   <img src="https://img.shields.io/badge/Linter-Oxlint%20v1.81%2B-F59E0B?style=for-the-badge" alt="Oxlint" />
   <img src="https://img.shields.io/badge/Search-Exa%20AI-4F46E5?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Exa AI" />
 </p>
+
+> 🌐 **Live Interactive Workbench:** [https://sterling-ai-navy.vercel.app/](https://sterling-ai-navy.vercel.app/)  
+> 📦 **Source Repository:** [https://github.com/1ewig/sterling-ai](https://github.com/1ewig/sterling-ai)
 
 Traditional markets have opening bells and closing bells, but tokenized US stocks (rTokens) never shut down. Macro events break over the weekend while prices keep moving on-chain — turning the global trading window into a 24/7 landscape.
 
@@ -157,7 +166,7 @@ sterling-ai/
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/your-username/sterling-ai.git
+git clone https://github.com/1ewig/sterling-ai.git
 cd sterling-ai
 bun install
 ```
