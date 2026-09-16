@@ -63,3 +63,22 @@ export const useTradingModeStore = create<TradingModeState>()(
 export function getTradingMode(): TradingMode {
   return useTradingModeStore.getState().mode;
 }
+
+/**
+ * Builds standard request headers containing client-side Bitget credentials and trading mode.
+ */
+export function getClientBitgetHeaders(): Record<string, string> {
+  const state = useTradingModeStore.getState();
+  const headers: Record<string, string> = {
+    'x-trading-mode': state.mode,
+  };
+  if (state.credentials?.apiKey && state.credentials?.apiSecret && state.credentials?.passphrase) {
+    headers['x-bitget-api-key'] = state.credentials.apiKey;
+    headers['x-bitget-api-secret'] = state.credentials.apiSecret;
+    headers['x-bitget-passphrase'] = state.credentials.passphrase;
+    if (state.credentials.isDemo !== undefined) {
+      headers['x-bitget-demo'] = state.credentials.isDemo ? 'true' : 'false';
+    }
+  }
+  return headers;
+}

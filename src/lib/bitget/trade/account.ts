@@ -1,5 +1,6 @@
 import { safeGetJson } from './fetch';
 import { fetchPositionsV3 } from './positions';
+import type { BitgetCredentials } from '../auth/signer';
 import {
   toV3Category,
   type BitgetAccountOverview,
@@ -124,14 +125,15 @@ const FUTURES_CATEGORIES: BitgetV3Category[] = ['USDT-FUTURES', 'COIN-FUTURES', 
  *    queried because /position/current-position rejects it (verified via live probe)
  */
 export async function getAccountOverviewV3(
-  categoryInput = 'USDT-FUTURES'
+  categoryInput = 'USDT-FUTURES',
+  credentials?: BitgetCredentials
 ): Promise<BitgetAccountOverview> {
   const settingsPath = '/api/v3/account/settings';
   const assetsPath = '/api/v3/account/assets'; // per docs: no query params
 
   const [settingsRes, assetsRes] = await Promise.all([
-    safeGetJson('GET', settingsPath),
-    safeGetJson('GET', assetsPath),
+    safeGetJson('GET', settingsPath, '', undefined, false, credentials),
+    safeGetJson('GET', assetsPath, '', undefined, false, credentials),
   ]);
 
   const sources: BitgetAccountOverview['sources'] = {
@@ -198,7 +200,9 @@ export async function getAccountOverviewV3(
     );
   }
 
-  const settled = await Promise.allSettled(positionCategories.map((cat) => fetchPositionsV3(cat)));
+  const settled = await Promise.allSettled(
+    positionCategories.map((cat) => fetchPositionsV3(cat, credentials))
+  );
   const positionsByCategory: Record<string, BitgetV3Position[]> = {};
   const positions: BitgetV3Position[] = [];
 

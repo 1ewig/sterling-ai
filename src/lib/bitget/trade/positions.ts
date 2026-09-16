@@ -1,5 +1,6 @@
 import { safeGetJson } from './fetch';
 import { classifyBitgetError } from '../auth/errors';
+import type { BitgetCredentials } from '../auth/signer';
 import { toV3Category, type BitgetErrorDetails, type BitgetV3Position } from '../types';
 
 interface RawV3PositionData {
@@ -76,12 +77,15 @@ export type PositionsFetchResult =
  * NOTE: UTA current-position rejects SPOT/MARGIN ("Parameter SPOT does not exist"), so only
  * futures categories should be requested.
  */
-export async function fetchPositionsV3(categoryInput = 'USDT-FUTURES'): Promise<PositionsFetchResult> {
+export async function fetchPositionsV3(
+  categoryInput = 'USDT-FUTURES',
+  credentials?: BitgetCredentials
+): Promise<PositionsFetchResult> {
   const category = toV3Category(categoryInput);
   const path = '/api/v3/position/current-position';
   const queryString = `category=${category}`;
 
-  const result = await safeGetJson('GET', path, queryString);
+  const result = await safeGetJson('GET', path, queryString, undefined, false, credentials);
   if (!result.ok || !result.json) {
     return { ok: false, positions: [], error: result.error ?? classifyBitgetError('0', 'Unknown positions error') };
   }
@@ -96,8 +100,11 @@ export async function fetchPositionsV3(categoryInput = 'USDT-FUTURES'): Promise<
  * Throwing positions query (used by order-management tools). Throws a descriptive
  * Bitget error string on failure, matching the pre-refactor contract.
  */
-export async function getPositionsV3(categoryInput = 'USDT-FUTURES'): Promise<BitgetV3Position[]> {
-  const result = await fetchPositionsV3(categoryInput);
+export async function getPositionsV3(
+  categoryInput = 'USDT-FUTURES',
+  credentials?: BitgetCredentials
+): Promise<BitgetV3Position[]> {
+  const result = await fetchPositionsV3(categoryInput, credentials);
   if (!result.ok) {
     throw new Error(
       `Bitget Positions failed [${result.error.code || 'unknown'}]: ${result.error.message}. ${result.error.actionableGuidance}`

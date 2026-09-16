@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { BitgetV3Position, BitgetV3OrderInfo } from '@/lib/bitget/types';
 import { applyPositionDelta } from '@/lib/bitget/trade';
-import { useTradingModeStore, getTradingMode } from '@/stores/trading-mode-store';
+import { useTradingModeStore, getClientBitgetHeaders } from '@/stores/trading-mode-store';
 
 export interface OrdersWorkbenchData {
   positions: BitgetV3Position[];
@@ -44,6 +44,7 @@ function applyOrderDelta(current: BitgetV3OrderInfo[], updates: BitgetV3OrderInf
 
 export function useOrdersWorkbench() {
   const tradingMode = useTradingModeStore((s) => s.mode);
+  const credentials = useTradingModeStore((s) => s.credentials);
   const [data, setData] = useState<OrdersWorkbenchData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -97,13 +98,10 @@ export function useOrdersWorkbench() {
   const fetchWorkbenchData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const mode = getTradingMode();
       const res = await fetch('/api/trade/orders', {
         method: 'GET',
         cache: 'no-store',
-        headers: {
-          'x-trading-mode': mode,
-        },
+        headers: getClientBitgetHeaders(),
       });
       const json = await res.json();
 
@@ -153,6 +151,7 @@ export function useOrdersWorkbench() {
         const response = await fetch('/api/trade/stream', {
           method: 'GET',
           cache: 'no-store',
+          headers: getClientBitgetHeaders(),
           signal: controller.signal,
         });
 
@@ -258,7 +257,7 @@ export function useOrdersWorkbench() {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [scheduleBatchFlush, fetchWorkbenchData, tradingMode]);
+  }, [scheduleBatchFlush, fetchWorkbenchData, tradingMode, credentials]);
 
   // Unified Trade Action Dispatcher
   const executeTradeAction = useCallback(
@@ -267,7 +266,10 @@ export function useOrdersWorkbench() {
       try {
         const res = await fetch('/api/trade/action', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...getClientBitgetHeaders(),
+          },
           body: JSON.stringify(payload),
         });
         const json = await res.json();

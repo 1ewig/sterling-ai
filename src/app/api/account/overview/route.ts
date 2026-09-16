@@ -3,6 +3,7 @@ import { getAccountOverviewV3 } from '@/lib/bitget/trade';
 import { getSandboxAccountOverview } from '@/lib/sandbox/sandbox-broker';
 import {
   resolveTradingMode,
+  extractBitgetCredentials,
   isMissingConfigError,
   sandboxResponse,
 } from '@/lib/sandbox/trading-mode';
@@ -15,8 +16,10 @@ export async function GET(req: Request) {
     return NextResponse.json(sandboxResponse(getSandboxAccountOverview()));
   }
 
+  const credentials = extractBitgetCredentials(req);
+
   try {
-    const overview = await getAccountOverviewV3('all');
+    const overview = await getAccountOverviewV3('all', credentials);
     return NextResponse.json({
       success: true,
       data: overview,

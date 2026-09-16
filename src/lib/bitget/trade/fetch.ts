@@ -1,5 +1,5 @@
 import { BITGET_REST_BASE } from '../rest';
-import { getAuthHeaders, syncBitgetServerTime } from '../auth/signer';
+import { getAuthHeaders, syncBitgetServerTime, type BitgetCredentials } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
 import type { BitgetErrorDetails } from '../types';
 
@@ -22,7 +22,7 @@ export interface ApiFetchResult {
 export const MISSING_CREDENTIALS_ERROR: BitgetErrorDetails = {
   category: 'MISSING_CREDENTIALS',
   message: 'Bitget credentials not configured.',
-  actionableGuidance: 'Set BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE in .env.local.',
+  actionableGuidance: 'Configure BITGET_API_KEY, BITGET_API_SECRET, and BITGET_PASSPHRASE via the API Keys settings modal or in .env.local.',
   canRetry: false,
 };
 
@@ -46,14 +46,15 @@ export async function safeGetJson(
   requestPath: string,
   queryString = '',
   bodyObj?: Record<string, unknown>,
-  isRetry = false
+  isRetry = false,
+  credentials?: BitgetCredentials
 ): Promise<ApiFetchResult> {
   // Ensure server time is synchronized
   await syncBitgetServerTime(isRetry);
 
   let headers: Record<string, string>;
   try {
-    headers = getAuthHeaders(method, requestPath, queryString, bodyObj);
+    headers = getAuthHeaders(method, requestPath, queryString, bodyObj, credentials);
   } catch {
     return { ok: false, httpStatus: 0, error: MISSING_CREDENTIALS_ERROR };
   }
@@ -85,7 +86,7 @@ export async function safeGetJson(
     // If timestamp expired and we haven't retried yet, force resync and retry
     if (!isRetry && isTimestampError(envelope.code, envelope.msg)) {
       await syncBitgetServerTime(true);
-      return safeGetJson(method, requestPath, queryString, bodyObj, true);
+      return safeGetJson(method, requestPath, queryString, bodyObj, true, credentials);
     }
 
     const bizOk = envelope.code === '00000' || envelope.code === '0';

@@ -1,5 +1,6 @@
 import { safeGetJson } from './fetch';
 import { classifyBitgetError } from '../auth/errors';
+import type { BitgetCredentials } from '../auth/signer';
 import {
   buildPlaceOrderPayload,
   buildCancelPayload,
@@ -22,7 +23,8 @@ import { getInstrument, snapQtyToStep } from './instruments';
  * Submit an order using Bitget UTA (v3)
  */
 export async function placeOrderV3(
-  params: BitgetV3OrderParams
+  params: BitgetV3OrderParams,
+  credentials?: BitgetCredentials
 ): Promise<BitgetV3OrderResponse> {
   const category = toV3Category(params.category);
   const isSpot = category === 'SPOT';
@@ -46,7 +48,7 @@ export async function placeOrderV3(
 
   const path = '/api/v3/trade/place-order';
   const payload = buildPlaceOrderPayload(resolvedParams);
-  const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>);
+  const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>, false, credentials);
 
   if (result.ok && result.json) {
     const data = result.json.data as { orderId?: string; clientOid?: string } | undefined;
@@ -67,11 +69,12 @@ export async function placeOrderV3(
  * Cancel an open order on Bitget
  */
 export async function cancelOrderV3(
-  params: BitgetV3CancelParams
+  params: BitgetV3CancelParams,
+  credentials?: BitgetCredentials
 ): Promise<{ success: boolean; orderId?: string; alreadyTerminal?: boolean; message?: string }> {
   const path = '/api/v3/trade/cancel-order';
   const payload = buildCancelPayload(params);
-  const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>);
+  const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>, false, credentials);
 
   if (result.ok) {
     const data = result.json?.data as { orderId?: string } | undefined;
@@ -100,11 +103,12 @@ export async function cancelOrderV3(
  */
 export async function cancelSymbolOrdersV3(
   symbol: string,
-  categoryInput?: string
+  categoryInput?: string,
+  credentials?: BitgetCredentials
 ): Promise<{ success: boolean; count?: number }> {
   const path = '/api/v3/trade/cancel-symbol-order';
   const payload = buildBatchCancelPayload(symbol, categoryInput);
-  const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>);
+  const result = await safeGetJson('POST', path, '', payload as unknown as Record<string, unknown>, false, credentials);
 
   if (result.ok) {
     return {
@@ -127,7 +131,8 @@ export async function closePositionsV3(
   side: 'buy' | 'sell',
   size?: string,
   posSide: 'long' | 'short' | 'net' = 'net',
-  marginMode?: 'crossed' | 'isolated'
+  marginMode?: 'crossed' | 'isolated',
+  credentials?: BitgetCredentials
 ): Promise<BitgetV3OrderResponse> {
   let resolvedSize = size;
   let resolvedPosSide = posSide;
@@ -136,7 +141,7 @@ export async function closePositionsV3(
   // Defensive resolution: if size is omitted or empty, resolve from active position
   if (!resolvedSize || parseFloat(resolvedSize) <= 0) {
     try {
-      const positions = await getPositionsV3(categoryInput);
+      const positions = await getPositionsV3(categoryInput, credentials);
       const normSym = normalizeSymbol(symbol);
       const targetPos = positions.find(
         (p) =>
@@ -184,5 +189,5 @@ export async function closePositionsV3(
     resolvedPosSide,
     resolvedMarginMode
   );
-  return placeOrderV3(payload as unknown as BitgetV3OrderParams);
+  return placeOrderV3(payload as unknown as BitgetV3OrderParams, credentials);
 }

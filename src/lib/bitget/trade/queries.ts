@@ -1,5 +1,5 @@
 import { normalizeSymbol } from '../symbols';
-import { sortQueryString } from '../auth/signer';
+import { sortQueryString, type BitgetCredentials } from '../auth/signer';
 import { classifyBitgetError } from '../auth/errors';
 import { safeGetJson } from './fetch';
 import {
@@ -124,7 +124,8 @@ export async function getOrderInfoV3(
   symbol: string,
   categoryInput?: string,
   orderId?: string,
-  clientOid?: string
+  clientOid?: string,
+  credentials?: BitgetCredentials
 ): Promise<BitgetV3OrderInfo | null> {
   const path = '/api/v3/trade/order-info';
   const category = toV3Category(categoryInput);
@@ -136,7 +137,7 @@ export async function getOrderInfoV3(
   const queryString = sortQueryString(queryParts.join('&'));
 
   try {
-    const result = await safeGetJson('GET', path, queryString);
+    const result = await safeGetJson('GET', path, queryString, undefined, false, credentials);
     if (!result.ok || !result.json?.data) {
       return null;
     }
@@ -168,7 +169,8 @@ export async function getOrderInfoV3(
 export async function fetchOpenOrderCategory(
   category: BitgetV3Category,
   symbol?: string,
-  maxPages = 10
+  maxPages = 10,
+  credentials?: BitgetCredentials
 ): Promise<{ orders: BitgetV3OrderInfo[]; pages: number; error?: BitgetErrorDetails }> {
   const baseParts = [`category=${category}`];
   if (symbol) baseParts.push(`symbol=${normalizeSymbol(symbol)}`);
@@ -183,7 +185,7 @@ export async function fetchOpenOrderCategory(
   while (!done && pages < maxPages) {
     const parts = cursor ? [...baseParts, `cursor=${cursor}`] : baseParts;
     const queryString = sortQueryString(parts.join('&'));
-    const result = await safeGetJson('GET', '/api/v3/trade/unfilled-orders', queryString);
+    const result = await safeGetJson('GET', '/api/v3/trade/unfilled-orders', queryString, undefined, false, credentials);
 
     if (!result.ok || !result.json) {
       error = result.error ?? classifyBitgetError('0', 'Unknown unfilled-orders failure');
@@ -195,13 +197,16 @@ export async function fetchOpenOrderCategory(
       | RawUnfilledOrder[]
       | null
       | undefined;
-    const rawList: RawUnfilledOrder[] = Array.isArray(data) ? data : data?.list ?? [];
+    const rawList: RawUnfilledOrder[] = Array.isArray(data) ? data : data?.list || [];
 
-    orders.push(...rawList.map((o) => mapOpenOrder(o, category)));
-    pages += 1;
+    if (rawList.length === 0) break;
 
-    const nextCursor = data && !Array.isArray(data) ? data.cursor : undefined;
-    if (!nextCursor || rawList.length === 0) {
+    const mapped = rawList.map((o) => mapOpenOrder(o, category));
+    orders.push(...mapped);
+    pages++;
+
+    const nextCursor = !Array.isArray(data) ? data?.cursor : undefined;
+    if (!nextCursor || nextCursor === cursor || rawList.length < 100) {
       done = true;
     } else {
       cursor = nextCursor;
@@ -213,9 +218,7 @@ export async function fetchOpenOrderCategory(
 
 export interface FetchOpenOrdersOptions {
   symbol?: string;
-  /** Category to query; 'all' aggregates USDT-FUTURES + SPOT + COIN-FUTURES + USDC-FUTURES */
   categoryInput?: string;
-  /** Max pagination pages per category (each page ≤ 100 orders); default 10 */
   maxPages?: number;
 }
 
@@ -236,13 +239,18 @@ export interface OpenOrdersResult {
  * Fetch unfilled (open/working) orders across one or all categories with cursor pagination,
  * per-source diagnostics, and graceful degradation. Never throws.
  */
-export async function fetchOpenOrdersV3(opts: FetchOpenOrdersOptions = {}): Promise<OpenOrdersResult> {
+export async function fetchOpenOrdersV3(
+  opts: FetchOpenOrdersOptions = {},
+  credentials?: BitgetCredentials
+): Promise<OpenOrdersResult> {
   const { symbol, categoryInput = 'USDT-FUTURES', maxPages = 10 } = opts;
   const rawCategory = categoryInput === 'all' ? 'all' : toV3Category(categoryInput);
   const categories: BitgetV3Category[] =
     rawCategory === 'all' ? ALL_ORDER_CATEGORIES : [rawCategory];
 
-  const settled = await Promise.allSettled(categories.map((cat) => fetchOpenOrderCategory(cat, symbol, maxPages)));
+  const settled = await Promise.allSettled(
+    categories.map((cat) => fetchOpenOrderCategory(cat, symbol, maxPages, credentials))
+  );
 
   const perCategory: Record<string, BitgetV3OrderInfo[]> = {};
   const sources: Record<string, BitgetAccountSource> = {};

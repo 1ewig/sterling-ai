@@ -4,6 +4,7 @@ import { fetchOpenOrdersV3 } from '@/lib/bitget/trade/queries';
 import { getSandboxOrdersAndPositions } from '@/lib/sandbox/sandbox-broker';
 import {
   resolveTradingMode,
+  extractBitgetCredentials,
   isMissingConfigError,
   sandboxResponse,
 } from '@/lib/sandbox/trading-mode';
@@ -17,10 +18,12 @@ export async function GET(req: Request) {
     return NextResponse.json(sandboxResponse(getSandboxOrdersAndPositions()));
   }
 
+  const credentials = extractBitgetCredentials(req);
+
   try {
     const [positionsRes, ordersRes] = await Promise.allSettled([
-      fetchPositionsV3('USDT-FUTURES'),
-      fetchOpenOrdersV3({ categoryInput: 'all' }),
+      fetchPositionsV3('USDT-FUTURES', credentials),
+      fetchOpenOrdersV3({ categoryInput: 'all' }, credentials),
     ]);
 
     let positions: BitgetV3Position[] = [];

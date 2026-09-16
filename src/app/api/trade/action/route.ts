@@ -5,7 +5,7 @@ import {
   closePositionsV3,
 } from '@/lib/bitget/trade';
 import { verifyActionTicketToken } from '@/lib/bitget/auth';
-import { resolveTradingMode } from '@/lib/sandbox/trading-mode';
+import { resolveTradingMode, extractBitgetCredentials } from '@/lib/sandbox/trading-mode';
 import { toV3Category } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';
@@ -64,6 +64,7 @@ export async function POST(req: Request) {
 
     // Check trading mode (Sandbox vs Live)
     const isSandbox = resolveTradingMode(req) === 'sandbox';
+    const credentials = extractBitgetCredentials(req);
 
     if (isSandbox) {
       const { closeSandboxPosition, cancelSandboxOrder } = await import(
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
         category: toV3Category(category),
         orderId,
         clientOid,
-      });
+      }, credentials);
       return NextResponse.json({
         success: true,
         action: 'cancel_order',
@@ -125,7 +126,7 @@ export async function POST(req: Request) {
     }
 
     if (action === 'cancel_symbol') {
-      await cancelSymbolOrdersV3(symbol, category);
+      await cancelSymbolOrdersV3(symbol, category, credentials);
       return NextResponse.json({
         success: true,
         action: 'cancel_symbol',
@@ -141,7 +142,7 @@ export async function POST(req: Request) {
           { status: 400 }
         );
       }
-      const res = await closePositionsV3(symbol, category, side, size, posSide, marginMode);
+      const res = await closePositionsV3(symbol, category, side, size, posSide, marginMode, credentials);
       return NextResponse.json({
         success: true,
         action: 'close_position',

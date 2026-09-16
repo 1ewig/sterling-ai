@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { getTradingMode } from '@/stores/trading-mode-store';
+import { getClientBitgetHeaders } from '@/stores/trading-mode-store';
 import type { StagedTradeItem } from './use-staged-actions';
 
 export interface UseExecuteTradeOptions {
@@ -81,12 +81,11 @@ export function useExecuteTrade({
       abortControllerRef.current = new AbortController();
 
       try {
-        const mode = getTradingMode();
         const res = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-trading-mode': mode,
+            ...getClientBitgetHeaders(),
           },
           signal: abortControllerRef.current.signal,
           body: JSON.stringify(payload),

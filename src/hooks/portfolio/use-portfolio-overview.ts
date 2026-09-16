@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { BitgetAccountOverview, BitgetV3Position } from '@/lib/bitget/types';
 import { applyPositionDelta } from '@/lib/bitget/trade';
-import { useTradingModeStore, getTradingMode } from '@/stores/trading-mode-store';
+import { useTradingModeStore, getClientBitgetHeaders } from '@/stores/trading-mode-store';
 
 export interface UsePortfolioOverviewReturn {
   data: BitgetAccountOverview | null;
@@ -24,6 +24,7 @@ export type UseAccountOverviewReturn = UsePortfolioOverviewReturn;
  */
 export function usePortfolioOverview(): UsePortfolioOverviewReturn {
   const tradingMode = useTradingModeStore((s) => s.mode);
+  const credentials = useTradingModeStore((s) => s.credentials);
   const [data, setData] = useState<BitgetAccountOverview | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -95,13 +96,10 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
     }
 
     try {
-      const mode = getTradingMode();
       const res = await fetch('/api/account/overview', {
         method: 'GET',
         cache: 'no-store',
-        headers: {
-          'x-trading-mode': mode,
-        },
+        headers: getClientBitgetHeaders(),
       });
 
       const json = await res.json();
@@ -155,6 +153,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
         const response = await fetch('/api/account/stream', {
           method: 'GET',
           cache: 'no-store',
+          headers: getClientBitgetHeaders(),
           signal: controller.signal,
         });
 
@@ -281,7 +280,7 @@ export function usePortfolioOverview(): UsePortfolioOverviewReturn {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [scheduleBatchFlush, fetchOverview, tradingMode]);
+  }, [scheduleBatchFlush, fetchOverview, tradingMode, credentials]);
 
   const refetch = useCallback(async () => {
     await fetchOverview(true);

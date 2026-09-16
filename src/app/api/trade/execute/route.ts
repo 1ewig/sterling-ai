@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { placeOrderV3, getOrderInfoV3 } from '@/lib/bitget/trade';
 import { verifyTradeTicketToken } from '@/lib/bitget/auth';
-import { resolveTradingMode } from '@/lib/sandbox/trading-mode';
+import { resolveTradingMode, extractBitgetCredentials } from '@/lib/sandbox/trading-mode';
 import type { BitgetV3OrderParams } from '@/lib/bitget/types';
 
 export const runtime = 'nodejs';
@@ -73,6 +73,7 @@ export async function POST(req: Request) {
 
     // 2. Check trading mode (Sandbox vs Live)
     const isSandbox = resolveTradingMode(req) === 'sandbox';
+    const credentials = extractBitgetCredentials(req);
 
     if (isSandbox) {
       const { executeSandboxOrder } = await import('@/lib/sandbox/sandbox-broker');
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Submit order to Bitget v3 UTA
-    const result = await placeOrderV3(orderParams);
+    const result = await placeOrderV3(orderParams, credentials);
 
     // 3. Short polling (up to 1.5s) to capture instant market fills or limit acceptances
     let terminalInfo: {
@@ -108,7 +109,8 @@ export async function POST(req: Request) {
           result.symbol,
           result.category,
           result.orderId,
-          result.clientOid
+          result.clientOid,
+          credentials
         );
       } catch {
         // Fall back to submitted status

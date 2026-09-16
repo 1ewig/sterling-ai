@@ -1,20 +1,40 @@
+import type { BitgetCredentials } from '@/lib/bitget/auth/signer';
+
 export type TradingMode = 'sandbox' | 'live';
 
 export const TRADING_MODE_HEADER = 'x-trading-mode';
 
 /**
+ * Extracts client-supplied Bitget credentials from incoming request headers.
+ */
+export function extractBitgetCredentials(req: Request): BitgetCredentials | undefined {
+  const apiKey = req.headers.get('x-bitget-api-key') || undefined;
+  const apiSecret = req.headers.get('x-bitget-api-secret') || undefined;
+  const passphrase = req.headers.get('x-bitget-passphrase') || undefined;
+  const isDemoHeader = req.headers.get('x-bitget-demo');
+  const isDemo = isDemoHeader !== null ? isDemoHeader === 'true' : undefined;
+
+  if (apiKey && apiSecret && passphrase) {
+    return { apiKey, apiSecret, passphrase, isDemo };
+  }
+  return undefined;
+}
+
+/**
  * Resolves the effective trading mode from an incoming request.
  * Header `x-trading-mode: sandbox|live` wins when present; otherwise it
- * falls back to the presence of configured server-side credentials.
+ * falls back to client credentials or configured server-side credentials.
  */
 export function resolveTradingMode(req: Request): TradingMode {
   const header = req.headers.get(TRADING_MODE_HEADER);
-  if (header === 'sandbox' || header === 'live') return header;
+  if (header === 'sandbox') return 'sandbox';
+  if (header === 'live') return 'live';
 
-  const hasCredentials =
-    Boolean(process.env.BITGET_API_KEY) &&
-    Boolean(process.env.BITGET_API_SECRET) &&
-    Boolean(process.env.BITGET_PASSPHRASE);
+  const clientCreds = extractBitgetCredentials(req);
+  const hasCredentials = Boolean(
+    (clientCreds?.apiKey && clientCreds?.apiSecret && clientCreds?.passphrase) ||
+    (process.env.BITGET_API_KEY && process.env.BITGET_API_SECRET && process.env.BITGET_PASSPHRASE)
+  );
 
   return hasCredentials ? 'live' : 'sandbox';
 }
